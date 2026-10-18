@@ -22,9 +22,10 @@ import (
 const currentVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
 
 type testServer struct {
-	hub *sim.Hub
-	svc *access.Service
-	url string
+	hub   *sim.Hub
+	svc   *access.Service
+	world *world.World
+	url   string
 }
 
 func startServer(t *testing.T) *testServer {
@@ -46,7 +47,7 @@ func startServer(t *testing.T) *testServer {
 	gw = New(Config{Hub: hub, Access: svc, World: w, ServerName: "test", HelloTimeout: time.Second})
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	return &testServer{hub: hub, svc: svc, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	return &testServer{hub: hub, svc: svc, world: w, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

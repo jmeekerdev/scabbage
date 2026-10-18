@@ -11,6 +11,8 @@ export interface WorldRenderer {
   /** Starts (or restarts, after reconnecting) streaming the described world. */
   start(info: WorldInfo): void;
   receive(batch: ChunkBatch): void;
+  /** The block at world position x,y,z, or undefined if it isn't loaded. */
+  blockAt(x: number, y: number, z: number): number | undefined;
   /** Keeps chunks around block position x,z loaded and drawn; call once per frame. */
   tick(x: number, z: number, viewDistance: number): void;
 }
@@ -36,6 +38,7 @@ export function createWorldRenderer(
     receive(batch) {
       world.receive(batch.chunks.flatMap((c) => (c.pos ? [{ pos: c.pos, data: c.data }] : [])));
     },
+    blockAt: (x, y, z) => world.blockAt(x, y, z),
     tick(x, z, viewDistance) {
       if (started) world.tick(x, z, viewDistance);
     },

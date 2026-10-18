@@ -2,21 +2,27 @@ import "./style.css";
 import { browserStore, loadSecret, resetSecret } from "./join/identity";
 import { parseInvite } from "./join/invite";
 import { screenForRejection, type Action, type Screen } from "./join/outcome";
-import { encodeRequestChunks, type JoinInit } from "./net/codec";
+import { encodeMove, encodeRequestChunks, type JoinInit } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
-import type { Vec3, Welcome } from "./pb/scabbage/v1/net_pb";
+import type { Teleport, Welcome, WorldInfo } from "./pb/scabbage/v1/net_pb";
+import { KeyboardMouse } from "./player/keyboard-mouse";
+import { MoveSync } from "./player/move-sync";
+import type { SolidAt } from "./player/physics";
+import { Player } from "./player/player";
 import { startScene } from "./render/scene";
 import { createWorldRenderer } from "./render/world-renderer";
 import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
 import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
 import { $, el } from "./ui/dom";
 import { settingsPanel } from "./ui/settings-panel";
+import { solidQuery } from "./world/solid";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 
 const overlay = $("#overlay");
 const statusEl = $("#status");
 const pingEl = $("#ping");
+const hintEl = $("#hint");
 const store = browserStore();
 const clientName = navigator.userAgent.match(/\(([^;)]+)/)?.[1] ?? "unknown";
 const inviteCode = takeInviteFromUrl();
@@ -24,13 +30,25 @@ let conn: Connection | undefined;
 let lastJoin: JoinInit | undefined;
 let onAdminMessage: ConnectionEvents["onMessage"] | undefined;
 
-let settings = loadSettings(store, defaultSettings(matchMedia("(pointer: coarse)").matches));
+const touch = matchMedia("(pointer: coarse)").matches;
+let settings = loadSettings(store, defaultSettings(touch));
 const gameScene = startScene($("#game"), settings);
 const world = createWorldRenderer(gameScene, (chunks) => conn?.send(encodeRequestChunks(chunks)));
+const player = new Player();
+const controls = new KeyboardMouse($("#game"), player, (locked) => (hintEl.hidden = locked));
+let moves: MoveSync | undefined; // set while in the world
+let solid: SolidAt = () => true;
+let lastFrameMs: number | undefined;
 gameScene.onFrame((timeMs) => {
-  lookAround(timeMs);
-  const { x, z } = gameScene.camera.position;
-  world.tick(x, z, settings.viewDistance);
+  const dt = lastFrameMs === undefined ? 0 : (timeMs - lastFrameMs) / 1000;
+  lastFrameMs = timeMs;
+  player.update(dt, controls.input(), solid);
+  const eye = player.eye();
+  gameScene.camera.position.set(eye.x, eye.y, eye.z);
+  gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
+  world.tick(eye.x, eye.z, settings.viewDistance);
+  const pose = moves?.due(timeMs, player.pose());
+  if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
 addHudDialog(
   "Settings",
@@ -71,6 +89,7 @@ function connect(join?: JoinInit): void {
       onRejected: (d) => show(screenForRejection(d)),
       onMessage: (msg) => {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
+        else if (msg.body.case === "teleport") teleport(msg.body.value);
         else onAdminMessage?.(msg);
       },
     },
@@ -114,21 +133,26 @@ function enterGame(w: Welcome): void {
   hideOverlay(overlay);
   statusEl.textContent = `${w.you?.name ?? "?"} on ${w.serverName}`;
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
-  if (w.world) {
-    world.start(w.world);
-    standAt(w.world.spawn);
-  }
+  if (w.world) enterWorld(w.world, w.tickRateHz);
 }
 
-const EYE_HEIGHT = 1.62;
-
-function standAt(spawn?: Vec3): void {
-  gameScene.camera.position.set(spawn?.x ?? 0, (spawn?.y ?? 64) + EYE_HEIGHT, spawn?.z ?? 0);
+function enterWorld(info: WorldInfo, tickRateHz: number): void {
+  world.start(info);
+  solid = solidQuery(
+    info,
+    info.blocks.map((b) => b.solid),
+    (x, y, z) => world.blockAt(x, y, z),
+  );
+  const spawn = info.spawn;
+  player.place(spawn?.x ?? 0, spawn?.y ?? 0, spawn?.z ?? 0);
+  moves = new MoveSync(1000 / Math.max(1, tickRateHz));
+  hintEl.hidden = document.pointerLockElement !== null || touch;
 }
 
-/** Slowly turns the view until player movement exists. */
-function lookAround(timeMs: number): void {
-  gameScene.camera.rotation.set(-0.15, timeMs / 30000, 0, "YXZ");
+/** The server put us back somewhere, usually after rejecting a move. */
+function teleport(t: Teleport): void {
+  player.place(t.pos?.x ?? 0, t.pos?.y ?? 0, t.pos?.z ?? 0);
+  moves?.teleported(t.id);
 }
 
 /** In-game admin tools: join-request toasts and an invite dialog. */

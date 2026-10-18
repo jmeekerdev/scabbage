@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
+	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 )
 
@@ -29,6 +30,9 @@ type session struct {
 	out     chan *pb.ServerMessage
 	player  access.Player
 	console bool // admin console: no world, no hub
+
+	body     *motion.Tracker // the player's server-side position; nil for the console
+	teleport uint32          // id of the last Teleport sent
 }
 
 type inbound struct {
@@ -110,6 +114,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.createJoinCode(ctx, body.CreateJoinCode)
 	case *pb.ClientMessage_RequestChunks:
 		return s.sendChunks(ctx, body.RequestChunks)
+	case *pb.ClientMessage_Move:
+		return s.move(ctx, body.Move)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

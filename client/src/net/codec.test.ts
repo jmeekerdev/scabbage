@@ -7,6 +7,7 @@ import {
   encodeCreateJoinCode,
   encodeDecideJoin,
   encodeHello,
+  encodeMove,
   encodePing,
   encodeRequestChunks,
 } from "./codec";
@@ -14,6 +15,14 @@ import {
 const decodeClient = (b: Uint8Array) => fromBinary(ClientMessageSchema, b).body;
 
 describe("codec", () => {
+  it("encodes a move with pose and teleport id", () => {
+    const body = decodeClient(encodeMove({ x: 1.5, y: 64, z: -2.25, yaw: 0.5, pitch: -0.25 }, 3));
+    expect(body.case).toBe("move");
+    if (body.case !== "move") return;
+    const { pos, yaw, pitch, teleport } = body.value;
+    expect([pos?.x, pos?.y, pos?.z, yaw, pitch, teleport]).toEqual([1.5, 64, -2.25, 0.5, -0.25, 3]);
+  });
+
   it("encodes a chunk request, including negative coordinates", () => {
     const body = decodeClient(encodeRequestChunks([{ x: -3, y: 2, z: 7 }]));
     expect(body.case).toBe("requestChunks");

@@ -52,6 +52,7 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 	}
 	if !s.console {
 		welcome.World = worldInfo(s.gw.cfg.World)
+		s.startMotion()
 	}
 	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Welcome{Welcome: welcome}})
 }

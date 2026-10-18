@@ -56,6 +56,20 @@ describe("ChunkStreamer", () => {
     expect(s.nextBatch()).toBeDefined();
   });
 
+  it("asks again later for chunks the server left out", () => {
+    const s = new ChunkStreamer(big, { batchSize: 4, maxInFlight: 1 });
+    s.update(0, 0, 2);
+    const a = s.nextBatch()!;
+    s.received(a.slice(0, 2));
+    expect(s.has(chunkKey(a[0].x, a[0].y, a[0].z))).toBe(true);
+    expect(s.has(chunkKey(a[3].x, a[3].y, a[3].z))).toBe(false);
+    const b = s.nextBatch()!;
+    expect(b).not.toContainEqual(a[3]); // no hammering while standing still
+    s.received(b);
+    s.update(1, 0, 2);
+    expect(drain(s)).toContainEqual(a[3]);
+  });
+
   it("never requests a chunk twice", () => {
     const s = new ChunkStreamer(big, { batchSize: 16 });
     s.update(0, 0, 3);

@@ -57,6 +57,16 @@ export function encodeRequestChunks(chunks: readonly { x: number; y: number; z: 
   });
 }
 
+export function encodeMove(
+  p: { x: number; y: number; z: number; yaw: number; pitch: number },
+  teleport: number,
+): Bytes {
+  return encode({
+    case: "move",
+    value: { pos: { x: p.x, y: p.y, z: p.z }, yaw: p.yaw, pitch: p.pitch, teleport },
+  });
+}
+
 export function decodeServer(bytes: Uint8Array): ServerMessage {
   return fromBinary(ServerMessageSchema, bytes);
 }

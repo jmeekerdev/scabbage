@@ -21,6 +21,12 @@ export class ChunkStore {
     return this.chunks.get(chunkKey(x, y, z));
   }
 
+  /** The block at world position x,y,z, or undefined if its chunk isn't loaded. */
+  blockAt(x: number, y: number, z: number): number | undefined {
+    const c = this.get(Math.floor(x / S), Math.floor(y / S), Math.floor(z / S));
+    return c && blockAt(c, mod(x), mod(y), mod(z));
+  }
+
   delete(key: ChunkKey): void {
     this.chunks.delete(key);
   }
@@ -63,6 +69,8 @@ export class ChunkStore {
     return y >= 0 && y < this.layers && columnInside(x, z, this.bounds);
   }
 }
+
+const mod = (v: number) => ((v % S) + S) % S;
 
 /** Copies a box of size blocks starting at `from` in chunk c to `to` in a padded volume. */
 function copyRegion(

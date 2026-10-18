@@ -168,8 +168,10 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] Client settings: view distance, graphics preset, FPS cap (saved per device; touch starts lighter)
 - [x] Chunk streaming by distance; meshing (greedy) in a Web Worker; texture atlas
       (procedural textures in one array texture so merged faces tile cleanly)
-- [ ] Player movement: walk/jump/fly toggle, AABB collision, client prediction + reconciliation
-      (server also limits chunk requests to the player's surroundings)
+- [x] Player movement: walk/jump/fly toggle, AABB collision, client prediction + reconciliation
+      (client simulates at 60 Hz and reports its pose; the server checks speed budgets and
+      collision along the path, and sends a Teleport back on a bad move. Chunk requests are
+      limited to the player's surroundings. Basic KB/M controls for now)
 - [ ] Block break/place with server validation and a broadcast to everyone
 - [ ] Other players visible (simple blocky avatars + name tags, interpolated)
 - [ ] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API

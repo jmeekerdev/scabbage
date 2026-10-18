@@ -199,3 +199,29 @@ func TestWorldIsSafeForConcurrentUse(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestSolidWallsInTheBorderAndFloor(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	if err := w.SetBlock(1, 100, 1, Stone); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.SetBlock(2, 100, 1, Water); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		x, y, z int32
+		want    bool
+	}{
+		{1, 100, 1, true},   // stone
+		{2, 100, 1, false},  // water
+		{3, 100, 1, false},  // air
+		{64, 100, 0, true},  // past the border
+		{0, -1, 0, true},    // below the world
+		{0, MaxY, 0, false}, // open sky
+	}
+	for _, c := range cases {
+		if got := w.Solid(c.x, c.y, c.z); got != c.want {
+			t.Errorf("Solid(%d,%d,%d) = %v, want %v", c.x, c.y, c.z, got, c.want)
+		}
+	}
+}

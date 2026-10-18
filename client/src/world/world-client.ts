@@ -59,6 +59,11 @@ export class WorldClient {
     }
   }
 
+  /** The block at world position x,y,z, or undefined if it isn't loaded. */
+  blockAt(x: number, y: number, z: number): number | undefined {
+    return this.store.blockAt(x, y, z);
+  }
+
   /** Call every frame with the player's block position; does little unless something is due. */
   tick(x: number, z: number, viewDistance: number): void {
     const cx = Math.floor(x / CHUNK_SIZE);

@@ -47,7 +47,7 @@ export class ChunkStreamer {
   private readonly layers: number;
   private queue: ChunkPos[] = [];
   private cursor = 0;
-  private inFlight = 0;
+  private readonly inFlight: ChunkPos[][] = []; // requests sent, oldest first
   private readonly pending = new Set<ChunkKey>();
   private readonly loaded = new Set<ChunkKey>();
   private center?: { cx: number; cz: number; vd: number };
@@ -75,7 +75,7 @@ export class ChunkStreamer {
 
   /** The next positions to request, or undefined when nothing is due or too much is in flight. */
   nextBatch(): ChunkPos[] | undefined {
-    if (this.inFlight >= this.maxInFlight) return undefined;
+    if (this.inFlight.length >= this.maxInFlight) return undefined;
     const batch: ChunkPos[] = [];
     for (; this.cursor < this.queue.length && batch.length < this.batchSize; this.cursor++) {
       const p = this.queue[this.cursor];
@@ -85,18 +85,17 @@ export class ChunkStreamer {
       batch.push(p);
     }
     if (batch.length === 0) return undefined;
-    this.inFlight++;
+    this.inFlight.push(batch);
     return batch;
   }
 
-  /** Marks a requested batch as arrived. */
-  received(batch: readonly ChunkPos[]): void {
-    for (const p of batch) {
-      const key = chunkKey(p.x, p.y, p.z);
-      this.pending.delete(key);
-      this.loaded.add(key);
-    }
-    this.inFlight = Math.max(0, this.inFlight - 1);
+  /**
+   * Records the reply to the oldest request. Chunks it left out (too far from where the
+   * server thinks the player is) are asked for again after the next re-centering.
+   */
+  received(got: readonly ChunkPos[]): void {
+    for (const p of this.inFlight.shift() ?? []) this.pending.delete(chunkKey(p.x, p.y, p.z));
+    for (const p of got) this.loaded.add(chunkKey(p.x, p.y, p.z));
   }
 
   has(key: ChunkKey): boolean {
@@ -106,7 +105,7 @@ export class ChunkStreamer {
   reset(): void {
     this.queue = [];
     this.cursor = 0;
-    this.inFlight = 0;
+    this.inFlight.length = 0;
     this.pending.clear();
     this.loaded.clear();
     this.center = undefined;

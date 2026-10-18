@@ -52,4 +52,14 @@ describe("ChunkStore", () => {
     expect(v[paddedIndex(16, 5, 7)]).toBe(0);
     expect(v[paddedIndex(5, -1, 5)]).toBe(0); // below the world
   });
+
+  it("looks up blocks by world position", () => {
+    const s = new ChunkStore(bounds);
+    const blocks = new Uint16Array(CHUNK_VOLUME);
+    blocks[chunkIndex(15, 2, 0)] = 9;
+    s.set({ x: -1, y: 1, z: 0 }, { fill: 0, blocks });
+    expect(s.blockAt(-1, 18, 0)).toBe(9);
+    expect(s.blockAt(-2, 18, 0)).toBe(0);
+    expect(s.blockAt(0, 18, 0)).toBeUndefined(); // not loaded
+  });
 });

@@ -143,6 +143,18 @@ func (w *World) SetBlock(x, y, z int32, b Block) error {
 	return nil
 }
 
+// Solid reports whether players collide at x,y,z; the border and the floor are walls, the sky open.
+func (w *World) Solid(x, y, z int32) bool {
+	if y >= MaxY {
+		return false
+	}
+	if y < MinY || !w.blockInside(x, z) {
+		return true
+	}
+	b, err := w.Block(x, y, z)
+	return err != nil || Info(b).Solid
+}
+
 func (w *World) blockInside(x, z int32) bool {
 	r := w.meta.Radius
 	return r == Unbounded || (x >= -r && x < r && z >= -r && z < r)

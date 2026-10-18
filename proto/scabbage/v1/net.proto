@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 3;
+  PROTOCOL_VERSION_CURRENT = 4;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -18,6 +18,7 @@ message ClientMessage {
     DecideJoin decide_join = 3;
     CreateJoinCode create_join_code = 4;
     RequestChunks request_chunks = 5;
+    Move move = 6;
   }
 }
 
@@ -31,6 +32,7 @@ message ServerMessage {
     PendingRequests pending_requests = 5;
     JoinCodeCreated join_code_created = 6;
     ChunkBatch chunk_batch = 7;
+    Teleport teleport = 8;
   }
 }
 
@@ -87,7 +89,8 @@ message ChunkPos {
   sint32 z = 3;
 }
 
-// Asks for chunks (at most 64 per request); the server answers with one ChunkBatch.
+// Asks for chunks (at most 64 per request); the server answers with one ChunkBatch that
+// leaves out chunks too far from the player.
 message RequestChunks {
   repeated ChunkPos chunks = 1;
 }
@@ -100,6 +103,21 @@ message ChunkBatch {
 message ChunkData {
   ChunkPos pos = 1;
   bytes data = 2;
+}
+
+// The player's own position (feet center) and view, sent up to 20 times a second while it changes.
+message Move {
+  Vec3 pos = 1;
+  float yaw = 2;
+  float pitch = 3;
+  // The last Teleport id applied; moves made before the latest teleport are ignored.
+  uint32 teleport = 4;
+}
+
+// Puts the player at pos, e.g. when the server rejects a move. Ids count up from 1.
+message Teleport {
+  uint32 id = 1;
+  Vec3 pos = 2;
 }
 
 message PlayerInfo {

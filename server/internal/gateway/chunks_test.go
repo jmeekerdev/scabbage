@@ -34,7 +34,7 @@ func TestWelcomeDescribesTheWorld(t *testing.T) {
 func TestChunkRequestGetsOneBatchInOrder(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	send(t, c, requestChunks(&pb.ChunkPos{X: 0, Y: 2, Z: 0}, &pb.ChunkPos{X: -1, Y: 0, Z: 3}, &pb.ChunkPos{X: 99, Y: 0, Z: 0}))
+	send(t, c, requestChunks(&pb.ChunkPos{X: 0, Y: 2, Z: 0}, &pb.ChunkPos{X: -1, Y: 0, Z: 3}, &pb.ChunkPos{X: 5, Y: 0, Z: 0}))
 	batch := recv(t, c).GetChunkBatch()
 	if batch == nil || len(batch.Chunks) != 3 || batch.Chunks[1].Pos.X != -1 || batch.Chunks[1].Pos.Z != 3 {
 		t.Fatalf("batch = %v", batch)
@@ -46,6 +46,17 @@ func TestChunkRequestGetsOneBatchInOrder(t *testing.T) {
 	}
 	if bottom, _ := world.Decode(batch.Chunks[1].Data); bottom.Get(0, 0, 0) != world.Bedrock {
 		t.Fatal("the bottom of a column should be bedrock")
+	}
+}
+
+func TestChunksFarFromThePlayerAreLeftOut(t *testing.T) {
+	ts := startServer(t)
+	c := ts.joinAdmin(t)
+	far := int32(maxChunkRange + 1)
+	send(t, c, requestChunks(&pb.ChunkPos{X: far}, &pb.ChunkPos{X: 1, Z: 1}, &pb.ChunkPos{Z: -far}))
+	batch := recv(t, c).GetChunkBatch()
+	if batch == nil || len(batch.Chunks) != 1 || batch.Chunks[0].Pos.X != 1 {
+		t.Fatalf("batch = %v", batch)
 	}
 }
 
