@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"scabbage/internal/gateway"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
+	"scabbage/internal/world"
 )
 
 func main() {
@@ -37,7 +39,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	defer func() { _ = db.Close() }()
-	hub := sim.NewHub(sim.Config{TickRate: cfg.TickRate})
+	w, err := world.Open(world.NewStore(db), "main", world.Defaults{})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := w.Flush(); err != nil {
+			logger.Error("saving world", "err", err)
+		}
+	}()
+	logger.Info("world ready", "seed", w.Meta().Seed, "generator", w.Meta().Generator, "radius", w.Meta().Radius)
+	hub := sim.NewHub(sim.Config{TickRate: cfg.TickRate, OnIdle: unloadWorld(w, logger)})
 	defer hub.Close()
 
 	var gw *gateway.Gateway
@@ -77,6 +89,19 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	return nil
+}
+
+// unloadWorld saves and drops the world, then returns freed memory to the OS.
+func unloadWorld(w *world.World, logger *slog.Logger) func() {
+	return func() {
+		chunks := w.Loaded()
+		if err := w.Unload(); err != nil {
+			logger.Error("unloading world", "err", err)
+			return
+		}
+		debug.FreeOSMemory()
+		logger.Info("idle: world unloaded", "chunks", chunks)
+	}
 }
 
 func openDB(dir string) (*sql.DB, error) {

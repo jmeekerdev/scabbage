@@ -61,13 +61,15 @@ Targets: at idle, **~0% CPU and under ~30 MB RSS**. In a session with 6 players,
 
 - **Idle mode:** when the last player leaves, the server stops its tick loop and flushes
   changed chunks to SQLite. It then unloads the world from memory and waits on network
-  input only, with no timers. The first player to connect wakes it again.
+  input only, with no timers. The first player to connect wakes it again; chunks reload
+  lazily from SQLite as they are needed. (`sim.Config.OnIdle` runs after the loop stops.)
 - **Runtime limits:** `GOMEMLIMIT` is set below the container limit
   (`mem_limit: 2g`, `cpus: 2`), and the Go GC returns memory to the OS after the world unloads.
 - **Only active areas run:** chunks are loaded only near players. Mob AI, logic circuits
   and scripts run only in loaded chunks.
-- **Compact data:** block palettes + RLE in memory and on the wire, zstd-compressed chunk
-  blobs in SQLite, and the server only sends what changed each tick.
+- **Compact data:** uniform chunks (all air, all stone) are stored as one block in memory; the
+  palette + RLE encoding is used on the wire and in SQLite (a surface chunk is ~0.6 KB, a uniform
+  one 3 bytes), with no extra compressor. The server only sends what changed each tick.
 - **Few dependencies:** small, pure-Go server dependencies; the only big client dependency is
   Three.js, which is tree-shaken. Bundle size is tracked in `make check`.
 - **Players can tune performance themselves:** view distance, graphics presets and a
@@ -91,7 +93,12 @@ The Go server only speaks HTTP/WS. TLS comes from Caddy (in the compose file, op
   Opening the world up means raising or removing the border.
 - World gen is deterministic from `(seed, generator version)`, so new land generated
   later matches up with old land without seams. If the generator algorithm changes, it gets a
-  new version, and already-generated chunks keep the version they were made with.
+  new version. Every chunk is saved once generated, so existing land never changes. A golden-hash
+  test pins each generator version, and noise math avoids fused multiply-adds so it is identical on
+  amd64 and arm64.
+- Default border: 1024×1024 blocks (radius 512, stored per world), height 0–127, sea level 30.
+  Starter blocks: stone, dirt, grass, sand, water, log, leaves, planks, cobblestone, glass, brick,
+  bedrock.
 
 ## Join and approval flow
 
@@ -156,8 +163,8 @@ Each phase ends with something the family can play. Compact the model context be
 ### Phase 1 — Shared Build World (Milestone 1)
 - [x] Join code → pending → admin approve → device registered; admin page (`/admin.html`) + in-game approve toasts
       (`/approve <name>` lands with chat)
-- [ ] World: chunk storage in SQLite, versioned seeded terrain gen, world border, ~10 starter blocks
-- [ ] Idle mode: stop ticking and unload the world when empty, wake when someone joins
+- [x] World: chunk storage in SQLite, versioned seeded terrain gen, world border, ~10 starter blocks
+- [x] Idle mode: stop ticking and unload the world when empty, wake when someone joins
 - [ ] Client settings: view distance, graphics preset, FPS cap
 - [ ] Chunk streaming by distance; meshing (greedy) in a Web Worker; texture atlas
 - [ ] Player movement: walk/jump/fly toggle, AABB collision, client prediction + reconciliation

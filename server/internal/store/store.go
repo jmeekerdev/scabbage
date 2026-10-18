@@ -39,6 +39,22 @@ var migrations = []string{
 		ip          TEXT NOT NULL,
 		created_ms  INTEGER NOT NULL
 	);`,
+	`CREATE TABLE worlds (
+		id         INTEGER PRIMARY KEY,
+		name       TEXT NOT NULL UNIQUE,
+		seed       INTEGER NOT NULL,
+		generator  INTEGER NOT NULL,
+		radius     INTEGER NOT NULL,
+		created_ms INTEGER NOT NULL
+	);
+	CREATE TABLE chunks (
+		world_id INTEGER NOT NULL REFERENCES worlds(id) ON DELETE CASCADE,
+		x        INTEGER NOT NULL,
+		y        INTEGER NOT NULL,
+		z        INTEGER NOT NULL,
+		data     BLOB NOT NULL,
+		PRIMARY KEY (world_id, x, y, z)
+	) WITHOUT ROWID;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

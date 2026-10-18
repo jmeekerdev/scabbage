@@ -25,6 +25,7 @@ type Config struct {
 	TickRate  int                        // ticks per second
 	NewTicker func(time.Duration) Ticker // defaults to NewRealTicker
 	OnTick    func(tick uint64)          // called on the loop goroutine; must not call Join/Leave
+	OnIdle    func()                     // called after the loop stops (e.g. to unload the world)
 }
 
 // Hub tracks connected players and runs the tick loop only while at least one is present.
@@ -43,6 +44,9 @@ func NewHub(cfg Config) *Hub {
 	}
 	if cfg.OnTick == nil {
 		cfg.OnTick = func(uint64) {}
+	}
+	if cfg.OnIdle == nil {
+		cfg.OnIdle = func() {}
 	}
 	return &Hub{cfg: cfg}
 }
@@ -87,7 +91,7 @@ func (h *Hub) Players() int {
 	return h.players
 }
 
-// Close stops the loop regardless of player count.
+// Close stops the loop regardless of player count, running OnIdle if it was active.
 func (h *Hub) Close() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -108,6 +112,7 @@ func (h *Hub) stopLocked() {
 	close(h.stop)
 	<-h.done
 	h.stop, h.done = nil, nil
+	h.cfg.OnIdle()
 }
 
 func (h *Hub) loop(ticker Ticker, stop <-chan struct{}, done chan<- struct{}) {

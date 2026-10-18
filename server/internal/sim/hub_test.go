@@ -128,6 +128,36 @@ func TestHubRestartsOnRejoin(t *testing.T) {
 	}
 }
 
+func TestHubCallsOnIdleAfterLoopStops(t *testing.T) {
+	clock := &fakeClock{}
+	idle := 0
+	h := NewHub(Config{TickRate: 20, NewTicker: clock.NewTicker, OnIdle: func() {
+		idle++
+		if !clock.created()[len(clock.created())-1].isStopped() {
+			t.Error("OnIdle ran before the ticker stopped")
+		}
+	}})
+	h.Join()
+	h.Join()
+	h.Leave()
+	if idle != 0 {
+		t.Fatal("OnIdle ran while a player remained")
+	}
+	h.Leave()
+	if idle != 1 {
+		t.Fatalf("OnIdle calls = %d after last leave, want 1", idle)
+	}
+	h.Close()
+	if idle != 1 {
+		t.Fatal("Close on an idle hub should not call OnIdle again")
+	}
+	h.Join()
+	h.Close()
+	if idle != 2 {
+		t.Fatalf("Close while running should call OnIdle; calls = %d", idle)
+	}
+}
+
 func TestHubExtraLeaveIsHarmless(t *testing.T) {
 	h, _, _ := newTestHub(t)
 	h.Leave()
