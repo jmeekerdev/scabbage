@@ -50,6 +50,13 @@ export function encodeCreateJoinCode(uses: number, ttlHours: number): Bytes {
   return encode({ case: "createJoinCode", value: { uses, ttlHours } });
 }
 
+export function encodeRequestChunks(chunks: readonly { x: number; y: number; z: number }[]): Bytes {
+  return encode({
+    case: "requestChunks",
+    value: { chunks: chunks.map(({ x, y, z }) => ({ x, y, z })) },
+  });
+}
+
 export function decodeServer(bytes: Uint8Array): ServerMessage {
   return fromBinary(ServerMessageSchema, bytes);
 }

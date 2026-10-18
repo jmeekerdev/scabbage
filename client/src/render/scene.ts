@@ -1,47 +1,28 @@
-import {
-  AmbientLight,
-  BoxGeometry,
-  Color,
-  DirectionalLight,
-  Fog,
-  Mesh,
-  MeshLambertMaterial,
-  PerspectiveCamera,
-  Scene,
-  WebGLRenderer,
-} from "three";
+import { Color, Fog, PerspectiveCamera, Scene, WebGLRenderer } from "three";
 import { FrameLimiter, pixelRatioFor, qualityFor, type Settings } from "../settings/settings";
 import { CHUNK_SIZE } from "../world/constants";
 
 const SKY = 0x87ceeb;
 
 export interface GameScene {
+  readonly scene: Scene;
+  readonly camera: PerspectiveCamera;
   /** Applies new settings live; antialiasing only changes on reload. */
   apply(s: Settings): void;
+  /** Runs fn before each drawn frame. */
+  onFrame(fn: (timeMs: number) => void): void;
 }
 
-/** A placeholder scene: one spinning grass block, proving WebGL works on the device. */
+/** Creates the renderer, sky and camera, and draws whenever the frame limiter allows. */
 export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameScene {
   // WebGL fixes antialiasing when the context is created, so it comes from the startup preset.
   const renderer = new WebGLRenderer({ canvas, antialias: qualityFor(initial.preset).antialias });
   const scene = new Scene();
   scene.background = new Color(SKY);
   scene.fog = new Fog(SKY);
-  scene.add(new AmbientLight(0xffffff, 0.6));
-  const sun = new DirectionalLight(0xffffff, 1.2);
-  sun.position.set(3, 5, 2);
-  scene.add(sun);
-
-  const dirt = new MeshLambertMaterial({ color: 0x8b5a2b });
-  const grass = new MeshLambertMaterial({ color: 0x5fbf3f });
-  // BoxGeometry face order: +x, -x, +y (top), -y, +z, -z.
-  const block = new Mesh(new BoxGeometry(1, 1, 1), [dirt, dirt, grass, dirt, dirt, dirt]);
-  scene.add(block);
-
-  const camera = new PerspectiveCamera(60, 1, 0.1);
-  camera.position.set(0, 1.2, 3);
-  camera.lookAt(0, 0, 0);
+  const camera = new PerspectiveCamera(70, 1, 0.1);
   const limiter = new FrameLimiter(initial.fpsCap);
+  const frameHooks: ((timeMs: number) => void)[] = [];
 
   const resize = () => {
     const { clientWidth: w, clientHeight: h } = canvas;
@@ -62,11 +43,10 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   // setAnimationLoop uses requestAnimationFrame, which browsers pause in hidden tabs.
   renderer.setAnimationLoop((timeMs) => {
     if (!limiter.ready(timeMs)) return;
-    block.rotation.y = timeMs / 1000;
-    block.rotation.x = Math.sin(timeMs / 2000) * 0.3;
+    for (const fn of frameHooks) fn(timeMs);
     renderer.render(scene, camera);
   });
-  return { apply };
+  return { scene, camera, apply, onFrame: (fn) => frameHooks.push(fn) };
 }
 
 /** Fades terrain into the sky before the far plane so chunk edges never pop into view. */

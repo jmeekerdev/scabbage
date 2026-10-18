@@ -12,12 +12,14 @@ import (
 
 	"scabbage/internal/access"
 	"scabbage/internal/sim"
+	"scabbage/internal/world"
 )
 
 // Config configures the gateway handler.
 type Config struct {
 	Hub            *sim.Hub
 	Access         *access.Service
+	World          *world.World
 	ServerName     string
 	HelloTimeout   time.Duration
 	OriginPatterns []string // extra allowed Origin hosts, e.g. the Vite dev server

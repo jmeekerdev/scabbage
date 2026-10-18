@@ -3,6 +3,7 @@ package world
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
 var (
@@ -12,9 +13,9 @@ var (
 	ErrUnknownBlock = errors.New("unknown block")
 )
 
-// World caches loaded chunks and tracks which need saving. It is not safe for concurrent use;
-// the simulation loop owns it.
+// World caches loaded chunks and tracks which need saving. It is safe for concurrent use.
 type World struct {
+	mu     sync.Mutex
 	meta   Meta
 	store  *Store
 	gen    Generator
@@ -49,8 +50,42 @@ func (w *World) Inside(p ChunkPos) bool {
 	return r == Unbounded || (x < r && x+Size > -r && z < r && z+Size > -r)
 }
 
+// EncodedChunk returns chunk p in wire format; chunks outside the world are air.
+func (w *World) EncodedChunk(p ChunkPos) ([]byte, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if !w.Inside(p) {
+		return Encode(NewChunk(Air)), nil
+	}
+	c, err := w.chunk(p)
+	if err != nil {
+		return nil, err
+	}
+	return Encode(c), nil
+}
+
+// Spawn returns the center of the column at the world's middle, just above its top block.
+func (w *World) Spawn() (x, y, z float64) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	top := int32(MaxY - 1)
+	for ; top > MinY; top-- {
+		if b, err := w.block(0, top, 0); err != nil || b != Air {
+			break
+		}
+	}
+	return 0.5, float64(top + 1), 0.5
+}
+
 // Chunk returns a loaded chunk, reading it from storage or generating it as needed.
+// The chunk must not be used once other goroutines may change the world.
 func (w *World) Chunk(p ChunkPos) (*Chunk, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.chunk(p)
+}
+
+func (w *World) chunk(p ChunkPos) (*Chunk, error) {
 	if c, ok := w.chunks[p]; ok {
 		return c, nil
 	}
@@ -74,8 +109,14 @@ func (w *World) Chunk(p ChunkPos) (*Chunk, error) {
 
 // Block returns the block at world coordinates.
 func (w *World) Block(x, y, z int32) (Block, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.block(x, y, z)
+}
+
+func (w *World) block(x, y, z int32) (Block, error) {
 	p, lx, ly, lz := ChunkOf(x, y, z)
-	c, err := w.Chunk(p)
+	c, err := w.chunk(p)
 	if err != nil {
 		return Air, err
 	}
@@ -90,8 +131,10 @@ func (w *World) SetBlock(x, y, z int32, b Block) error {
 	if !w.blockInside(x, z) {
 		return ErrOutside
 	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	p, lx, ly, lz := ChunkOf(x, y, z)
-	c, err := w.Chunk(p)
+	c, err := w.chunk(p)
 	if err != nil {
 		return err
 	}
@@ -107,6 +150,12 @@ func (w *World) blockInside(x, z int32) bool {
 
 // Flush saves every dirty chunk in one transaction.
 func (w *World) Flush() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.flush()
+}
+
+func (w *World) flush() error {
 	if len(w.dirty) == 0 {
 		return nil
 	}
@@ -123,7 +172,9 @@ func (w *World) Flush() error {
 
 // Unload saves dirty chunks and drops every chunk from memory.
 func (w *World) Unload() error {
-	if err := w.Flush(); err != nil {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if err := w.flush(); err != nil {
 		return err
 	}
 	w.chunks = map[ChunkPos]*Chunk{}
@@ -131,7 +182,15 @@ func (w *World) Unload() error {
 }
 
 // Loaded returns the number of chunks in memory.
-func (w *World) Loaded() int { return len(w.chunks) }
+func (w *World) Loaded() int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return len(w.chunks)
+}
 
 // Dirty returns the number of chunks waiting to be saved.
-func (w *World) Dirty() int { return len(w.dirty) }
+func (w *World) Dirty() int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return len(w.dirty)
+}

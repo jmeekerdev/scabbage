@@ -57,6 +57,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	gw = gateway.New(gateway.Config{
 		Hub:            hub,
 		Access:         svc,
+		World:          w,
 		ServerName:     cfg.ServerName,
 		OriginPatterns: cfg.Origins,
 		Logger:         logger,

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file scabbage/v1/net.proto.
  */
 export const file_scabbage_v1_net: GenFile = /*@__PURE__*/
-  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIsgBCg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAQgYKBGJvZHkiuQIKDVNlcnZlck1lc3NhZ2USJwoHd2VsY29tZRgBIAEoCzIULnNjYWJiYWdlLnYxLldlbGNvbWVIABIhCgRwb25nGAIgASgLMhEuc2NhYmJhZ2UudjEuUG9uZ0gAEi0KCmRpc2Nvbm5lY3QYAyABKAsyFy5zY2FiYmFnZS52MS5EaXNjb25uZWN0SAASMAoMam9pbl9wZW5kaW5nGAQgASgLMhguc2NhYmJhZ2UudjEuSm9pblBlbmRpbmdIABI4ChBwZW5kaW5nX3JlcXVlc3RzGAUgASgLMhwuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3RzSAASOQoRam9pbl9jb2RlX2NyZWF0ZWQYBiABKAsyHC5zY2FiYmFnZS52MS5Kb2luQ29kZUNyZWF0ZWRIAEIGCgRib2R5IoYBCgVIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC2NsaWVudF9uYW1lGAIgASgJEhUKDWRldmljZV9zZWNyZXQYAyABKAwSJgoEam9pbhgEIAEoCzIYLnNjYWJiYWdlLnYxLkpvaW5SZXF1ZXN0Eg8KB2NvbnNvbGUYBSABKAgiOAoLSm9pblJlcXVlc3QSDAoEY29kZRgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNInQKB1dlbGNvbWUSGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRITCgtzZXJ2ZXJfbmFtZRgCIAEoCRIUCgx0aWNrX3JhdGVfaHoYAyABKA0SJAoDeW91GAQgASgLMhcuc2NhYmJhZ2UudjEuUGxheWVySW5mbyJECgpQbGF5ZXJJbmZvEgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SDQoFYWRtaW4YBCABKAgiDQoLSm9pblBlbmRpbmciQAoPUGVuZGluZ1JlcXVlc3RzEi0KCHJlcXVlc3RzGAEgAygLMhsuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3QiYAoOUGVuZGluZ1JlcXVlc3QSCgoCaWQYASABKAQSDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDRIRCglyZXR1cm5pbmcYBCABKAgSEgoKY3JlYXRlZF9tcxgFIAEoASIxCgpEZWNpZGVKb2luEhIKCnJlcXVlc3RfaWQYASABKAQSDwoHYXBwcm92ZRgCIAEoCCIxCg5DcmVhdGVKb2luQ29kZRIMCgR1c2VzGAEgASgNEhEKCXR0bF9ob3VycxgCIAEoDSJBCg9Kb2luQ29kZUNyZWF0ZWQSDAoEY29kZRgBIAEoCRIMCgR1c2VzGAIgASgNEhIKCmV4cGlyZXNfbXMYAyABKAEiHgoEUGluZxIWCg5jbGllbnRfdGltZV9tcxgBIAEoASI2CgRQb25nEhYKDmNsaWVudF90aW1lX21zGAEgASgBEhYKDnNlcnZlcl90aW1lX21zGAIgASgBIkcKCkRpc2Nvbm5lY3QSDgoGcmVhc29uGAEgASgJEikKBGNvZGUYAiABKA4yGy5zY2FiYmFnZS52MS5EaXNjb25uZWN0Q29kZSpRCg9Qcm90b2NvbFZlcnNpb24SIAocUFJPVE9DT0xfVkVSU0lPTl9VTlNQRUNJRklFRBAAEhwKGFBST1RPQ09MX1ZFUlNJT05fQ1VSUkVOVBACKpECCg5EaXNjb25uZWN0Q29kZRIfChtESVNDT05ORUNUX0NPREVfVU5TUEVDSUZJRUQQABIcChhESVNDT05ORUNUX0NPREVfUFJPVE9DT0wQARIiCh5ESVNDT05ORUNUX0NPREVfTkVFRF9KT0lOX0NPREUQAhIhCh1ESVNDT05ORUNUX0NPREVfQkFEX0pPSU5fQ09ERRADEhwKGERJU0NPTk5FQ1RfQ09ERV9CQURfTkFNRRAEEhoKFkRJU0NPTk5FQ1RfQ09ERV9ERU5JRUQQBRIgChxESVNDT05ORUNUX0NPREVfUkFURV9MSU1JVEVEEAYSHQoZRElTQ09OTkVDVF9DT0RFX05PVF9BRE1JThAHQi1aK3NjYWJiYWdlL2ludGVybmFsL3BiL3NjYWJiYWdlL3YxO3NjYWJiYWdldjFiBnByb3RvMw");
+  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIv4BCg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAEjQKDnJlcXVlc3RfY2h1bmtzGAUgASgLMhouc2NhYmJhZ2UudjEuUmVxdWVzdENodW5rc0gAQgYKBGJvZHki6QIKDVNlcnZlck1lc3NhZ2USJwoHd2VsY29tZRgBIAEoCzIULnNjYWJiYWdlLnYxLldlbGNvbWVIABIhCgRwb25nGAIgASgLMhEuc2NhYmJhZ2UudjEuUG9uZ0gAEi0KCmRpc2Nvbm5lY3QYAyABKAsyFy5zY2FiYmFnZS52MS5EaXNjb25uZWN0SAASMAoMam9pbl9wZW5kaW5nGAQgASgLMhguc2NhYmJhZ2UudjEuSm9pblBlbmRpbmdIABI4ChBwZW5kaW5nX3JlcXVlc3RzGAUgASgLMhwuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3RzSAASOQoRam9pbl9jb2RlX2NyZWF0ZWQYBiABKAsyHC5zY2FiYmFnZS52MS5Kb2luQ29kZUNyZWF0ZWRIABIuCgtjaHVua19iYXRjaBgHIAEoCzIXLnNjYWJiYWdlLnYxLkNodW5rQmF0Y2hIAEIGCgRib2R5IoYBCgVIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC2NsaWVudF9uYW1lGAIgASgJEhUKDWRldmljZV9zZWNyZXQYAyABKAwSJgoEam9pbhgEIAEoCzIYLnNjYWJiYWdlLnYxLkpvaW5SZXF1ZXN0Eg8KB2NvbnNvbGUYBSABKAgiOAoLSm9pblJlcXVlc3QSDAoEY29kZRgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNIpsBCgdXZWxjb21lEhgKEHByb3RvY29sX3ZlcnNpb24YASABKA0SEwoLc2VydmVyX25hbWUYAiABKAkSFAoMdGlja19yYXRlX2h6GAMgASgNEiQKA3lvdRgEIAEoCzIXLnNjYWJiYWdlLnYxLlBsYXllckluZm8SJQoFd29ybGQYBSABKAsyFi5zY2FiYmFnZS52MS5Xb3JsZEluZm8idQoJV29ybGRJbmZvEg4KBnJhZGl1cxgBIAEoBRIOCgZoZWlnaHQYAiABKAUSIAoFc3Bhd24YAyABKAsyES5zY2FiYmFnZS52MS5WZWMzEiYKBmJsb2NrcxgEIAMoCzIWLnNjYWJiYWdlLnYxLkJsb2NrVHlwZSJJCglCbG9ja1R5cGUSCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRINCgVzb2xpZBgDIAEoCBITCgt0cmFuc3BhcmVudBgEIAEoCCInCgRWZWMzEgkKAXgYASABKAISCQoBeRgCIAEoAhIJCgF6GAMgASgCIisKCENodW5rUG9zEgkKAXgYASABKBESCQoBeRgCIAEoERIJCgF6GAMgASgRIjYKDVJlcXVlc3RDaHVua3MSJQoGY2h1bmtzGAEgAygLMhUuc2NhYmJhZ2UudjEuQ2h1bmtQb3MiNAoKQ2h1bmtCYXRjaBImCgZjaHVua3MYASADKAsyFi5zY2FiYmFnZS52MS5DaHVua0RhdGEiPQoJQ2h1bmtEYXRhEiIKA3BvcxgBIAEoCzIVLnNjYWJiYWdlLnYxLkNodW5rUG9zEgwKBGRhdGEYAiABKAwiRAoKUGxheWVySW5mbxIKCgJpZBgBIAEoBBIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNEg0KBWFkbWluGAQgASgIIg0KC0pvaW5QZW5kaW5nIkAKD1BlbmRpbmdSZXF1ZXN0cxItCghyZXF1ZXN0cxgBIAMoCzIbLnNjYWJiYWdlLnYxLlBlbmRpbmdSZXF1ZXN0ImAKDlBlbmRpbmdSZXF1ZXN0EgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SEQoJcmV0dXJuaW5nGAQgASgIEhIKCmNyZWF0ZWRfbXMYBSABKAEiMQoKRGVjaWRlSm9pbhISCgpyZXF1ZXN0X2lkGAEgASgEEg8KB2FwcHJvdmUYAiABKAgiMQoOQ3JlYXRlSm9pbkNvZGUSDAoEdXNlcxgBIAEoDRIRCgl0dGxfaG91cnMYAiABKA0iQQoPSm9pbkNvZGVDcmVhdGVkEgwKBGNvZGUYASABKAkSDAoEdXNlcxgCIAEoDRISCgpleHBpcmVzX21zGAMgASgBIh4KBFBpbmcSFgoOY2xpZW50X3RpbWVfbXMYASABKAEiNgoEUG9uZxIWCg5jbGllbnRfdGltZV9tcxgBIAEoARIWCg5zZXJ2ZXJfdGltZV9tcxgCIAEoASJHCgpEaXNjb25uZWN0Eg4KBnJlYXNvbhgBIAEoCRIpCgRjb2RlGAIgASgOMhsuc2NhYmJhZ2UudjEuRGlzY29ubmVjdENvZGUqUQoPUHJvdG9jb2xWZXJzaW9uEiAKHFBST1RPQ09MX1ZFUlNJT05fVU5TUEVDSUZJRUQQABIcChhQUk9UT0NPTF9WRVJTSU9OX0NVUlJFTlQQAyqRAgoORGlzY29ubmVjdENvZGUSHwobRElTQ09OTkVDVF9DT0RFX1VOU1BFQ0lGSUVEEAASHAoYRElTQ09OTkVDVF9DT0RFX1BST1RPQ09MEAESIgoeRElTQ09OTkVDVF9DT0RFX05FRURfSk9JTl9DT0RFEAISIQodRElTQ09OTkVDVF9DT0RFX0JBRF9KT0lOX0NPREUQAxIcChhESVNDT05ORUNUX0NPREVfQkFEX05BTUUQBBIaChZESVNDT05ORUNUX0NPREVfREVOSUVEEAUSIAocRElTQ09OTkVDVF9DT0RFX1JBVEVfTElNSVRFRBAGEh0KGURJU0NPTk5FQ1RfQ09ERV9OT1RfQURNSU4QB0ItWitzY2FiYmFnZS9pbnRlcm5hbC9wYi9zY2FiYmFnZS92MTtzY2FiYmFnZXYxYgZwcm90bzM");
 
 /**
  * Every WebSocket binary frame from a client is one ClientMessage.
@@ -45,6 +45,12 @@ export type ClientMessage = Message<"scabbage.v1.ClientMessage"> & {
      */
     value: CreateJoinCode;
     case: "createJoinCode";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.RequestChunks request_chunks = 5;
+     */
+    value: RequestChunks;
+    case: "requestChunks";
   } | { case: undefined; value?: undefined };
 };
 
@@ -100,6 +106,12 @@ export type ServerMessage = Message<"scabbage.v1.ServerMessage"> & {
      */
     value: JoinCodeCreated;
     case: "joinCodeCreated";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.ChunkBatch chunk_batch = 7;
+     */
+    value: ChunkBatch;
+    case: "chunkBatch";
   } | { case: undefined; value?: undefined };
 };
 
@@ -207,6 +219,13 @@ export type Welcome = Message<"scabbage.v1.Welcome"> & {
    * @generated from field: scabbage.v1.PlayerInfo you = 4;
    */
   you?: PlayerInfo | undefined;
+
+  /**
+   * Unset for admin console connections, which never enter the world.
+   *
+   * @generated from field: scabbage.v1.WorldInfo world = 5;
+   */
+  world?: WorldInfo | undefined;
 };
 
 /**
@@ -215,6 +234,190 @@ export type Welcome = Message<"scabbage.v1.Welcome"> & {
  */
 export const WelcomeSchema: GenMessage<Welcome> = /*@__PURE__*/
   messageDesc(file_scabbage_v1_net, 4);
+
+/**
+ * @generated from message scabbage.v1.WorldInfo
+ */
+export type WorldInfo = Message<"scabbage.v1.WorldInfo"> & {
+  /**
+   * half the border width in blocks; negative means unbounded
+   *
+   * @generated from field: int32 radius = 1;
+   */
+  radius: number;
+
+  /**
+   * blocks above y=0 that can hold anything
+   *
+   * @generated from field: int32 height = 2;
+   */
+  height: number;
+
+  /**
+   * @generated from field: scabbage.v1.Vec3 spawn = 3;
+   */
+  spawn?: Vec3 | undefined;
+
+  /**
+   * indexed by block ID
+   *
+   * @generated from field: repeated scabbage.v1.BlockType blocks = 4;
+   */
+  blocks: BlockType[];
+};
+
+/**
+ * Describes the message scabbage.v1.WorldInfo.
+ * Use `create(WorldInfoSchema)` to create a new message.
+ */
+export const WorldInfoSchema: GenMessage<WorldInfo> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 5);
+
+/**
+ * @generated from message scabbage.v1.BlockType
+ */
+export type BlockType = Message<"scabbage.v1.BlockType"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: bool solid = 3;
+   */
+  solid: boolean;
+
+  /**
+   * @generated from field: bool transparent = 4;
+   */
+  transparent: boolean;
+};
+
+/**
+ * Describes the message scabbage.v1.BlockType.
+ * Use `create(BlockTypeSchema)` to create a new message.
+ */
+export const BlockTypeSchema: GenMessage<BlockType> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 6);
+
+/**
+ * @generated from message scabbage.v1.Vec3
+ */
+export type Vec3 = Message<"scabbage.v1.Vec3"> & {
+  /**
+   * @generated from field: float x = 1;
+   */
+  x: number;
+
+  /**
+   * @generated from field: float y = 2;
+   */
+  y: number;
+
+  /**
+   * @generated from field: float z = 3;
+   */
+  z: number;
+};
+
+/**
+ * Describes the message scabbage.v1.Vec3.
+ * Use `create(Vec3Schema)` to create a new message.
+ */
+export const Vec3Schema: GenMessage<Vec3> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 7);
+
+/**
+ * @generated from message scabbage.v1.ChunkPos
+ */
+export type ChunkPos = Message<"scabbage.v1.ChunkPos"> & {
+  /**
+   * @generated from field: sint32 x = 1;
+   */
+  x: number;
+
+  /**
+   * @generated from field: sint32 y = 2;
+   */
+  y: number;
+
+  /**
+   * @generated from field: sint32 z = 3;
+   */
+  z: number;
+};
+
+/**
+ * Describes the message scabbage.v1.ChunkPos.
+ * Use `create(ChunkPosSchema)` to create a new message.
+ */
+export const ChunkPosSchema: GenMessage<ChunkPos> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 8);
+
+/**
+ * Asks for chunks (at most 64 per request); the server answers with one ChunkBatch.
+ *
+ * @generated from message scabbage.v1.RequestChunks
+ */
+export type RequestChunks = Message<"scabbage.v1.RequestChunks"> & {
+  /**
+   * @generated from field: repeated scabbage.v1.ChunkPos chunks = 1;
+   */
+  chunks: ChunkPos[];
+};
+
+/**
+ * Describes the message scabbage.v1.RequestChunks.
+ * Use `create(RequestChunksSchema)` to create a new message.
+ */
+export const RequestChunksSchema: GenMessage<RequestChunks> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 9);
+
+/**
+ * @generated from message scabbage.v1.ChunkBatch
+ */
+export type ChunkBatch = Message<"scabbage.v1.ChunkBatch"> & {
+  /**
+   * @generated from field: repeated scabbage.v1.ChunkData chunks = 1;
+   */
+  chunks: ChunkData[];
+};
+
+/**
+ * Describes the message scabbage.v1.ChunkBatch.
+ * Use `create(ChunkBatchSchema)` to create a new message.
+ */
+export const ChunkBatchSchema: GenMessage<ChunkBatch> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 10);
+
+/**
+ * data is the palette + run-length encoding from server/internal/world/codec.go.
+ *
+ * @generated from message scabbage.v1.ChunkData
+ */
+export type ChunkData = Message<"scabbage.v1.ChunkData"> & {
+  /**
+   * @generated from field: scabbage.v1.ChunkPos pos = 1;
+   */
+  pos?: ChunkPos | undefined;
+
+  /**
+   * @generated from field: bytes data = 2;
+   */
+  data: Uint8Array;
+};
+
+/**
+ * Describes the message scabbage.v1.ChunkData.
+ * Use `create(ChunkDataSchema)` to create a new message.
+ */
+export const ChunkDataSchema: GenMessage<ChunkData> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 11);
 
 /**
  * @generated from message scabbage.v1.PlayerInfo
@@ -246,7 +449,7 @@ export type PlayerInfo = Message<"scabbage.v1.PlayerInfo"> & {
  * Use `create(PlayerInfoSchema)` to create a new message.
  */
 export const PlayerInfoSchema: GenMessage<PlayerInfo> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 5);
+  messageDesc(file_scabbage_v1_net, 12);
 
 /**
  * The join request is waiting for an admin; the connection stays open until a decision.
@@ -261,7 +464,7 @@ export type JoinPending = Message<"scabbage.v1.JoinPending"> & {
  * Use `create(JoinPendingSchema)` to create a new message.
  */
 export const JoinPendingSchema: GenMessage<JoinPending> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 6);
+  messageDesc(file_scabbage_v1_net, 13);
 
 /**
  * Sent to admins on connect and whenever the pending list changes.
@@ -280,7 +483,7 @@ export type PendingRequests = Message<"scabbage.v1.PendingRequests"> & {
  * Use `create(PendingRequestsSchema)` to create a new message.
  */
 export const PendingRequestsSchema: GenMessage<PendingRequests> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 7);
+  messageDesc(file_scabbage_v1_net, 14);
 
 /**
  * @generated from message scabbage.v1.PendingRequest
@@ -319,7 +522,7 @@ export type PendingRequest = Message<"scabbage.v1.PendingRequest"> & {
  * Use `create(PendingRequestSchema)` to create a new message.
  */
 export const PendingRequestSchema: GenMessage<PendingRequest> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 8);
+  messageDesc(file_scabbage_v1_net, 15);
 
 /**
  * Admin only.
@@ -343,7 +546,7 @@ export type DecideJoin = Message<"scabbage.v1.DecideJoin"> & {
  * Use `create(DecideJoinSchema)` to create a new message.
  */
 export const DecideJoinSchema: GenMessage<DecideJoin> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 9);
+  messageDesc(file_scabbage_v1_net, 16);
 
 /**
  * Admin only.
@@ -367,7 +570,7 @@ export type CreateJoinCode = Message<"scabbage.v1.CreateJoinCode"> & {
  * Use `create(CreateJoinCodeSchema)` to create a new message.
  */
 export const CreateJoinCodeSchema: GenMessage<CreateJoinCode> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 10);
+  messageDesc(file_scabbage_v1_net, 17);
 
 /**
  * @generated from message scabbage.v1.JoinCodeCreated
@@ -394,7 +597,7 @@ export type JoinCodeCreated = Message<"scabbage.v1.JoinCodeCreated"> & {
  * Use `create(JoinCodeCreatedSchema)` to create a new message.
  */
 export const JoinCodeCreatedSchema: GenMessage<JoinCodeCreated> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 11);
+  messageDesc(file_scabbage_v1_net, 18);
 
 /**
  * @generated from message scabbage.v1.Ping
@@ -411,7 +614,7 @@ export type Ping = Message<"scabbage.v1.Ping"> & {
  * Use `create(PingSchema)` to create a new message.
  */
 export const PingSchema: GenMessage<Ping> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 12);
+  messageDesc(file_scabbage_v1_net, 19);
 
 /**
  * @generated from message scabbage.v1.Pong
@@ -433,7 +636,7 @@ export type Pong = Message<"scabbage.v1.Pong"> & {
  * Use `create(PongSchema)` to create a new message.
  */
 export const PongSchema: GenMessage<Pong> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 13);
+  messageDesc(file_scabbage_v1_net, 20);
 
 /**
  * @generated from message scabbage.v1.Disconnect
@@ -455,7 +658,7 @@ export type Disconnect = Message<"scabbage.v1.Disconnect"> & {
  * Use `create(DisconnectSchema)` to create a new message.
  */
 export const DisconnectSchema: GenMessage<Disconnect> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 14);
+  messageDesc(file_scabbage_v1_net, 21);
 
 /**
  * Bump CURRENT on any incompatible protocol change.
@@ -469,9 +672,9 @@ export enum ProtocolVersion {
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 2;
+   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 3;
    */
-  CURRENT = 2,
+  CURRENT = 3,
 }
 
 /**

@@ -166,8 +166,10 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] World: chunk storage in SQLite, versioned seeded terrain gen, world border, ~10 starter blocks
 - [x] Idle mode: stop ticking and unload the world when empty, wake when someone joins
 - [x] Client settings: view distance, graphics preset, FPS cap (saved per device; touch starts lighter)
-- [ ] Chunk streaming by distance; meshing (greedy) in a Web Worker; texture atlas
+- [x] Chunk streaming by distance; meshing (greedy) in a Web Worker; texture atlas
+      (procedural textures in one array texture so merged faces tile cleanly)
 - [ ] Player movement: walk/jump/fly toggle, AABB collision, client prediction + reconciliation
+      (server also limits chunk requests to the player's surroundings)
 - [ ] Block break/place with server validation and a broadcast to everyone
 - [ ] Other players visible (simple blocky avatars + name tags, interpolated)
 - [ ] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API

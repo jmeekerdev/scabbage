@@ -2,6 +2,10 @@ package world
 
 import (
 	"bytes"
+	"encoding/hex"
+	"flag"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -99,5 +103,31 @@ func TestDecodeRejectsCorruptData(t *testing.T) {
 		if _, err := Decode(data); err == nil {
 			t.Errorf("%s: want error", name)
 		}
+	}
+}
+
+var updateGolden = flag.Bool("update", false, "rewrite testdata golden files")
+
+// goldenChunk is mirrored by client/src/world/chunk-codec.test.ts, which decodes the same file.
+func goldenChunk() *Chunk {
+	c := NewChunk(Stone)
+	for i := range 100 {
+		c.Set(i%Size, 0, i/Size, Block(i*7%13))
+	}
+	c.Set(15, 15, 15, Glass)
+	return c
+}
+
+func TestEncodeGoldenFile(t *testing.T) {
+	path := filepath.Join("testdata", "golden-chunk.hex")
+	got := []byte(hex.EncodeToString(Encode(goldenChunk())) + "\n")
+	if *updateGolden {
+		if err := os.WriteFile(path, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatalf("encoding changed (run with -update and bump encodingVersion): %v", err)
 	}
 }

@@ -8,11 +8,19 @@ import {
   encodeDecideJoin,
   encodeHello,
   encodePing,
+  encodeRequestChunks,
 } from "./codec";
 
 const decodeClient = (b: Uint8Array) => fromBinary(ClientMessageSchema, b).body;
 
 describe("codec", () => {
+  it("encodes a chunk request, including negative coordinates", () => {
+    const body = decodeClient(encodeRequestChunks([{ x: -3, y: 2, z: 7 }]));
+    expect(body.case).toBe("requestChunks");
+    if (body.case !== "requestChunks") return;
+    expect(body.value.chunks.map(({ x, y, z }) => [x, y, z])).toEqual([[-3, 2, 7]]);
+  });
+
   it("encodes a hello with version, secret and optional join request", () => {
     const secret = new Uint8Array(32).fill(3);
     const body = decodeClient(

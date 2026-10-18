@@ -21,13 +21,14 @@ const (
 
 // session is one WebSocket connection. Only its run goroutine writes to the socket.
 type session struct {
-	gw     *Gateway
-	conn   *websocket.Conn
-	ip     string
-	log    *slog.Logger
-	in     chan inbound
-	out    chan *pb.ServerMessage
-	player access.Player
+	gw      *Gateway
+	conn    *websocket.Conn
+	ip      string
+	log     *slog.Logger
+	in      chan inbound
+	out     chan *pb.ServerMessage
+	player  access.Player
+	console bool // admin console: no world, no hub
 }
 
 type inbound struct {
@@ -54,11 +55,12 @@ func (s *session) run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s.console = hello.Console
 	go s.readLoop(ctx)
 	if err := s.admit(ctx, hello); err != nil {
 		return err
 	}
-	if !hello.Console {
+	if !s.console {
 		hub := s.gw.cfg.Hub
 		hub.Join()
 		s.log.Info("player joined", "name", s.player.Name, "players", hub.Players())
@@ -106,6 +108,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.decideJoin(ctx, body.DecideJoin)
 	case *pb.ClientMessage_CreateJoinCode:
 		return s.createJoinCode(ctx, body.CreateJoinCode)
+	case *pb.ClientMessage_RequestChunks:
+		return s.sendChunks(ctx, body.RequestChunks)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

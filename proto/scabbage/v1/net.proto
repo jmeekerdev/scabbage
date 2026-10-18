@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 2;
+  PROTOCOL_VERSION_CURRENT = 3;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -17,6 +17,7 @@ message ClientMessage {
     Ping ping = 2;
     DecideJoin decide_join = 3;
     CreateJoinCode create_join_code = 4;
+    RequestChunks request_chunks = 5;
   }
 }
 
@@ -29,6 +30,7 @@ message ServerMessage {
     JoinPending join_pending = 4;
     PendingRequests pending_requests = 5;
     JoinCodeCreated join_code_created = 6;
+    ChunkBatch chunk_batch = 7;
   }
 }
 
@@ -55,6 +57,49 @@ message Welcome {
   string server_name = 2;
   uint32 tick_rate_hz = 3;
   PlayerInfo you = 4;
+  // Unset for admin console connections, which never enter the world.
+  WorldInfo world = 5;
+}
+
+message WorldInfo {
+  int32 radius = 1; // half the border width in blocks; negative means unbounded
+  int32 height = 2; // blocks above y=0 that can hold anything
+  Vec3 spawn = 3;
+  repeated BlockType blocks = 4; // indexed by block ID
+}
+
+message BlockType {
+  uint32 id = 1;
+  string name = 2;
+  bool solid = 3;
+  bool transparent = 4;
+}
+
+message Vec3 {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message ChunkPos {
+  sint32 x = 1;
+  sint32 y = 2;
+  sint32 z = 3;
+}
+
+// Asks for chunks (at most 64 per request); the server answers with one ChunkBatch.
+message RequestChunks {
+  repeated ChunkPos chunks = 1;
+}
+
+message ChunkBatch {
+  repeated ChunkData chunks = 1;
+}
+
+// data is the palette + run-length encoding from server/internal/world/codec.go.
+message ChunkData {
+  ChunkPos pos = 1;
+  bytes data = 2;
 }
 
 message PlayerInfo {

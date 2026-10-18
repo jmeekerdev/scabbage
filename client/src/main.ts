@@ -2,11 +2,12 @@ import "./style.css";
 import { browserStore, loadSecret, resetSecret } from "./join/identity";
 import { parseInvite } from "./join/invite";
 import { screenForRejection, type Action, type Screen } from "./join/outcome";
-import type { JoinInit } from "./net/codec";
+import { encodeRequestChunks, type JoinInit } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
-import type { Welcome } from "./pb/scabbage/v1/net_pb";
+import type { Vec3, Welcome } from "./pb/scabbage/v1/net_pb";
 import { startScene } from "./render/scene";
+import { createWorldRenderer } from "./render/world-renderer";
 import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
 import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
 import { $, el } from "./ui/dom";
@@ -23,11 +24,18 @@ let conn: Connection | undefined;
 let lastJoin: JoinInit | undefined;
 let onAdminMessage: ConnectionEvents["onMessage"] | undefined;
 
-const settings = loadSettings(store, defaultSettings(matchMedia("(pointer: coarse)").matches));
+let settings = loadSettings(store, defaultSettings(matchMedia("(pointer: coarse)").matches));
 const gameScene = startScene($("#game"), settings);
+const world = createWorldRenderer(gameScene, (chunks) => conn?.send(encodeRequestChunks(chunks)));
+gameScene.onFrame((timeMs) => {
+  lookAround(timeMs);
+  const { x, z } = gameScene.camera.position;
+  world.tick(x, z, settings.viewDistance);
+});
 addHudDialog(
   "Settings",
   settingsPanel(settings, (s) => {
+    settings = s;
     saveSettings(store, s);
     gameScene.apply(s);
   }),
@@ -61,7 +69,10 @@ function connect(join?: JoinInit): void {
         }),
       onWelcome: enterGame,
       onRejected: (d) => show(screenForRejection(d)),
-      onMessage: (msg) => onAdminMessage?.(msg),
+      onMessage: (msg) => {
+        if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
+        else onAdminMessage?.(msg);
+      },
     },
   );
   conn.start();
@@ -103,6 +114,21 @@ function enterGame(w: Welcome): void {
   hideOverlay(overlay);
   statusEl.textContent = `${w.you?.name ?? "?"} on ${w.serverName}`;
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
+  if (w.world) {
+    world.start(w.world);
+    standAt(w.world.spawn);
+  }
+}
+
+const EYE_HEIGHT = 1.62;
+
+function standAt(spawn?: Vec3): void {
+  gameScene.camera.position.set(spawn?.x ?? 0, (spawn?.y ?? 64) + EYE_HEIGHT, spawn?.z ?? 0);
+}
+
+/** Slowly turns the view until player movement exists. */
+function lookAround(timeMs: number): void {
+  gameScene.camera.rotation.set(-0.15, timeMs / 30000, 0, "YXZ");
 }
 
 /** In-game admin tools: join-request toasts and an invite dialog. */

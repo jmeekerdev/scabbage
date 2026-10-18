@@ -16,6 +16,7 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
+	"scabbage/internal/world"
 )
 
 const currentVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
@@ -38,7 +39,11 @@ func startServer(t *testing.T) *testServer {
 
 	var gw *Gateway
 	svc := access.New(db, access.Options{OnPendingChange: func() { gw.PendingChanged() }})
-	gw = New(Config{Hub: hub, Access: svc, ServerName: "test", HelloTimeout: time.Second})
+	w, err := world.Open(world.NewStore(db), "main", world.Defaults{Seed: 42, Radius: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gw = New(Config{Hub: hub, Access: svc, World: w, ServerName: "test", HelloTimeout: time.Second})
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
 	return &testServer{hub: hub, svc: svc, url: "ws" + strings.TrimPrefix(srv.URL, "http")}

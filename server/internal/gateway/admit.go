@@ -44,12 +44,16 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 	if hello.Console && !s.player.Admin {
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_NOT_ADMIN, "the admin console is for admins")
 	}
-	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Welcome{Welcome: &pb.Welcome{
+	welcome := &pb.Welcome{
 		ProtocolVersion: protocolVersion,
 		ServerName:      s.gw.cfg.ServerName,
 		TickRateHz:      uint32(s.gw.cfg.Hub.TickRate()),
 		You:             playerInfo(s.player),
-	}}})
+	}
+	if !s.console {
+		welcome.World = worldInfo(s.gw.cfg.World)
+	}
+	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Welcome{Welcome: welcome}})
 }
 
 func (s *session) authenticate(hello *pb.Hello) (access.Result, error) {

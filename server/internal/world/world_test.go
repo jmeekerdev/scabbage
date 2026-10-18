@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"scabbage/internal/store"
@@ -141,4 +142,60 @@ func TestStarterBlocks(t *testing.T) {
 			t.Errorf("block %d = %+v", i, b)
 		}
 	}
+}
+
+func TestSpawnStandsOnTopOfTerrain(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	x, y, z := w.Spawn()
+	below, _ := w.Block(int32(x), int32(y)-1, int32(z))
+	at, _ := w.Block(int32(x), int32(y), int32(z))
+	if below == Air || at != Air {
+		t.Fatalf("spawn %v,%v,%v: below=%v at=%v", x, y, z, below, at)
+	}
+}
+
+func TestEncodedChunkMatchesStoredBlocks(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	if err := w.SetBlock(1, 40, 2, Brick); err != nil {
+		t.Fatal(err)
+	}
+	data, err := w.EncodedChunk(ChunkPos{0, 2, 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := Decode(data)
+	if err != nil || c.Get(1, 8, 2) != Brick {
+		t.Fatalf("decoded block = %v (%v)", c.Get(1, 8, 2), err)
+	}
+}
+
+func TestEncodedChunkOutsideIsAir(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	data, err := w.EncodedChunk(ChunkPos{100, 2, 0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := Decode(data); !c.Uniform() || c.Get(0, 0, 0) != Air || w.Loaded() != 0 {
+		t.Fatalf("outside chunk should be unloaded air, loaded=%d", w.Loaded())
+	}
+}
+
+// Sessions read chunks on their own goroutines while the hub unloads; run with -race.
+func TestWorldIsSafeForConcurrentUse(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	var wg sync.WaitGroup
+	for i := range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range 20 {
+				_, _ = w.EncodedChunk(ChunkPos{int32(j % 4), int32(i % 4), 0})
+				_ = w.SetBlock(int32(j), 50, int32(i), Planks)
+			}
+		}()
+	}
+	for range 5 {
+		_ = w.Unload()
+	}
+	wg.Wait()
 }
