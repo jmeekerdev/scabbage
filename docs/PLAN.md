@@ -165,7 +165,7 @@ Each phase ends with something the family can play. Compact the model context be
       (`/approve <name>` lands with chat)
 - [x] World: chunk storage in SQLite, versioned seeded terrain gen, world border, ~10 starter blocks
 - [x] Idle mode: stop ticking and unload the world when empty, wake when someone joins
-- [ ] Client settings: view distance, graphics preset, FPS cap
+- [x] Client settings: view distance, graphics preset, FPS cap (saved per device; touch starts lighter)
 - [ ] Chunk streaming by distance; meshing (greedy) in a Web Worker; texture atlas
 - [ ] Player movement: walk/jump/fly toggle, AABB collision, client prediction + reconciliation
 - [ ] Block break/place with server validation and a broadcast to everyone

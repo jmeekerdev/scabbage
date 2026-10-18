@@ -7,8 +7,10 @@ import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
 import type { Welcome } from "./pb/scabbage/v1/net_pb";
 import { startScene } from "./render/scene";
+import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
 import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
 import { $, el } from "./ui/dom";
+import { settingsPanel } from "./ui/settings-panel";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 
 const overlay = $("#overlay");
@@ -21,7 +23,15 @@ let conn: Connection | undefined;
 let lastJoin: JoinInit | undefined;
 let onAdminMessage: ConnectionEvents["onMessage"] | undefined;
 
-startScene($("#game"));
+const settings = loadSettings(store, defaultSettings(matchMedia("(pointer: coarse)").matches));
+const gameScene = startScene($("#game"), settings);
+addHudDialog(
+  "Settings",
+  settingsPanel(settings, (s) => {
+    saveSettings(store, s);
+    gameScene.apply(s);
+  }),
+);
 connect();
 
 /** Reads `#join=CODE` and removes it from the address bar so it isn't re-shared by accident. */
@@ -100,13 +110,18 @@ function mountAdminTools(): void {
   const send = (b: Parameters<Connection["send"]>[0]) => conn?.send(b);
   const pending = new PendingList($("#toasts"), send);
   const invite = new InvitePanel(send, location.origin);
+  addHudDialog("Invite", invite.node);
+  onAdminMessage = adminRouter(pending, invite);
+}
+
+/** Adds a HUD button that opens `content` in a modal dialog. */
+function addHudDialog(label: string, content: Node): void {
   const dialog = el(
     "dialog",
     { class: "card" },
-    invite.node,
+    content,
     el("button", { onclick: () => dialog.close() }, "Close"),
   );
   document.body.append(dialog);
-  $("#hud-buttons").append(el("button", { onclick: () => dialog.showModal() }, "Invite"));
-  onAdminMessage = adminRouter(pending, invite);
+  $("#hud-buttons").append(el("button", { onclick: () => dialog.showModal() }, label));
 }
