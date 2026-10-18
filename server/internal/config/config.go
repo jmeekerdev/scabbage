@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Addr       string
 	WebDir     string
+	DataDir    string // holds scabbage.db
 	ServerName string
 	TickRate   int
 	Origins    []string // extra allowed WebSocket Origin hosts
@@ -35,6 +36,7 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	fs := flag.NewFlagSet("scabbage-server", flag.ContinueOnError)
 	fs.StringVar(&c.Addr, "addr", or("SCABBAGE_ADDR", ":8080"), "listen address")
 	fs.StringVar(&c.WebDir, "web-dir", or("SCABBAGE_WEB_DIR", "web"), "directory of built client files")
+	fs.StringVar(&c.DataDir, "data-dir", or("SCABBAGE_DATA_DIR", "data"), "directory for the database")
 	fs.StringVar(&c.ServerName, "name", or("SCABBAGE_NAME", "Scabbage"), "server display name")
 	fs.IntVar(&c.TickRate, "tick-rate", tickDefault, "simulation ticks per second")
 	fs.StringVar(&origins, "origins", or("SCABBAGE_ORIGINS", ""), "comma-separated extra allowed WebSocket origins")

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file scabbage/v1/net.proto.
  */
 export const file_scabbage_v1_net: GenFile = /*@__PURE__*/
-  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIl8KDUNsaWVudE1lc3NhZ2USIwoFaGVsbG8YASABKAsyEi5zY2FiYmFnZS52MS5IZWxsb0gAEiEKBHBpbmcYAiABKAsyES5zY2FiYmFnZS52MS5QaW5nSABCBgoEYm9keSKSAQoNU2VydmVyTWVzc2FnZRInCgd3ZWxjb21lGAEgASgLMhQuc2NhYmJhZ2UudjEuV2VsY29tZUgAEiEKBHBvbmcYAiABKAsyES5zY2FiYmFnZS52MS5Qb25nSAASLQoKZGlzY29ubmVjdBgDIAEoCzIXLnNjYWJiYWdlLnYxLkRpc2Nvbm5lY3RIAEIGCgRib2R5IjYKBUhlbGxvEhgKEHByb3RvY29sX3ZlcnNpb24YASABKA0SEwoLY2xpZW50X25hbWUYAiABKAkiTgoHV2VsY29tZRIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC3NlcnZlcl9uYW1lGAIgASgJEhQKDHRpY2tfcmF0ZV9oehgDIAEoDSIeCgRQaW5nEhYKDmNsaWVudF90aW1lX21zGAEgASgBIjYKBFBvbmcSFgoOY2xpZW50X3RpbWVfbXMYASABKAESFgoOc2VydmVyX3RpbWVfbXMYAiABKAEiHAoKRGlzY29ubmVjdBIOCgZyZWFzb24YASABKAkqUQoPUHJvdG9jb2xWZXJzaW9uEiAKHFBST1RPQ09MX1ZFUlNJT05fVU5TUEVDSUZJRUQQABIcChhQUk9UT0NPTF9WRVJTSU9OX0NVUlJFTlQQAUItWitzY2FiYmFnZS9pbnRlcm5hbC9wYi9zY2FiYmFnZS92MTtzY2FiYmFnZXYxYgZwcm90bzM");
+  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIsgBCg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAQgYKBGJvZHkiuQIKDVNlcnZlck1lc3NhZ2USJwoHd2VsY29tZRgBIAEoCzIULnNjYWJiYWdlLnYxLldlbGNvbWVIABIhCgRwb25nGAIgASgLMhEuc2NhYmJhZ2UudjEuUG9uZ0gAEi0KCmRpc2Nvbm5lY3QYAyABKAsyFy5zY2FiYmFnZS52MS5EaXNjb25uZWN0SAASMAoMam9pbl9wZW5kaW5nGAQgASgLMhguc2NhYmJhZ2UudjEuSm9pblBlbmRpbmdIABI4ChBwZW5kaW5nX3JlcXVlc3RzGAUgASgLMhwuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3RzSAASOQoRam9pbl9jb2RlX2NyZWF0ZWQYBiABKAsyHC5zY2FiYmFnZS52MS5Kb2luQ29kZUNyZWF0ZWRIAEIGCgRib2R5IoYBCgVIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC2NsaWVudF9uYW1lGAIgASgJEhUKDWRldmljZV9zZWNyZXQYAyABKAwSJgoEam9pbhgEIAEoCzIYLnNjYWJiYWdlLnYxLkpvaW5SZXF1ZXN0Eg8KB2NvbnNvbGUYBSABKAgiOAoLSm9pblJlcXVlc3QSDAoEY29kZRgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNInQKB1dlbGNvbWUSGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRITCgtzZXJ2ZXJfbmFtZRgCIAEoCRIUCgx0aWNrX3JhdGVfaHoYAyABKA0SJAoDeW91GAQgASgLMhcuc2NhYmJhZ2UudjEuUGxheWVySW5mbyJECgpQbGF5ZXJJbmZvEgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SDQoFYWRtaW4YBCABKAgiDQoLSm9pblBlbmRpbmciQAoPUGVuZGluZ1JlcXVlc3RzEi0KCHJlcXVlc3RzGAEgAygLMhsuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3QiYAoOUGVuZGluZ1JlcXVlc3QSCgoCaWQYASABKAQSDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDRIRCglyZXR1cm5pbmcYBCABKAgSEgoKY3JlYXRlZF9tcxgFIAEoASIxCgpEZWNpZGVKb2luEhIKCnJlcXVlc3RfaWQYASABKAQSDwoHYXBwcm92ZRgCIAEoCCIxCg5DcmVhdGVKb2luQ29kZRIMCgR1c2VzGAEgASgNEhEKCXR0bF9ob3VycxgCIAEoDSJBCg9Kb2luQ29kZUNyZWF0ZWQSDAoEY29kZRgBIAEoCRIMCgR1c2VzGAIgASgNEhIKCmV4cGlyZXNfbXMYAyABKAEiHgoEUGluZxIWCg5jbGllbnRfdGltZV9tcxgBIAEoASI2CgRQb25nEhYKDmNsaWVudF90aW1lX21zGAEgASgBEhYKDnNlcnZlcl90aW1lX21zGAIgASgBIkcKCkRpc2Nvbm5lY3QSDgoGcmVhc29uGAEgASgJEikKBGNvZGUYAiABKA4yGy5zY2FiYmFnZS52MS5EaXNjb25uZWN0Q29kZSpRCg9Qcm90b2NvbFZlcnNpb24SIAocUFJPVE9DT0xfVkVSU0lPTl9VTlNQRUNJRklFRBAAEhwKGFBST1RPQ09MX1ZFUlNJT05fQ1VSUkVOVBACKpECCg5EaXNjb25uZWN0Q29kZRIfChtESVNDT05ORUNUX0NPREVfVU5TUEVDSUZJRUQQABIcChhESVNDT05ORUNUX0NPREVfUFJPVE9DT0wQARIiCh5ESVNDT05ORUNUX0NPREVfTkVFRF9KT0lOX0NPREUQAhIhCh1ESVNDT05ORUNUX0NPREVfQkFEX0pPSU5fQ09ERRADEhwKGERJU0NPTk5FQ1RfQ09ERV9CQURfTkFNRRAEEhoKFkRJU0NPTk5FQ1RfQ09ERV9ERU5JRUQQBRIgChxESVNDT05ORUNUX0NPREVfUkFURV9MSU1JVEVEEAYSHQoZRElTQ09OTkVDVF9DT0RFX05PVF9BRE1JThAHQi1aK3NjYWJiYWdlL2ludGVybmFsL3BiL3NjYWJiYWdlL3YxO3NjYWJiYWdldjFiBnByb3RvMw");
 
 /**
  * Every WebSocket binary frame from a client is one ClientMessage.
@@ -33,6 +33,18 @@ export type ClientMessage = Message<"scabbage.v1.ClientMessage"> & {
      */
     value: Ping;
     case: "ping";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.DecideJoin decide_join = 3;
+     */
+    value: DecideJoin;
+    case: "decideJoin";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.CreateJoinCode create_join_code = 4;
+     */
+    value: CreateJoinCode;
+    case: "createJoinCode";
   } | { case: undefined; value?: undefined };
 };
 
@@ -70,6 +82,24 @@ export type ServerMessage = Message<"scabbage.v1.ServerMessage"> & {
      */
     value: Disconnect;
     case: "disconnect";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.JoinPending join_pending = 4;
+     */
+    value: JoinPending;
+    case: "joinPending";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.PendingRequests pending_requests = 5;
+     */
+    value: PendingRequests;
+    case: "pendingRequests";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.JoinCodeCreated join_code_created = 6;
+     */
+    value: JoinCodeCreated;
+    case: "joinCodeCreated";
   } | { case: undefined; value?: undefined };
 };
 
@@ -81,6 +111,8 @@ export const ServerMessageSchema: GenMessage<ServerMessage> = /*@__PURE__*/
   messageDesc(file_scabbage_v1_net, 1);
 
 /**
+ * First message on every connection.
+ *
  * @generated from message scabbage.v1.Hello
  */
 export type Hello = Message<"scabbage.v1.Hello"> & {
@@ -93,6 +125,27 @@ export type Hello = Message<"scabbage.v1.Hello"> & {
    * @generated from field: string client_name = 2;
    */
   clientName: string;
+
+  /**
+   * Random 32 bytes generated once per device; the server stores only its hash.
+   *
+   * @generated from field: bytes device_secret = 3;
+   */
+  deviceSecret: Uint8Array;
+
+  /**
+   * Set when an unregistered device asks to join with a code.
+   *
+   * @generated from field: scabbage.v1.JoinRequest join = 4;
+   */
+  join?: JoinRequest | undefined;
+
+  /**
+   * Admin console: authenticate without entering the world.
+   *
+   * @generated from field: bool console = 5;
+   */
+  console: boolean;
 };
 
 /**
@@ -101,6 +154,35 @@ export type Hello = Message<"scabbage.v1.Hello"> & {
  */
 export const HelloSchema: GenMessage<Hello> = /*@__PURE__*/
   messageDesc(file_scabbage_v1_net, 2);
+
+/**
+ * @generated from message scabbage.v1.JoinRequest
+ */
+export type JoinRequest = Message<"scabbage.v1.JoinRequest"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * 0xRRGGBB
+   *
+   * @generated from field: uint32 color = 3;
+   */
+  color: number;
+};
+
+/**
+ * Describes the message scabbage.v1.JoinRequest.
+ * Use `create(JoinRequestSchema)` to create a new message.
+ */
+export const JoinRequestSchema: GenMessage<JoinRequest> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 3);
 
 /**
  * @generated from message scabbage.v1.Welcome
@@ -120,6 +202,11 @@ export type Welcome = Message<"scabbage.v1.Welcome"> & {
    * @generated from field: uint32 tick_rate_hz = 3;
    */
   tickRateHz: number;
+
+  /**
+   * @generated from field: scabbage.v1.PlayerInfo you = 4;
+   */
+  you?: PlayerInfo | undefined;
 };
 
 /**
@@ -127,7 +214,187 @@ export type Welcome = Message<"scabbage.v1.Welcome"> & {
  * Use `create(WelcomeSchema)` to create a new message.
  */
 export const WelcomeSchema: GenMessage<Welcome> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 3);
+  messageDesc(file_scabbage_v1_net, 4);
+
+/**
+ * @generated from message scabbage.v1.PlayerInfo
+ */
+export type PlayerInfo = Message<"scabbage.v1.PlayerInfo"> & {
+  /**
+   * @generated from field: uint64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: uint32 color = 3;
+   */
+  color: number;
+
+  /**
+   * @generated from field: bool admin = 4;
+   */
+  admin: boolean;
+};
+
+/**
+ * Describes the message scabbage.v1.PlayerInfo.
+ * Use `create(PlayerInfoSchema)` to create a new message.
+ */
+export const PlayerInfoSchema: GenMessage<PlayerInfo> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 5);
+
+/**
+ * The join request is waiting for an admin; the connection stays open until a decision.
+ *
+ * @generated from message scabbage.v1.JoinPending
+ */
+export type JoinPending = Message<"scabbage.v1.JoinPending"> & {
+};
+
+/**
+ * Describes the message scabbage.v1.JoinPending.
+ * Use `create(JoinPendingSchema)` to create a new message.
+ */
+export const JoinPendingSchema: GenMessage<JoinPending> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 6);
+
+/**
+ * Sent to admins on connect and whenever the pending list changes.
+ *
+ * @generated from message scabbage.v1.PendingRequests
+ */
+export type PendingRequests = Message<"scabbage.v1.PendingRequests"> & {
+  /**
+   * @generated from field: repeated scabbage.v1.PendingRequest requests = 1;
+   */
+  requests: PendingRequest[];
+};
+
+/**
+ * Describes the message scabbage.v1.PendingRequests.
+ * Use `create(PendingRequestsSchema)` to create a new message.
+ */
+export const PendingRequestsSchema: GenMessage<PendingRequests> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 7);
+
+/**
+ * @generated from message scabbage.v1.PendingRequest
+ */
+export type PendingRequest = Message<"scabbage.v1.PendingRequest"> & {
+  /**
+   * @generated from field: uint64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: uint32 color = 3;
+   */
+  color: number;
+
+  /**
+   * name matches an existing player
+   *
+   * @generated from field: bool returning = 4;
+   */
+  returning: boolean;
+
+  /**
+   * @generated from field: double created_ms = 5;
+   */
+  createdMs: number;
+};
+
+/**
+ * Describes the message scabbage.v1.PendingRequest.
+ * Use `create(PendingRequestSchema)` to create a new message.
+ */
+export const PendingRequestSchema: GenMessage<PendingRequest> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 8);
+
+/**
+ * Admin only.
+ *
+ * @generated from message scabbage.v1.DecideJoin
+ */
+export type DecideJoin = Message<"scabbage.v1.DecideJoin"> & {
+  /**
+   * @generated from field: uint64 request_id = 1;
+   */
+  requestId: bigint;
+
+  /**
+   * @generated from field: bool approve = 2;
+   */
+  approve: boolean;
+};
+
+/**
+ * Describes the message scabbage.v1.DecideJoin.
+ * Use `create(DecideJoinSchema)` to create a new message.
+ */
+export const DecideJoinSchema: GenMessage<DecideJoin> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 9);
+
+/**
+ * Admin only.
+ *
+ * @generated from message scabbage.v1.CreateJoinCode
+ */
+export type CreateJoinCode = Message<"scabbage.v1.CreateJoinCode"> & {
+  /**
+   * @generated from field: uint32 uses = 1;
+   */
+  uses: number;
+
+  /**
+   * @generated from field: uint32 ttl_hours = 2;
+   */
+  ttlHours: number;
+};
+
+/**
+ * Describes the message scabbage.v1.CreateJoinCode.
+ * Use `create(CreateJoinCodeSchema)` to create a new message.
+ */
+export const CreateJoinCodeSchema: GenMessage<CreateJoinCode> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 10);
+
+/**
+ * @generated from message scabbage.v1.JoinCodeCreated
+ */
+export type JoinCodeCreated = Message<"scabbage.v1.JoinCodeCreated"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * @generated from field: uint32 uses = 2;
+   */
+  uses: number;
+
+  /**
+   * @generated from field: double expires_ms = 3;
+   */
+  expiresMs: number;
+};
+
+/**
+ * Describes the message scabbage.v1.JoinCodeCreated.
+ * Use `create(JoinCodeCreatedSchema)` to create a new message.
+ */
+export const JoinCodeCreatedSchema: GenMessage<JoinCodeCreated> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 11);
 
 /**
  * @generated from message scabbage.v1.Ping
@@ -144,7 +411,7 @@ export type Ping = Message<"scabbage.v1.Ping"> & {
  * Use `create(PingSchema)` to create a new message.
  */
 export const PingSchema: GenMessage<Ping> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 4);
+  messageDesc(file_scabbage_v1_net, 12);
 
 /**
  * @generated from message scabbage.v1.Pong
@@ -166,7 +433,7 @@ export type Pong = Message<"scabbage.v1.Pong"> & {
  * Use `create(PongSchema)` to create a new message.
  */
 export const PongSchema: GenMessage<Pong> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 5);
+  messageDesc(file_scabbage_v1_net, 13);
 
 /**
  * @generated from message scabbage.v1.Disconnect
@@ -176,6 +443,11 @@ export type Disconnect = Message<"scabbage.v1.Disconnect"> & {
    * @generated from field: string reason = 1;
    */
   reason: string;
+
+  /**
+   * @generated from field: scabbage.v1.DisconnectCode code = 2;
+   */
+  code: DisconnectCode;
 };
 
 /**
@@ -183,7 +455,7 @@ export type Disconnect = Message<"scabbage.v1.Disconnect"> & {
  * Use `create(DisconnectSchema)` to create a new message.
  */
 export const DisconnectSchema: GenMessage<Disconnect> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 6);
+  messageDesc(file_scabbage_v1_net, 14);
 
 /**
  * Bump CURRENT on any incompatible protocol change.
@@ -197,9 +469,9 @@ export enum ProtocolVersion {
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 1;
+   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 2;
    */
-  CURRENT = 1,
+  CURRENT = 2,
 }
 
 /**
@@ -207,4 +479,55 @@ export enum ProtocolVersion {
  */
 export const ProtocolVersionSchema: GenEnum<ProtocolVersion> = /*@__PURE__*/
   enumDesc(file_scabbage_v1_net, 0);
+
+/**
+ * @generated from enum scabbage.v1.DisconnectCode
+ */
+export enum DisconnectCode {
+  /**
+   * @generated from enum value: DISCONNECT_CODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_PROTOCOL = 1;
+   */
+  PROTOCOL = 1,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_NEED_JOIN_CODE = 2;
+   */
+  NEED_JOIN_CODE = 2,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_BAD_JOIN_CODE = 3;
+   */
+  BAD_JOIN_CODE = 3,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_BAD_NAME = 4;
+   */
+  BAD_NAME = 4,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_DENIED = 5;
+   */
+  DENIED = 5,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_RATE_LIMITED = 6;
+   */
+  RATE_LIMITED = 6,
+
+  /**
+   * @generated from enum value: DISCONNECT_CODE_NOT_ADMIN = 7;
+   */
+  NOT_ADMIN = 7,
+}
+
+/**
+ * Describes the enum scabbage.v1.DisconnectCode.
+ */
+export const DisconnectCodeSchema: GenEnum<DisconnectCode> = /*@__PURE__*/
+  enumDesc(file_scabbage_v1_net, 1);
 

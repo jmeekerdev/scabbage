@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 1;
+  PROTOCOL_VERSION_CURRENT = 2;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -15,6 +15,8 @@ message ClientMessage {
   oneof body {
     Hello hello = 1;
     Ping ping = 2;
+    DecideJoin decide_join = 3;
+    CreateJoinCode create_join_code = 4;
   }
 }
 
@@ -24,18 +26,76 @@ message ServerMessage {
     Welcome welcome = 1;
     Pong pong = 2;
     Disconnect disconnect = 3;
+    JoinPending join_pending = 4;
+    PendingRequests pending_requests = 5;
+    JoinCodeCreated join_code_created = 6;
   }
 }
 
+// First message on every connection.
 message Hello {
   uint32 protocol_version = 1;
   string client_name = 2;
+  // Random 32 bytes generated once per device; the server stores only its hash.
+  bytes device_secret = 3;
+  // Set when an unregistered device asks to join with a code.
+  JoinRequest join = 4;
+  // Admin console: authenticate without entering the world.
+  bool console = 5;
+}
+
+message JoinRequest {
+  string code = 1;
+  string name = 2;
+  uint32 color = 3; // 0xRRGGBB
 }
 
 message Welcome {
   uint32 protocol_version = 1;
   string server_name = 2;
   uint32 tick_rate_hz = 3;
+  PlayerInfo you = 4;
+}
+
+message PlayerInfo {
+  uint64 id = 1;
+  string name = 2;
+  uint32 color = 3;
+  bool admin = 4;
+}
+
+// The join request is waiting for an admin; the connection stays open until a decision.
+message JoinPending {}
+
+// Sent to admins on connect and whenever the pending list changes.
+message PendingRequests {
+  repeated PendingRequest requests = 1;
+}
+
+message PendingRequest {
+  uint64 id = 1;
+  string name = 2;
+  uint32 color = 3;
+  bool returning = 4; // name matches an existing player
+  double created_ms = 5;
+}
+
+// Admin only.
+message DecideJoin {
+  uint64 request_id = 1;
+  bool approve = 2;
+}
+
+// Admin only.
+message CreateJoinCode {
+  uint32 uses = 1;
+  uint32 ttl_hours = 2;
+}
+
+message JoinCodeCreated {
+  string code = 1;
+  uint32 uses = 2;
+  double expires_ms = 3;
 }
 
 message Ping {
@@ -47,6 +107,18 @@ message Pong {
   double server_time_ms = 2;
 }
 
+enum DisconnectCode {
+  DISCONNECT_CODE_UNSPECIFIED = 0;
+  DISCONNECT_CODE_PROTOCOL = 1;
+  DISCONNECT_CODE_NEED_JOIN_CODE = 2;
+  DISCONNECT_CODE_BAD_JOIN_CODE = 3;
+  DISCONNECT_CODE_BAD_NAME = 4;
+  DISCONNECT_CODE_DENIED = 5;
+  DISCONNECT_CODE_RATE_LIMITED = 6;
+  DISCONNECT_CODE_NOT_ADMIN = 7;
+}
+
 message Disconnect {
   string reason = 1;
+  DisconnectCode code = 2;
 }

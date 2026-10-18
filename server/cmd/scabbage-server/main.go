@@ -2,17 +2,21 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
+	"scabbage/internal/access"
 	"scabbage/internal/config"
 	"scabbage/internal/gateway"
 	"scabbage/internal/sim"
+	"scabbage/internal/store"
 )
 
 func main() {
@@ -28,16 +32,29 @@ func main() {
 }
 
 func run(cfg config.Config, logger *slog.Logger) error {
+	db, err := openDB(cfg.DataDir)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
 	hub := sim.NewHub(sim.Config{TickRate: cfg.TickRate})
 	defer hub.Close()
 
-	mux := http.NewServeMux()
-	mux.Handle("/ws", gateway.New(gateway.Config{
+	var gw *gateway.Gateway
+	svc := access.New(db, access.Options{OnPendingChange: func() { gw.PendingChanged() }})
+	gw = gateway.New(gateway.Config{
 		Hub:            hub,
+		Access:         svc,
 		ServerName:     cfg.ServerName,
 		OriginPatterns: cfg.Origins,
 		Logger:         logger,
-	}))
+	})
+	if err := logAdminInvite(svc, logger); err != nil {
+		return err
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/ws", gw)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok\n")) })
 	mux.Handle("/", http.FileServer(http.Dir(cfg.WebDir)))
 
@@ -59,5 +76,23 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err := srv.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	return nil
+}
+
+func openDB(dir string) (*sql.DB, error) {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return nil, err
+	}
+	return store.Open(filepath.Join(dir, "scabbage.db"))
+}
+
+// logAdminInvite prints a one-time admin code until the first admin has joined.
+func logAdminInvite(svc *access.Service, logger *slog.Logger) error {
+	code, ok, err := svc.AdminInvite()
+	if err != nil || !ok {
+		return err
+	}
+	logger.Warn("no admin yet: open the game and join with this code to become admin, "+
+		"or add #join=CODE to the game URL", "code", code)
 	return nil
 }

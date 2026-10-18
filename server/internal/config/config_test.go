@@ -14,7 +14,7 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Config{Addr: ":8080", WebDir: "web", ServerName: "Scabbage", TickRate: 20}
+	want := Config{Addr: ":8080", WebDir: "web", DataDir: "data", ServerName: "Scabbage", TickRate: 20}
 	if !reflect.DeepEqual(c, want) {
 		t.Fatalf("got %+v, want %+v", c, want)
 	}
@@ -22,14 +22,15 @@ func TestDefaults(t *testing.T) {
 
 func TestEnvOverridesDefaults(t *testing.T) {
 	c, err := Load(nil, env(map[string]string{
-		"SCABBAGE_ADDR":    ":9000",
-		"SCABBAGE_ORIGINS": "localhost:5173, 192.168.1.5:5173",
+		"SCABBAGE_ADDR":     ":9000",
+		"SCABBAGE_DATA_DIR": "/data",
+		"SCABBAGE_ORIGINS":  "localhost:5173, 192.168.1.5:5173",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Addr != ":9000" {
-		t.Fatalf("addr = %q", c.Addr)
+	if c.Addr != ":9000" || c.DataDir != "/data" {
+		t.Fatalf("addr = %q, data dir = %q", c.Addr, c.DataDir)
 	}
 	if want := []string{"localhost:5173", "192.168.1.5:5173"}; !reflect.DeepEqual(c.Origins, want) {
 		t.Fatalf("origins = %q, want %q", c.Origins, want)

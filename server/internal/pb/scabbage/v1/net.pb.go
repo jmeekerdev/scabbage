@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 1
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 2
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0: "PROTOCOL_VERSION_UNSPECIFIED",
-		1: "PROTOCOL_VERSION_CURRENT",
+		2: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     1,
+		"PROTOCOL_VERSION_CURRENT":     2,
 	}
 )
 
@@ -68,6 +68,70 @@ func (ProtocolVersion) EnumDescriptor() ([]byte, []int) {
 	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{0}
 }
 
+type DisconnectCode int32
+
+const (
+	DisconnectCode_DISCONNECT_CODE_UNSPECIFIED    DisconnectCode = 0
+	DisconnectCode_DISCONNECT_CODE_PROTOCOL       DisconnectCode = 1
+	DisconnectCode_DISCONNECT_CODE_NEED_JOIN_CODE DisconnectCode = 2
+	DisconnectCode_DISCONNECT_CODE_BAD_JOIN_CODE  DisconnectCode = 3
+	DisconnectCode_DISCONNECT_CODE_BAD_NAME       DisconnectCode = 4
+	DisconnectCode_DISCONNECT_CODE_DENIED         DisconnectCode = 5
+	DisconnectCode_DISCONNECT_CODE_RATE_LIMITED   DisconnectCode = 6
+	DisconnectCode_DISCONNECT_CODE_NOT_ADMIN      DisconnectCode = 7
+)
+
+// Enum value maps for DisconnectCode.
+var (
+	DisconnectCode_name = map[int32]string{
+		0: "DISCONNECT_CODE_UNSPECIFIED",
+		1: "DISCONNECT_CODE_PROTOCOL",
+		2: "DISCONNECT_CODE_NEED_JOIN_CODE",
+		3: "DISCONNECT_CODE_BAD_JOIN_CODE",
+		4: "DISCONNECT_CODE_BAD_NAME",
+		5: "DISCONNECT_CODE_DENIED",
+		6: "DISCONNECT_CODE_RATE_LIMITED",
+		7: "DISCONNECT_CODE_NOT_ADMIN",
+	}
+	DisconnectCode_value = map[string]int32{
+		"DISCONNECT_CODE_UNSPECIFIED":    0,
+		"DISCONNECT_CODE_PROTOCOL":       1,
+		"DISCONNECT_CODE_NEED_JOIN_CODE": 2,
+		"DISCONNECT_CODE_BAD_JOIN_CODE":  3,
+		"DISCONNECT_CODE_BAD_NAME":       4,
+		"DISCONNECT_CODE_DENIED":         5,
+		"DISCONNECT_CODE_RATE_LIMITED":   6,
+		"DISCONNECT_CODE_NOT_ADMIN":      7,
+	}
+)
+
+func (x DisconnectCode) Enum() *DisconnectCode {
+	p := new(DisconnectCode)
+	*p = x
+	return p
+}
+
+func (x DisconnectCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DisconnectCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_scabbage_v1_net_proto_enumTypes[1].Descriptor()
+}
+
+func (DisconnectCode) Type() protoreflect.EnumType {
+	return &file_scabbage_v1_net_proto_enumTypes[1]
+}
+
+func (x DisconnectCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DisconnectCode.Descriptor instead.
+func (DisconnectCode) EnumDescriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{1}
+}
+
 // Every WebSocket binary frame from a client is one ClientMessage.
 type ClientMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -75,6 +139,8 @@ type ClientMessage struct {
 	//
 	//	*ClientMessage_Hello
 	//	*ClientMessage_Ping
+	//	*ClientMessage_DecideJoin
+	//	*ClientMessage_CreateJoinCode
 	Body          isClientMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -135,6 +201,24 @@ func (x *ClientMessage) GetPing() *Ping {
 	return nil
 }
 
+func (x *ClientMessage) GetDecideJoin() *DecideJoin {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_DecideJoin); ok {
+			return x.DecideJoin
+		}
+	}
+	return nil
+}
+
+func (x *ClientMessage) GetCreateJoinCode() *CreateJoinCode {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_CreateJoinCode); ok {
+			return x.CreateJoinCode
+		}
+	}
+	return nil
+}
+
 type isClientMessage_Body interface {
 	isClientMessage_Body()
 }
@@ -147,9 +231,21 @@ type ClientMessage_Ping struct {
 	Ping *Ping `protobuf:"bytes,2,opt,name=ping,proto3,oneof"`
 }
 
+type ClientMessage_DecideJoin struct {
+	DecideJoin *DecideJoin `protobuf:"bytes,3,opt,name=decide_join,json=decideJoin,proto3,oneof"`
+}
+
+type ClientMessage_CreateJoinCode struct {
+	CreateJoinCode *CreateJoinCode `protobuf:"bytes,4,opt,name=create_join_code,json=createJoinCode,proto3,oneof"`
+}
+
 func (*ClientMessage_Hello) isClientMessage_Body() {}
 
 func (*ClientMessage_Ping) isClientMessage_Body() {}
+
+func (*ClientMessage_DecideJoin) isClientMessage_Body() {}
+
+func (*ClientMessage_CreateJoinCode) isClientMessage_Body() {}
 
 // Every WebSocket binary frame from the server is one ServerMessage.
 type ServerMessage struct {
@@ -159,6 +255,9 @@ type ServerMessage struct {
 	//	*ServerMessage_Welcome
 	//	*ServerMessage_Pong
 	//	*ServerMessage_Disconnect
+	//	*ServerMessage_JoinPending
+	//	*ServerMessage_PendingRequests
+	//	*ServerMessage_JoinCodeCreated
 	Body          isServerMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -228,6 +327,33 @@ func (x *ServerMessage) GetDisconnect() *Disconnect {
 	return nil
 }
 
+func (x *ServerMessage) GetJoinPending() *JoinPending {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_JoinPending); ok {
+			return x.JoinPending
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetPendingRequests() *PendingRequests {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_PendingRequests); ok {
+			return x.PendingRequests
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetJoinCodeCreated() *JoinCodeCreated {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_JoinCodeCreated); ok {
+			return x.JoinCodeCreated
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Body interface {
 	isServerMessage_Body()
 }
@@ -244,18 +370,43 @@ type ServerMessage_Disconnect struct {
 	Disconnect *Disconnect `protobuf:"bytes,3,opt,name=disconnect,proto3,oneof"`
 }
 
+type ServerMessage_JoinPending struct {
+	JoinPending *JoinPending `protobuf:"bytes,4,opt,name=join_pending,json=joinPending,proto3,oneof"`
+}
+
+type ServerMessage_PendingRequests struct {
+	PendingRequests *PendingRequests `protobuf:"bytes,5,opt,name=pending_requests,json=pendingRequests,proto3,oneof"`
+}
+
+type ServerMessage_JoinCodeCreated struct {
+	JoinCodeCreated *JoinCodeCreated `protobuf:"bytes,6,opt,name=join_code_created,json=joinCodeCreated,proto3,oneof"`
+}
+
 func (*ServerMessage_Welcome) isServerMessage_Body() {}
 
 func (*ServerMessage_Pong) isServerMessage_Body() {}
 
 func (*ServerMessage_Disconnect) isServerMessage_Body() {}
 
+func (*ServerMessage_JoinPending) isServerMessage_Body() {}
+
+func (*ServerMessage_PendingRequests) isServerMessage_Body() {}
+
+func (*ServerMessage_JoinCodeCreated) isServerMessage_Body() {}
+
+// First message on every connection.
 type Hello struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ProtocolVersion uint32                 `protobuf:"varint,1,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
 	ClientName      string                 `protobuf:"bytes,2,opt,name=client_name,json=clientName,proto3" json:"client_name,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Random 32 bytes generated once per device; the server stores only its hash.
+	DeviceSecret []byte `protobuf:"bytes,3,opt,name=device_secret,json=deviceSecret,proto3" json:"device_secret,omitempty"`
+	// Set when an unregistered device asks to join with a code.
+	Join *JoinRequest `protobuf:"bytes,4,opt,name=join,proto3" json:"join,omitempty"`
+	// Admin console: authenticate without entering the world.
+	Console       bool `protobuf:"varint,5,opt,name=console,proto3" json:"console,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Hello) Reset() {
@@ -302,18 +453,100 @@ func (x *Hello) GetClientName() string {
 	return ""
 }
 
+func (x *Hello) GetDeviceSecret() []byte {
+	if x != nil {
+		return x.DeviceSecret
+	}
+	return nil
+}
+
+func (x *Hello) GetJoin() *JoinRequest {
+	if x != nil {
+		return x.Join
+	}
+	return nil
+}
+
+func (x *Hello) GetConsole() bool {
+	if x != nil {
+		return x.Console
+	}
+	return false
+}
+
+type JoinRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Color         uint32                 `protobuf:"varint,3,opt,name=color,proto3" json:"color,omitempty"` // 0xRRGGBB
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinRequest) Reset() {
+	*x = JoinRequest{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinRequest) ProtoMessage() {}
+
+func (x *JoinRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinRequest.ProtoReflect.Descriptor instead.
+func (*JoinRequest) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *JoinRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *JoinRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *JoinRequest) GetColor() uint32 {
+	if x != nil {
+		return x.Color
+	}
+	return 0
+}
+
 type Welcome struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ProtocolVersion uint32                 `protobuf:"varint,1,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
 	ServerName      string                 `protobuf:"bytes,2,opt,name=server_name,json=serverName,proto3" json:"server_name,omitempty"`
 	TickRateHz      uint32                 `protobuf:"varint,3,opt,name=tick_rate_hz,json=tickRateHz,proto3" json:"tick_rate_hz,omitempty"`
+	You             *PlayerInfo            `protobuf:"bytes,4,opt,name=you,proto3" json:"you,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Welcome) Reset() {
 	*x = Welcome{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[3]
+	mi := &file_scabbage_v1_net_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +558,7 @@ func (x *Welcome) String() string {
 func (*Welcome) ProtoMessage() {}
 
 func (x *Welcome) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[3]
+	mi := &file_scabbage_v1_net_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +571,7 @@ func (x *Welcome) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Welcome.ProtoReflect.Descriptor instead.
 func (*Welcome) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{3}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Welcome) GetProtocolVersion() uint32 {
@@ -362,6 +595,405 @@ func (x *Welcome) GetTickRateHz() uint32 {
 	return 0
 }
 
+func (x *Welcome) GetYou() *PlayerInfo {
+	if x != nil {
+		return x.You
+	}
+	return nil
+}
+
+type PlayerInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Color         uint32                 `protobuf:"varint,3,opt,name=color,proto3" json:"color,omitempty"`
+	Admin         bool                   `protobuf:"varint,4,opt,name=admin,proto3" json:"admin,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlayerInfo) Reset() {
+	*x = PlayerInfo{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlayerInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlayerInfo) ProtoMessage() {}
+
+func (x *PlayerInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlayerInfo.ProtoReflect.Descriptor instead.
+func (*PlayerInfo) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PlayerInfo) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *PlayerInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PlayerInfo) GetColor() uint32 {
+	if x != nil {
+		return x.Color
+	}
+	return 0
+}
+
+func (x *PlayerInfo) GetAdmin() bool {
+	if x != nil {
+		return x.Admin
+	}
+	return false
+}
+
+// The join request is waiting for an admin; the connection stays open until a decision.
+type JoinPending struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinPending) Reset() {
+	*x = JoinPending{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinPending) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinPending) ProtoMessage() {}
+
+func (x *JoinPending) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinPending.ProtoReflect.Descriptor instead.
+func (*JoinPending) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{6}
+}
+
+// Sent to admins on connect and whenever the pending list changes.
+type PendingRequests struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Requests      []*PendingRequest      `protobuf:"bytes,1,rep,name=requests,proto3" json:"requests,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PendingRequests) Reset() {
+	*x = PendingRequests{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PendingRequests) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PendingRequests) ProtoMessage() {}
+
+func (x *PendingRequests) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PendingRequests.ProtoReflect.Descriptor instead.
+func (*PendingRequests) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *PendingRequests) GetRequests() []*PendingRequest {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+type PendingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Color         uint32                 `protobuf:"varint,3,opt,name=color,proto3" json:"color,omitempty"`
+	Returning     bool                   `protobuf:"varint,4,opt,name=returning,proto3" json:"returning,omitempty"` // name matches an existing player
+	CreatedMs     float64                `protobuf:"fixed64,5,opt,name=created_ms,json=createdMs,proto3" json:"created_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PendingRequest) Reset() {
+	*x = PendingRequest{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PendingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PendingRequest) ProtoMessage() {}
+
+func (x *PendingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PendingRequest.ProtoReflect.Descriptor instead.
+func (*PendingRequest) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PendingRequest) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *PendingRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PendingRequest) GetColor() uint32 {
+	if x != nil {
+		return x.Color
+	}
+	return 0
+}
+
+func (x *PendingRequest) GetReturning() bool {
+	if x != nil {
+		return x.Returning
+	}
+	return false
+}
+
+func (x *PendingRequest) GetCreatedMs() float64 {
+	if x != nil {
+		return x.CreatedMs
+	}
+	return 0
+}
+
+// Admin only.
+type DecideJoin struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RequestId     uint64                 `protobuf:"varint,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	Approve       bool                   `protobuf:"varint,2,opt,name=approve,proto3" json:"approve,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecideJoin) Reset() {
+	*x = DecideJoin{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecideJoin) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecideJoin) ProtoMessage() {}
+
+func (x *DecideJoin) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecideJoin.ProtoReflect.Descriptor instead.
+func (*DecideJoin) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DecideJoin) GetRequestId() uint64 {
+	if x != nil {
+		return x.RequestId
+	}
+	return 0
+}
+
+func (x *DecideJoin) GetApprove() bool {
+	if x != nil {
+		return x.Approve
+	}
+	return false
+}
+
+// Admin only.
+type CreateJoinCode struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Uses          uint32                 `protobuf:"varint,1,opt,name=uses,proto3" json:"uses,omitempty"`
+	TtlHours      uint32                 `protobuf:"varint,2,opt,name=ttl_hours,json=ttlHours,proto3" json:"ttl_hours,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateJoinCode) Reset() {
+	*x = CreateJoinCode{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateJoinCode) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateJoinCode) ProtoMessage() {}
+
+func (x *CreateJoinCode) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateJoinCode.ProtoReflect.Descriptor instead.
+func (*CreateJoinCode) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CreateJoinCode) GetUses() uint32 {
+	if x != nil {
+		return x.Uses
+	}
+	return 0
+}
+
+func (x *CreateJoinCode) GetTtlHours() uint32 {
+	if x != nil {
+		return x.TtlHours
+	}
+	return 0
+}
+
+type JoinCodeCreated struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Uses          uint32                 `protobuf:"varint,2,opt,name=uses,proto3" json:"uses,omitempty"`
+	ExpiresMs     float64                `protobuf:"fixed64,3,opt,name=expires_ms,json=expiresMs,proto3" json:"expires_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinCodeCreated) Reset() {
+	*x = JoinCodeCreated{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinCodeCreated) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinCodeCreated) ProtoMessage() {}
+
+func (x *JoinCodeCreated) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinCodeCreated.ProtoReflect.Descriptor instead.
+func (*JoinCodeCreated) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *JoinCodeCreated) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *JoinCodeCreated) GetUses() uint32 {
+	if x != nil {
+		return x.Uses
+	}
+	return 0
+}
+
+func (x *JoinCodeCreated) GetExpiresMs() float64 {
+	if x != nil {
+		return x.ExpiresMs
+	}
+	return 0
+}
+
 type Ping struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ClientTimeMs  float64                `protobuf:"fixed64,1,opt,name=client_time_ms,json=clientTimeMs,proto3" json:"client_time_ms,omitempty"`
@@ -371,7 +1003,7 @@ type Ping struct {
 
 func (x *Ping) Reset() {
 	*x = Ping{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[4]
+	mi := &file_scabbage_v1_net_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +1015,7 @@ func (x *Ping) String() string {
 func (*Ping) ProtoMessage() {}
 
 func (x *Ping) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[4]
+	mi := &file_scabbage_v1_net_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +1028,7 @@ func (x *Ping) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ping.ProtoReflect.Descriptor instead.
 func (*Ping) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{4}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Ping) GetClientTimeMs() float64 {
@@ -416,7 +1048,7 @@ type Pong struct {
 
 func (x *Pong) Reset() {
 	*x = Pong{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[5]
+	mi := &file_scabbage_v1_net_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +1060,7 @@ func (x *Pong) String() string {
 func (*Pong) ProtoMessage() {}
 
 func (x *Pong) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[5]
+	mi := &file_scabbage_v1_net_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +1073,7 @@ func (x *Pong) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pong.ProtoReflect.Descriptor instead.
 func (*Pong) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{5}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Pong) GetClientTimeMs() float64 {
@@ -461,13 +1093,14 @@ func (x *Pong) GetServerTimeMs() float64 {
 type Disconnect struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	Code          DisconnectCode         `protobuf:"varint,2,opt,name=code,proto3,enum=scabbage.v1.DisconnectCode" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Disconnect) Reset() {
 	*x = Disconnect{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[6]
+	mi := &file_scabbage_v1_net_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +1112,7 @@ func (x *Disconnect) String() string {
 func (*Disconnect) ProtoMessage() {}
 
 func (x *Disconnect) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[6]
+	mi := &file_scabbage_v1_net_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +1125,7 @@ func (x *Disconnect) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Disconnect.ProtoReflect.Descriptor instead.
 func (*Disconnect) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{6}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Disconnect) GetReason() string {
@@ -502,43 +1135,103 @@ func (x *Disconnect) GetReason() string {
 	return ""
 }
 
+func (x *Disconnect) GetCode() DisconnectCode {
+	if x != nil {
+		return x.Code
+	}
+	return DisconnectCode_DISCONNECT_CODE_UNSPECIFIED
+}
+
 var File_scabbage_v1_net_proto protoreflect.FileDescriptor
 
 const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\n" +
-	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"l\n" +
+	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\xf1\x01\n" +
 	"\rClientMessage\x12*\n" +
 	"\x05hello\x18\x01 \x01(\v2\x12.scabbage.v1.HelloH\x00R\x05hello\x12'\n" +
-	"\x04ping\x18\x02 \x01(\v2\x11.scabbage.v1.PingH\x00R\x04pingB\x06\n" +
-	"\x04body\"\xad\x01\n" +
+	"\x04ping\x18\x02 \x01(\v2\x11.scabbage.v1.PingH\x00R\x04ping\x12:\n" +
+	"\vdecide_join\x18\x03 \x01(\v2\x17.scabbage.v1.DecideJoinH\x00R\n" +
+	"decideJoin\x12G\n" +
+	"\x10create_join_code\x18\x04 \x01(\v2\x1b.scabbage.v1.CreateJoinCodeH\x00R\x0ecreateJoinCodeB\x06\n" +
+	"\x04body\"\x83\x03\n" +
 	"\rServerMessage\x120\n" +
 	"\awelcome\x18\x01 \x01(\v2\x14.scabbage.v1.WelcomeH\x00R\awelcome\x12'\n" +
 	"\x04pong\x18\x02 \x01(\v2\x11.scabbage.v1.PongH\x00R\x04pong\x129\n" +
 	"\n" +
 	"disconnect\x18\x03 \x01(\v2\x17.scabbage.v1.DisconnectH\x00R\n" +
-	"disconnectB\x06\n" +
-	"\x04body\"S\n" +
+	"disconnect\x12=\n" +
+	"\fjoin_pending\x18\x04 \x01(\v2\x18.scabbage.v1.JoinPendingH\x00R\vjoinPending\x12I\n" +
+	"\x10pending_requests\x18\x05 \x01(\v2\x1c.scabbage.v1.PendingRequestsH\x00R\x0fpendingRequests\x12J\n" +
+	"\x11join_code_created\x18\x06 \x01(\v2\x1c.scabbage.v1.JoinCodeCreatedH\x00R\x0fjoinCodeCreatedB\x06\n" +
+	"\x04body\"\xc0\x01\n" +
 	"\x05Hello\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
 	"\vclient_name\x18\x02 \x01(\tR\n" +
-	"clientName\"w\n" +
+	"clientName\x12#\n" +
+	"\rdevice_secret\x18\x03 \x01(\fR\fdeviceSecret\x12,\n" +
+	"\x04join\x18\x04 \x01(\v2\x18.scabbage.v1.JoinRequestR\x04join\x12\x18\n" +
+	"\aconsole\x18\x05 \x01(\bR\aconsole\"K\n" +
+	"\vJoinRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05color\x18\x03 \x01(\rR\x05color\"\xa2\x01\n" +
 	"\aWelcome\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
 	"\vserver_name\x18\x02 \x01(\tR\n" +
 	"serverName\x12 \n" +
 	"\ftick_rate_hz\x18\x03 \x01(\rR\n" +
-	"tickRateHz\",\n" +
+	"tickRateHz\x12)\n" +
+	"\x03you\x18\x04 \x01(\v2\x17.scabbage.v1.PlayerInfoR\x03you\"\\\n" +
+	"\n" +
+	"PlayerInfo\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05color\x18\x03 \x01(\rR\x05color\x12\x14\n" +
+	"\x05admin\x18\x04 \x01(\bR\x05admin\"\r\n" +
+	"\vJoinPending\"J\n" +
+	"\x0fPendingRequests\x127\n" +
+	"\brequests\x18\x01 \x03(\v2\x1b.scabbage.v1.PendingRequestR\brequests\"\x87\x01\n" +
+	"\x0ePendingRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05color\x18\x03 \x01(\rR\x05color\x12\x1c\n" +
+	"\treturning\x18\x04 \x01(\bR\treturning\x12\x1d\n" +
+	"\n" +
+	"created_ms\x18\x05 \x01(\x01R\tcreatedMs\"E\n" +
+	"\n" +
+	"DecideJoin\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x01 \x01(\x04R\trequestId\x12\x18\n" +
+	"\aapprove\x18\x02 \x01(\bR\aapprove\"A\n" +
+	"\x0eCreateJoinCode\x12\x12\n" +
+	"\x04uses\x18\x01 \x01(\rR\x04uses\x12\x1b\n" +
+	"\tttl_hours\x18\x02 \x01(\rR\bttlHours\"X\n" +
+	"\x0fJoinCodeCreated\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
+	"\x04uses\x18\x02 \x01(\rR\x04uses\x12\x1d\n" +
+	"\n" +
+	"expires_ms\x18\x03 \x01(\x01R\texpiresMs\",\n" +
 	"\x04Ping\x12$\n" +
 	"\x0eclient_time_ms\x18\x01 \x01(\x01R\fclientTimeMs\"R\n" +
 	"\x04Pong\x12$\n" +
 	"\x0eclient_time_ms\x18\x01 \x01(\x01R\fclientTimeMs\x12$\n" +
-	"\x0eserver_time_ms\x18\x02 \x01(\x01R\fserverTimeMs\"$\n" +
+	"\x0eserver_time_ms\x18\x02 \x01(\x01R\fserverTimeMs\"U\n" +
 	"\n" +
 	"Disconnect\x12\x16\n" +
-	"\x06reason\x18\x01 \x01(\tR\x06reason*Q\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\x12/\n" +
+	"\x04code\x18\x02 \x01(\x0e2\x1b.scabbage.v1.DisconnectCodeR\x04code*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x01B-Z+scabbage/internal/pb/scabbage/v1;scabbagev1b\x06proto3"
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x02*\x91\x02\n" +
+	"\x0eDisconnectCode\x12\x1f\n" +
+	"\x1bDISCONNECT_CODE_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18DISCONNECT_CODE_PROTOCOL\x10\x01\x12\"\n" +
+	"\x1eDISCONNECT_CODE_NEED_JOIN_CODE\x10\x02\x12!\n" +
+	"\x1dDISCONNECT_CODE_BAD_JOIN_CODE\x10\x03\x12\x1c\n" +
+	"\x18DISCONNECT_CODE_BAD_NAME\x10\x04\x12\x1a\n" +
+	"\x16DISCONNECT_CODE_DENIED\x10\x05\x12 \n" +
+	"\x1cDISCONNECT_CODE_RATE_LIMITED\x10\x06\x12\x1d\n" +
+	"\x19DISCONNECT_CODE_NOT_ADMIN\x10\aB-Z+scabbage/internal/pb/scabbage/v1;scabbagev1b\x06proto3"
 
 var (
 	file_scabbage_v1_net_proto_rawDescOnce sync.Once
@@ -552,29 +1245,47 @@ func file_scabbage_v1_net_proto_rawDescGZIP() []byte {
 	return file_scabbage_v1_net_proto_rawDescData
 }
 
-var file_scabbage_v1_net_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_scabbage_v1_net_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_scabbage_v1_net_proto_goTypes = []any{
-	(ProtocolVersion)(0),  // 0: scabbage.v1.ProtocolVersion
-	(*ClientMessage)(nil), // 1: scabbage.v1.ClientMessage
-	(*ServerMessage)(nil), // 2: scabbage.v1.ServerMessage
-	(*Hello)(nil),         // 3: scabbage.v1.Hello
-	(*Welcome)(nil),       // 4: scabbage.v1.Welcome
-	(*Ping)(nil),          // 5: scabbage.v1.Ping
-	(*Pong)(nil),          // 6: scabbage.v1.Pong
-	(*Disconnect)(nil),    // 7: scabbage.v1.Disconnect
+	(ProtocolVersion)(0),    // 0: scabbage.v1.ProtocolVersion
+	(DisconnectCode)(0),     // 1: scabbage.v1.DisconnectCode
+	(*ClientMessage)(nil),   // 2: scabbage.v1.ClientMessage
+	(*ServerMessage)(nil),   // 3: scabbage.v1.ServerMessage
+	(*Hello)(nil),           // 4: scabbage.v1.Hello
+	(*JoinRequest)(nil),     // 5: scabbage.v1.JoinRequest
+	(*Welcome)(nil),         // 6: scabbage.v1.Welcome
+	(*PlayerInfo)(nil),      // 7: scabbage.v1.PlayerInfo
+	(*JoinPending)(nil),     // 8: scabbage.v1.JoinPending
+	(*PendingRequests)(nil), // 9: scabbage.v1.PendingRequests
+	(*PendingRequest)(nil),  // 10: scabbage.v1.PendingRequest
+	(*DecideJoin)(nil),      // 11: scabbage.v1.DecideJoin
+	(*CreateJoinCode)(nil),  // 12: scabbage.v1.CreateJoinCode
+	(*JoinCodeCreated)(nil), // 13: scabbage.v1.JoinCodeCreated
+	(*Ping)(nil),            // 14: scabbage.v1.Ping
+	(*Pong)(nil),            // 15: scabbage.v1.Pong
+	(*Disconnect)(nil),      // 16: scabbage.v1.Disconnect
 }
 var file_scabbage_v1_net_proto_depIdxs = []int32{
-	3, // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
-	5, // 1: scabbage.v1.ClientMessage.ping:type_name -> scabbage.v1.Ping
-	4, // 2: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
-	6, // 3: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
-	7, // 4: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4,  // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
+	14, // 1: scabbage.v1.ClientMessage.ping:type_name -> scabbage.v1.Ping
+	11, // 2: scabbage.v1.ClientMessage.decide_join:type_name -> scabbage.v1.DecideJoin
+	12, // 3: scabbage.v1.ClientMessage.create_join_code:type_name -> scabbage.v1.CreateJoinCode
+	6,  // 4: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
+	15, // 5: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
+	16, // 6: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
+	8,  // 7: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
+	9,  // 8: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
+	13, // 9: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
+	5,  // 10: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
+	7,  // 11: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
+	10, // 12: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
+	1,  // 13: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_scabbage_v1_net_proto_init() }
@@ -585,19 +1296,24 @@ func file_scabbage_v1_net_proto_init() {
 	file_scabbage_v1_net_proto_msgTypes[0].OneofWrappers = []any{
 		(*ClientMessage_Hello)(nil),
 		(*ClientMessage_Ping)(nil),
+		(*ClientMessage_DecideJoin)(nil),
+		(*ClientMessage_CreateJoinCode)(nil),
 	}
 	file_scabbage_v1_net_proto_msgTypes[1].OneofWrappers = []any{
 		(*ServerMessage_Welcome)(nil),
 		(*ServerMessage_Pong)(nil),
 		(*ServerMessage_Disconnect)(nil),
+		(*ServerMessage_JoinPending)(nil),
+		(*ServerMessage_PendingRequests)(nil),
+		(*ServerMessage_JoinCodeCreated)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scabbage_v1_net_proto_rawDesc), len(file_scabbage_v1_net_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   7,
+			NumEnums:      2,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -95,19 +95,25 @@ The Go server only speaks HTTP/WS. TLS comes from Caddy (in the compose file, op
 
 ## Join and approval flow
 
-1. The admin creates a join code or invite link (`https://game.example/join/ABCD-1234`) that
-   expires and has a limited number of uses.
-2. A new player opens the link and picks a display name and an avatar color. The device
-   generates a random device secret, and the server marks the request **pending**.
-3. Any admin approves or denies the request from **either** the admin web page **or
-   in-game**: online admins get a toast with Approve/Deny buttons, there's a pending-requests
-   panel, and `/approve <name>` works in chat. Only then is a long-lived device token issued.
-   Admin is a role on a player's account, and the first admin is created from the server CLI.
-4. Rate limits apply per IP and per code, plus a cap on pending requests. A code without an
-   approval grants nothing, so guessing codes gets an attacker nowhere.
-5. The device token is stored in IndexedDB. **iOS caveat:** Safari can wipe site storage after
-   about 7 days of not visiting unless the game is installed as a PWA (Add to Home Screen),
-   so we'll encourage installing it, and re-approving a returning player takes one click.
+1. **First admin:** while no admin exists, the server logs a single-use admin code at startup
+   (`docker compose logs scabbage`). Joining with it makes you admin immediately.
+2. An admin makes an invite (in game: **Invite**, or on `/admin.html`) for 1–10 people, valid for an
+   hour, a day or a week. The link looks like `http://host:8080/#join=ABCD-EFGH`. The code is in the
+   URL hash, so the static server needs no routes, and the client strips it from the address bar.
+3. A new player opens the link and picks a display name and an avatar color. The device makes a
+   random 32-byte **device secret** (`crypto.getRandomValues`, stored in `localStorage`), and the
+   server stores only its SHA-256 hash. The request is **pending**: the connection stays open
+   (answering pings) and resumes after a reconnect.
+4. Any online admin sees a toast with **Let in / No** (also listed on `/admin.html`). If the name
+   already belongs to a player, the request is flagged "returning", and approving it adds the new
+   device to that player. Approval registers the device secret; there is no separate token.
+5. Limits: 5 bad codes per IP per 10 minutes (X-Forwarded-For is trusted only from private/loopback
+   peers, e.g. Caddy), at most 10 pending requests, and pending requests expire after 24 h. A code
+   without an approval grants nothing.
+6. **iOS caveat:** Safari can wipe site storage after about 7 days without a visit unless the game
+   is installed as a PWA, so we encourage installing it. Re-approving a returning player is one click.
+7. Admin-only messages (`DecideJoin`, `CreateJoinCode`) are checked server-side. The admin page
+   connects in *console* mode, which does not wake the world.
 
 ## Repo layout (planned)
 
@@ -148,7 +154,8 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] CI-ready `make check` passing with tests in place
 
 ### Phase 1 — Shared Build World (Milestone 1)
-- [ ] Join code → pending → admin approve → token; minimal admin page + in-game approve toast
+- [x] Join code → pending → admin approve → device registered; admin page (`/admin.html`) + in-game approve toasts
+      (`/approve <name>` lands with chat)
 - [ ] World: chunk storage in SQLite, versioned seeded terrain gen, world border, ~10 starter blocks
 - [ ] Idle mode: stop ticking and unload the world when empty, wake when someone joins
 - [ ] Client settings: view distance, graphics preset, FPS cap

@@ -1,30 +1,23 @@
-// Package gateway accepts WebSocket connections, performs the Hello handshake and routes messages.
+// Package gateway accepts WebSocket connections, admits devices through the access flow and routes messages.
 package gateway
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-	"google.golang.org/protobuf/proto"
 
-	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/access"
 	"scabbage/internal/sim"
-)
-
-const (
-	protocolVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
-	maxMessageBytes = 64 << 10
-	writeTimeout    = 5 * time.Second
 )
 
 // Config configures the gateway handler.
 type Config struct {
 	Hub            *sim.Hub
+	Access         *access.Service
 	ServerName     string
 	HelloTimeout   time.Duration
 	OriginPatterns []string // extra allowed Origin hosts, e.g. the Vite dev server
@@ -32,7 +25,11 @@ type Config struct {
 }
 
 // Gateway is an http.Handler for the game WebSocket endpoint.
-type Gateway struct{ cfg Config }
+type Gateway struct {
+	cfg    Config
+	mu     sync.Mutex
+	admins map[*session]struct{}
+}
 
 // New returns a Gateway with defaults applied.
 func New(cfg Config) *Gateway {
@@ -42,7 +39,7 @@ func New(cfg Config) *Gateway {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	return &Gateway{cfg: cfg}
+	return &Gateway{cfg: cfg, admins: map[*session]struct{}{}}
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -52,115 +49,36 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.SetReadLimit(maxMessageBytes)
-	sess := &session{gw: g, conn: c, log: g.cfg.Logger.With("remote", r.RemoteAddr)}
-	err = sess.run(r.Context())
+	ip := clientIP(r)
+	sess := newSession(g, c, ip, g.cfg.Logger.With("ip", ip))
+	ctx, cancel := context.WithCancel(r.Context())
+	err = sess.run(ctx)
 	sess.close(err)
+	cancel()
 }
 
-type session struct {
-	gw   *Gateway
-	conn *websocket.Conn
-	log  *slog.Logger
-}
-
-// rejectError carries a reason that is sent to the client before closing.
-type rejectError struct{ reason string }
-
-func (e rejectError) Error() string { return e.reason }
-
-func (s *session) run(ctx context.Context) error {
-	if err := s.handshake(ctx); err != nil {
-		return err
-	}
-	hub := s.gw.cfg.Hub
-	hub.Join()
-	s.log.Info("player joined", "players", hub.Players())
-	defer func() {
-		hub.Leave()
-		s.log.Info("player left", "players", hub.Players(), "idle", !hub.Running())
-	}()
-
-	for {
-		msg, err := s.read(ctx)
-		if err != nil {
-			return err
-		}
-		if err := s.handle(ctx, msg); err != nil {
-			return err
-		}
-	}
-}
-
-func (s *session) handshake(ctx context.Context) error {
-	hctx, cancel := context.WithTimeout(ctx, s.gw.cfg.HelloTimeout)
-	defer cancel()
-	msg, err := s.read(hctx)
+// PendingChanged pushes the current pending-request list to every connected admin.
+func (g *Gateway) PendingChanged() {
+	msg, err := g.pendingMessage()
 	if err != nil {
-		return err
-	}
-	hello := msg.GetHello()
-	if hello == nil {
-		return rejectError{"expected hello"}
-	}
-	if hello.ProtocolVersion != protocolVersion {
-		return rejectError{fmt.Sprintf("protocol version %d unsupported, server is %d", hello.ProtocolVersion, protocolVersion)}
-	}
-	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Welcome{Welcome: &pb.Welcome{
-		ProtocolVersion: protocolVersion,
-		ServerName:      s.gw.cfg.ServerName,
-		TickRateHz:      uint32(s.gw.cfg.Hub.TickRate()),
-	}}})
-}
-
-func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
-	switch body := msg.Body.(type) {
-	case *pb.ClientMessage_Ping:
-		return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Pong{Pong: &pb.Pong{
-			ClientTimeMs: body.Ping.ClientTimeMs,
-			ServerTimeMs: float64(time.Now().UnixMicro()) / 1000,
-		}}})
-	case *pb.ClientMessage_Hello:
-		return rejectError{"duplicate hello"}
-	default:
-		return rejectError{"unknown message"}
-	}
-}
-
-func (s *session) read(ctx context.Context) (*pb.ClientMessage, error) {
-	typ, b, err := s.conn.Read(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if typ != websocket.MessageBinary {
-		return nil, rejectError{"binary messages only"}
-	}
-	var msg pb.ClientMessage
-	if err := proto.Unmarshal(b, &msg); err != nil {
-		return nil, rejectError{"malformed message"}
-	}
-	return &msg, nil
-}
-
-func (s *session) write(ctx context.Context, msg *pb.ServerMessage) error {
-	b, err := proto.Marshal(msg)
-	if err != nil {
-		return err
-	}
-	wctx, cancel := context.WithTimeout(ctx, writeTimeout)
-	defer cancel()
-	return s.conn.Write(wctx, websocket.MessageBinary, b)
-}
-
-func (s *session) close(err error) {
-	var rej rejectError
-	if errors.As(err, &rej) {
-		s.log.Info("rejecting client", "reason", rej.reason)
-		_ = s.write(context.Background(), &pb.ServerMessage{Body: &pb.ServerMessage_Disconnect{Disconnect: &pb.Disconnect{Reason: rej.reason}}})
-		_ = s.conn.Close(websocket.StatusPolicyViolation, rej.reason)
+		g.cfg.Logger.Error("listing pending requests", "err", err)
 		return
 	}
-	if websocket.CloseStatus(err) == -1 && err != nil {
-		s.log.Debug("connection ended", "err", err)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for s := range g.admins {
+		s.push(msg)
 	}
-	_ = s.conn.CloseNow()
+}
+
+func (g *Gateway) addAdmin(s *session) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.admins[s] = struct{}{}
+}
+
+func (g *Gateway) removeAdmin(s *session) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	delete(g.admins, s)
 }

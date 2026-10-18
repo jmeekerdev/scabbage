@@ -6,5 +6,14 @@ export default defineConfig({
     host: true,
     proxy: { "/ws": { target: "ws://localhost:8080", ws: true } },
   },
-  build: { target: "es2022", chunkSizeWarningLimit: 700 },
+  build: {
+    target: "es2022",
+    chunkSizeWarningLimit: 700,
+    rolldownOptions: {
+      input: {
+        main: "index.html",
+        admin: "admin.html",
+      },
+    },
+  },
 });

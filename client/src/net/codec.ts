@@ -3,27 +3,51 @@ import {
   ClientMessageSchema,
   ProtocolVersion,
   ServerMessageSchema,
+  type JoinRequestSchema,
   type ServerMessage,
 } from "../pb/scabbage/v1/net_pb";
 
 export const PROTOCOL_VERSION: number = ProtocolVersion.CURRENT;
 
 type ClientBody = MessageInitShape<typeof ClientMessageSchema>["body"];
+export type JoinInit = MessageInitShape<typeof JoinRequestSchema>;
+export type Bytes = Uint8Array<ArrayBuffer>;
+
+export interface HelloOptions {
+  clientName: string;
+  secret: Uint8Array;
+  join?: JoinInit;
+  console?: boolean;
+}
 
 // toBinary always allocates a plain ArrayBuffer, which WebSocket.send requires.
-function encode(body: ClientBody): Uint8Array<ArrayBuffer> {
-  return toBinary(
-    ClientMessageSchema,
-    create(ClientMessageSchema, { body }),
-  ) as Uint8Array<ArrayBuffer>;
+function encode(body: ClientBody): Bytes {
+  return toBinary(ClientMessageSchema, create(ClientMessageSchema, { body })) as Bytes;
 }
 
-export function encodeHello(clientName: string): Uint8Array<ArrayBuffer> {
-  return encode({ case: "hello", value: { protocolVersion: PROTOCOL_VERSION, clientName } });
+export function encodeHello(o: HelloOptions): Bytes {
+  return encode({
+    case: "hello",
+    value: {
+      protocolVersion: PROTOCOL_VERSION,
+      clientName: o.clientName,
+      deviceSecret: o.secret,
+      join: o.join,
+      console: o.console ?? false,
+    },
+  });
 }
 
-export function encodePing(clientTimeMs: number): Uint8Array<ArrayBuffer> {
+export function encodePing(clientTimeMs: number): Bytes {
   return encode({ case: "ping", value: { clientTimeMs } });
+}
+
+export function encodeDecideJoin(requestId: bigint, approve: boolean): Bytes {
+  return encode({ case: "decideJoin", value: { requestId, approve } });
+}
+
+export function encodeCreateJoinCode(uses: number, ttlHours: number): Bytes {
+  return encode({ case: "createJoinCode", value: { uses, ttlHours } });
 }
 
 export function decodeServer(bytes: Uint8Array): ServerMessage {
