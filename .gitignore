@@ -1,0 +1,5 @@
+/bin/
+client/node_modules/
+client/dist/
+*.db
+*.db-*

@@ -1,0 +1,4 @@
+{$SCABBAGE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy scabbage:8080
+}

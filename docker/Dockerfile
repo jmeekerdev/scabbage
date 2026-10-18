@@ -1,0 +1,22 @@
+# Build context is the repo root: docker build -f docker/Dockerfile .
+FROM node:22-alpine AS client
+WORKDIR /src/client
+COPY client/package.json client/package-lock.json ./
+RUN npm ci
+COPY client/ ./
+RUN npm run build
+
+FROM golang:1.26-alpine AS server
+WORKDIR /src/server
+COPY server/go.mod server/go.sum ./
+RUN go mod download
+COPY server/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/scabbage-server ./cmd/scabbage-server
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=server /out/scabbage-server /scabbage-server
+COPY --from=client /src/client/dist /web
+ENV SCABBAGE_ADDR=:8080 SCABBAGE_WEB_DIR=/web
+EXPOSE 8080
+USER nonroot
+ENTRYPOINT ["/scabbage-server"]

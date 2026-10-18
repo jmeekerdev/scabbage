@@ -1,0 +1,35 @@
+# Plain HTTP:  docker compose up -d          -> http://<host>:8080
+# With TLS:    SCABBAGE_DOMAIN=game.example docker compose --profile tls up -d
+services:
+  scabbage:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      GOMEMLIMIT: 1800MiB
+      SCABBAGE_NAME: ${SCABBAGE_NAME:-Scabbage}
+    volumes:
+      - scabbage-data:/data
+    mem_limit: 2g
+    cpus: 2
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [tls]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SCABBAGE_DOMAIN: ${SCABBAGE_DOMAIN:?set SCABBAGE_DOMAIN for TLS}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    mem_limit: 128m
+
+volumes:
+  scabbage-data:
+  caddy-data:

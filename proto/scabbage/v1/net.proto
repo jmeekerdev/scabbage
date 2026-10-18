@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package scabbage.v1;
+
+option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
+
+// Bump CURRENT on any incompatible protocol change.
+enum ProtocolVersion {
+  PROTOCOL_VERSION_UNSPECIFIED = 0;
+  PROTOCOL_VERSION_CURRENT = 1;
+}
+
+// Every WebSocket binary frame from a client is one ClientMessage.
+message ClientMessage {
+  oneof body {
+    Hello hello = 1;
+    Ping ping = 2;
+  }
+}
+
+// Every WebSocket binary frame from the server is one ServerMessage.
+message ServerMessage {
+  oneof body {
+    Welcome welcome = 1;
+    Pong pong = 2;
+    Disconnect disconnect = 3;
+  }
+}
+
+message Hello {
+  uint32 protocol_version = 1;
+  string client_name = 2;
+}
+
+message Welcome {
+  uint32 protocol_version = 1;
+  string server_name = 2;
+  uint32 tick_rate_hz = 3;
+}
+
+message Ping {
+  double client_time_ms = 1;
+}
+
+message Pong {
+  double client_time_ms = 1;
+  double server_time_ms = 2;
+}
+
+message Disconnect {
+  string reason = 1;
+}
