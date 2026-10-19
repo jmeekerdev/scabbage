@@ -1,4 +1,6 @@
 import "./style.css";
+import { distanceGain, Footsteps } from "./audio/cues";
+import { GameAudio } from "./audio/game-audio";
 import { browserStore, loadSecret, resetSecret } from "./join/identity";
 import { parseInvite } from "./join/invite";
 import { screenForRejection, type Action, type Screen } from "./join/outcome";
@@ -99,6 +101,8 @@ const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, emotes, (l) 
 const gamepad = new GamepadControls(player, hotbar, () => navigator.getGamepads(), sendEmote);
 const touchControls = touch ? new TouchControls($("#game"), $("#touch"), player) : undefined;
 const avatars = new Avatars(gameScene.scene);
+const audio = new GameAudio(settings.sound, settings.music);
+const footsteps = new Footsteps();
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
 let solid: SolidAt = () => true;
@@ -111,6 +115,7 @@ gameScene.onFrame((timeMs) => {
     [keyboardMouse, gamepad, touchControls].flatMap((c) => c?.poll(timeMs) ?? []),
   );
   player.update(dt, intent.move, solid);
+  if (moves && footsteps.update(player.body)) audio.play("step");
   const eye = player.eye();
   gameScene.camera.position.set(eye.x, eye.y, eye.z);
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
@@ -128,6 +133,7 @@ addHudDialog(
     settings = s;
     saveSettings(store, s);
     gameScene.apply(s);
+    audio.set(s.sound, s.music);
   }),
 );
 addHudButton("💬", "Chat", () => chat.open());
@@ -173,8 +179,10 @@ function connect(join?: JoinInit): void {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
-        else if (msg.body.case === "chat") chat.add(msg.body.value);
-        else if (msg.body.case === "emoteShown")
+        else if (msg.body.case === "chat") {
+          chat.add(msg.body.value);
+          audio.play("pop", 0.6);
+        } else if (msg.body.case === "emoteShown")
           emoteShown(msg.body.value.entity, msg.body.value.emote);
         else if (!rosterChanged(msg)) onAdminMessage?.(msg);
       },
@@ -271,6 +279,7 @@ function sendEdit(edit: Edit): void {
   if (pose) conn.send(encodeMove(pose, moves.teleport));
   conn.send(encodeEditBlock(edit));
   world.setBlock(edit.x, edit.y, edit.z, edit.block);
+  audio.play(edit.block === 0 ? "break" : "place");
 }
 
 function sendEmote(e: Emote): void {
@@ -282,10 +291,18 @@ function sendEmote(e: Emote): void {
 function emoteShown(entity: number, e: Emote): void {
   const emoji = emojiFor(e);
   if (emoji) avatars.emote(entity, emoji, performance.now());
+  audio.play("pop", 0.4);
 }
 
+/** Someone's edit, or our own echoed back; only changes we haven't already shown make a sound. */
 function blockChanged(c: BlockChanged): void {
-  if (c.pos) world.setBlock(c.pos.x, c.pos.y, c.pos.z, c.block);
+  if (!c.pos) return;
+  const { x, y, z } = c.pos;
+  if (world.blockAt(x, y, z) === c.block) return;
+  world.setBlock(x, y, z, c.block);
+  const b = player.body;
+  const gain = distanceGain(Math.hypot(x + 0.5 - b.x, y + 0.5 - b.y, z + 0.5 - b.z));
+  audio.play(c.block === 0 ? "break" : "place", gain);
 }
 
 /** Applies other players arriving, moving or leaving; false if `msg` is about something else. */

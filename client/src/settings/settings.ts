@@ -14,6 +14,8 @@ export interface Settings {
   viewDistance: number;
   preset: Preset;
   fpsCap: FpsCap;
+  sound: boolean;
+  music: boolean;
 }
 
 const KEY = "scabbage.settings";
@@ -21,8 +23,8 @@ const KEY = "scabbage.settings";
 /** Phones and tablets start lighter to save battery and heat. */
 export function defaultSettings(touch: boolean): Settings {
   return touch
-    ? { viewDistance: 4, preset: "medium", fpsCap: 30 }
-    : { viewDistance: 8, preset: "high", fpsCap: 0 };
+    ? { viewDistance: 4, preset: "medium", fpsCap: 30, sound: true, music: false }
+    : { viewDistance: 8, preset: "high", fpsCap: 0, sound: true, music: false };
 }
 
 export function loadSettings(store: KeyValueStore, defaults: Settings): Settings {
@@ -42,6 +44,10 @@ export function sanitize(raw: unknown, d: Settings): Settings {
   const r = (typeof raw === "object" && raw) || {};
   const pick = <K extends keyof Settings>(k: K) => (r as Partial<Settings>)[k];
   const vd = pick("viewDistance");
+  const flag = (k: "sound" | "music") => {
+    const v = pick(k);
+    return typeof v === "boolean" ? v : d[k];
+  };
   return {
     viewDistance:
       typeof vd === "number" && Number.isFinite(vd)
@@ -49,6 +55,8 @@ export function sanitize(raw: unknown, d: Settings): Settings {
         : d.viewDistance,
     preset: PRESETS.find((p) => p === pick("preset")) ?? d.preset,
     fpsCap: FPS_CAPS.find((f) => f === pick("fpsCap")) ?? d.fpsCap,
+    sound: flag("sound"),
+    music: flag("music"),
   };
 }
 

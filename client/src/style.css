@@ -86,6 +86,19 @@ body {
   font-weight: 600;
 }
 
+.card label.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card label.check input {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: #43a047;
+}
+
 .card fieldset {
   border: 0;
   padding: 0;

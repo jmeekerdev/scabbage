@@ -26,6 +26,8 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
   });
   const preset = select(PRESETS, initial.preset, (p) => PRESET_LABELS[p]);
   const fps = select(FPS_CAPS, initial.fpsCap, (f) => (f ? `${f} fps` : "Match screen"));
+  const sound = el("input", { type: "checkbox", checked: initial.sound });
+  const music = el("input", { type: "checkbox", checked: initial.music });
   const reloadHint = el("p", { class: "muted", hidden: true }, "Smoothing changes after a reload.");
 
   const form = el(
@@ -35,6 +37,8 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
     el("label", {}, "View distance ", distanceOut, distance),
     el("label", {}, "Graphics", preset),
     el("label", {}, "Frame rate limit", fps),
+    el("label", { class: "check" }, sound, "Sound effects"),
+    el("label", { class: "check" }, music, "Music"),
     reloadHint,
   );
   form.addEventListener("input", () => {
@@ -42,6 +46,8 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
       viewDistance: Number(distance.value),
       preset: preset.value as Preset,
       fpsCap: Number(fps.value) as FpsCap,
+      sound: sound.checked,
+      music: music.checked,
     };
     distanceOut.textContent = distance.value;
     reloadHint.hidden = qualityFor(next.preset).antialias === qualityFor(initial.preset).antialias;

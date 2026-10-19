@@ -22,7 +22,7 @@ describe("settings", () => {
 
   it("round-trips through the store", () => {
     const store = memoryStore();
-    const s = { viewDistance: 5, preset: "low", fpsCap: 60 } as const;
+    const s = { viewDistance: 5, preset: "low", fpsCap: 60, sound: false, music: true } as const;
     saveSettings(store, s);
     expect(loadSettings(store, defaultSettings(false))).toEqual(s);
   });
@@ -47,6 +47,14 @@ describe("settings", () => {
       preset: "low",
     });
     expect(sanitize("nope", d)).toEqual(d);
+  });
+
+  it("keeps sound on and music off unless chosen otherwise", () => {
+    const d = defaultSettings(true);
+    expect(d.sound).toBe(true);
+    expect(d.music).toBe(false);
+    expect(sanitize({ sound: "yes", music: 1 }, d)).toEqual(d);
+    expect(sanitize({ sound: false, music: true }, d)).toEqual({ ...d, sound: false, music: true });
   });
 });
 

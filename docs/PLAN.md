@@ -190,7 +190,8 @@ Each phase ends with something the family can play. Compact the model context be
   world is still there after a server restart.
 
 ### Phase 2 — Look & Feel + Personalization
-- [ ] Better avatars (rigged blocky characters, animations), sounds, music toggle
+- [x] Better avatars (rigged blocky characters, animations), sounds, music toggle
+      (synthesized in the browser, no audio files; music starts off)
 - [ ] Ambient occlusion + simple sky/day–night cycle
 - [ ] In-browser pixel editor: avatar skins and custom block textures (admin-approved)
 - [ ] Larger block palette: glass, light sources, stairs/slabs, colored wool
