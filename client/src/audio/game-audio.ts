@@ -1,11 +1,12 @@
+import { BAR_BEATS, chordAt, midiHz } from "./chords";
 import { melody } from "./melody";
 import { noise, noiseBuffer, tone } from "./synth";
 
 export type Cue = "step" | "break" | "place" | "pop";
 
 const BEAT = 0.45; // seconds
-const PHRASE_BEATS = 16;
-const BASS = [130.81, 110, 98, 130.81]; // C3 A2 G2 C3, one per bar of four beats
+const PHRASE_BEATS = 24; // the three-chord progression, twice
+const PAD_GAIN = 0.12; // per voice, under the melody
 const GAP_MS = { min: 6000, max: 16000 }; // quiet between phrases
 // Touch only counts as a gesture on pointerup, a mouse on pointerdown.
 const GESTURES = ["pointerdown", "pointerup", "keydown"];
@@ -108,11 +109,19 @@ export class GameAudio {
         gain: 0.8,
         type: "triangle",
       });
-    BASS.forEach((freq, bar) =>
-      tone(ctx, music, { freq, start: start + bar * 4 * BEAT, dur: 4 * BEAT, gain: 0.6 }),
-    );
+    for (let beat = 0; beat < PHRASE_BEATS; beat += BAR_BEATS)
+      this.chord(ctx, music, beat, start + beat * BEAT);
     const gap = GAP_MS.min + Math.random() * (GAP_MS.max - GAP_MS.min);
     this.nextPhrase = window.setTimeout(() => this.phrase(), PHRASE_BEATS * BEAT * 1000 + gap);
+  }
+
+  /** One bar of the progression: a bass note under a soft pad. */
+  private chord(ctx: AudioContext, music: AudioNode, beat: number, start: number): void {
+    const { bass, voicing } = chordAt(beat);
+    const dur = BAR_BEATS * BEAT;
+    tone(ctx, music, { freq: midiHz(bass), start, dur, gain: 0.6 });
+    for (const note of voicing)
+      tone(ctx, music, { freq: midiHz(note), start, dur, gain: PAD_GAIN });
   }
 
   private wake(): void {

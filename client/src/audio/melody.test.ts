@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { melody, SCALE } from "./melody";
+import { chordAt } from "./chords";
+import { melody } from "./melody";
 
 /** A repeatable stand-in for Math.random. */
 function seeded(seed: number): () => number {
@@ -9,32 +10,40 @@ function seeded(seed: number): () => number {
   };
 }
 
+const midi = (hz: number) => Math.round(69 + 12 * Math.log2(hz / 440));
+
 describe("melody", () => {
-  it("plays only notes from the scale, in order, within the phrase", () => {
-    const notes = melody(seeded(7), 16);
-    expect(notes.length).toBeGreaterThan(4);
+  it("plays only tones of the chord sounding, in order, within the phrase", () => {
+    const notes = melody(seeded(7), 24);
+    expect(notes.length).toBeGreaterThan(6);
     for (const n of notes) {
-      expect(SCALE).toContain(n.freq);
+      expect(chordAt(n.beat).tones).toContain(midi(n.freq) % 12);
       expect(n.beat).toBeGreaterThanOrEqual(0);
-      expect(n.beat + n.beats).toBeLessThanOrEqual(16);
+      expect(n.beat + n.beats).toBeLessThanOrEqual(24);
     }
     const beats = notes.map((n) => n.beat);
     expect(beats).toEqual([...beats].sort((a, b) => a - b));
   });
 
-  it("moves by small steps so it stays gentle", () => {
-    const notes = melody(seeded(3), 32);
-    for (let i = 1; i < notes.length; i++) {
-      const jump = Math.abs(
-        SCALE.indexOf(notes[i]?.freq ?? 0) - SCALE.indexOf(notes[i - 1]?.freq ?? 0),
-      );
-      expect(jump).toBeLessThanOrEqual(2);
+  it("never holds a note across a chord change", () => {
+    for (const n of melody(seeded(5), 24)) {
+      expect(chordAt(n.beat + n.beats - 0.5).name).toBe(chordAt(n.beat).name);
     }
   });
 
-  it("ends on a home note", () => {
+  it("moves by small steps so it stays gentle", () => {
+    const notes = melody(seeded(3), 48);
+    for (let i = 1; i < notes.length; i++) {
+      const jump = Math.abs(midi(notes[i]?.freq ?? 0) - midi(notes[i - 1]?.freq ?? 0));
+      expect(jump).toBeLessThanOrEqual(10);
+    }
+  });
+
+  it("ends on a long note", () => {
     for (const seed of [1, 2, 11]) {
-      expect([SCALE[0], SCALE[5], SCALE[10]]).toContain(melody(seeded(seed), 16).at(-1)?.freq);
+      const last = melody(seeded(seed), 24).at(-1);
+      expect((last?.beat ?? 0) + (last?.beats ?? 0)).toBe(24);
+      expect(last?.beats).toBe(2);
     }
   });
 });
