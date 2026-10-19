@@ -16,15 +16,24 @@ export interface Settings {
   fpsCap: FpsCap;
   sound: boolean;
   music: boolean;
+  /** Lighten graphics automatically when frames fall behind; off once the player picks. */
+  auto: boolean;
 }
 
 const KEY = "scabbage.settings";
 
-/** Phones and tablets start lighter to save battery and heat. */
-export function defaultSettings(touch: boolean): Settings {
-  return touch
-    ? { viewDistance: 4, preset: "medium", fpsCap: 30, sound: true, music: false }
-    : { viewDistance: 8, preset: "high", fpsCap: 0, sound: true, music: false };
+const VIEW_DISTANCE_FOR: Record<Preset, number> = { low: 3, medium: 4, high: 8 };
+
+/** Starting settings for a device tier; touch devices cap frames to save battery and heat. */
+export function defaultSettings(tier: Preset, touch: boolean): Settings {
+  return {
+    viewDistance: VIEW_DISTANCE_FOR[tier],
+    preset: tier,
+    fpsCap: touch || tier === "low" ? 30 : 0,
+    sound: true,
+    music: false,
+    auto: true,
+  };
 }
 
 export function loadSettings(store: KeyValueStore, defaults: Settings): Settings {
@@ -44,7 +53,7 @@ export function sanitize(raw: unknown, d: Settings): Settings {
   const r = (typeof raw === "object" && raw) || {};
   const pick = <K extends keyof Settings>(k: K) => (r as Partial<Settings>)[k];
   const vd = pick("viewDistance");
-  const flag = (k: "sound" | "music") => {
+  const flag = (k: "sound" | "music" | "auto") => {
     const v = pick(k);
     return typeof v === "boolean" ? v : d[k];
   };
@@ -57,6 +66,7 @@ export function sanitize(raw: unknown, d: Settings): Settings {
     fpsCap: FPS_CAPS.find((f) => f === pick("fpsCap")) ?? d.fpsCap,
     sound: flag("sound"),
     music: flag("music"),
+    auto: flag("auto"),
   };
 }
 

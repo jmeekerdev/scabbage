@@ -12,31 +12,45 @@ import {
 } from "./settings";
 
 describe("settings", () => {
-  it("defaults to lighter settings on touch devices", () => {
-    const phone = defaultSettings(true);
-    const desktop = defaultSettings(false);
+  it("defaults to lighter settings on weaker devices", () => {
+    const phone = defaultSettings("medium", true);
+    const desktop = defaultSettings("high", false);
+    expect(defaultSettings("low", false).viewDistance).toBeLessThan(phone.viewDistance);
     expect(phone.viewDistance).toBeLessThan(desktop.viewDistance);
-    expect(phone.fpsCap).toBe(30);
-    expect(desktop.fpsCap).toBe(0);
+    expect(phone.preset).toBe("medium");
+    expect(desktop.auto).toBe(true);
+  });
+
+  it("caps the frame rate on touch and low-end devices", () => {
+    expect(defaultSettings("medium", true).fpsCap).toBe(30);
+    expect(defaultSettings("low", false).fpsCap).toBe(30);
+    expect(defaultSettings("medium", false).fpsCap).toBe(0);
   });
 
   it("round-trips through the store", () => {
     const store = memoryStore();
-    const s = { viewDistance: 5, preset: "low", fpsCap: 60, sound: false, music: true } as const;
+    const s = {
+      viewDistance: 5,
+      preset: "low",
+      fpsCap: 60,
+      sound: false,
+      music: true,
+      auto: false,
+    } as const;
     saveSettings(store, s);
-    expect(loadSettings(store, defaultSettings(false))).toEqual(s);
+    expect(loadSettings(store, defaultSettings("high", false))).toEqual(s);
   });
 
   it("falls back to defaults for missing or corrupt data", () => {
     const store = memoryStore();
-    const d = defaultSettings(false);
+    const d = defaultSettings("high", false);
     expect(loadSettings(store, d)).toEqual(d);
     store.setItem("scabbage.settings", "{not json");
     expect(loadSettings(store, d)).toEqual(d);
   });
 
   it("repairs each bad field independently", () => {
-    const d = defaultSettings(false);
+    const d = defaultSettings("high", false);
     expect(sanitize({ viewDistance: 999, preset: "ultra", fpsCap: 45 }, d)).toEqual({
       ...d,
       viewDistance: VIEW_DISTANCE.max,
@@ -50,11 +64,12 @@ describe("settings", () => {
   });
 
   it("keeps sound on and music off unless chosen otherwise", () => {
-    const d = defaultSettings(true);
+    const d = defaultSettings("medium", true);
     expect(d.sound).toBe(true);
     expect(d.music).toBe(false);
     expect(sanitize({ sound: "yes", music: 1 }, d)).toEqual(d);
     expect(sanitize({ sound: false, music: true }, d)).toEqual({ ...d, sound: false, music: true });
+    expect(sanitize({ auto: false }, d)).toEqual({ ...d, auto: false });
   });
 });
 

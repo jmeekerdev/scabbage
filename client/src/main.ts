@@ -50,7 +50,9 @@ import { TEXTURE_NAMES } from "./render/textures";
 import { startScene } from "./render/scene";
 import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
-import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
+import { AutoQuality } from "./settings/auto-quality";
+import { deviceTier, readDevice } from "./settings/device";
+import { defaultSettings, loadSettings, saveSettings, type Settings } from "./settings/settings";
 import { emojiFor } from "./social/emotes";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { BlockPicker } from "./ui/block-picker";
@@ -84,8 +86,10 @@ let conn: Connection | undefined;
 let lastJoin: JoinInit | undefined;
 let onAdminMessage: ConnectionEvents["onMessage"] | undefined;
 
-const touch = matchMedia("(pointer: coarse)").matches;
-let settings = loadSettings(store, defaultSettings(touch));
+const device = readDevice();
+const touch = device.touch;
+let settings = loadSettings(store, defaultSettings(deviceTier(device), touch));
+const autoQuality = new AutoQuality();
 const gameScene = startScene($("#game"), settings);
 const world = createWorldRenderer(gameScene, (chunks) => conn?.send(encodeRequestChunks(chunks)));
 const player = new Player();
@@ -142,16 +146,14 @@ gameScene.onFrame((timeMs) => {
   avatars.update(others?.sample(performance.now()) ?? [], performance.now());
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
+  const lighter = moves && autoQuality.frame(timeMs, settings);
+  if (lighter) {
+    changeSettings(lighter);
+    settingsView.show(lighter);
+  }
 });
-addHudDialog(
-  "Settings",
-  settingsPanel(settings, (s) => {
-    settings = s;
-    saveSettings(store, s);
-    gameScene.apply(s);
-    audio.set(s.sound, s.music);
-  }),
-);
+const settingsView = settingsPanel(settings, changeSettings);
+addHudDialog("Settings", settingsView.node);
 addHudDialog("Blocks", picker.node);
 addHudButton("🎨", "Create", () => createDialog.showModal());
 addHudButton("💬", "Chat", () => chat.open());
@@ -427,4 +429,11 @@ function addHudDialog(label: string, content: Node): void {
 
 function addHudButton(icon: string, label: string, onclick: () => void): void {
   $("#hud-buttons").append(el("button", { "aria-label": label, title: label, onclick }, icon));
+}
+
+function changeSettings(s: Settings): void {
+  settings = s;
+  saveSettings(store, s);
+  gameScene.apply(s);
+  audio.set(s.sound, s.music);
 }

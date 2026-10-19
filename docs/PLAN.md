@@ -202,7 +202,9 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] Larger block palette: glass, light sources, stairs/slabs, colored wool
       (16 wool colors, lamp and torch with client-side flood-fill light, slabs and stairs in
       stone, cobblestone, planks and brick with box collision and a half-block step-up)
-- [ ] Graphics quality presets (auto-detect weaker phones)
+- [x] Graphics quality presets (auto-detect weaker phones)
+      (starting preset from cores and memory; lowers the preset, then view distance, when
+      frames stay under 70% of target, until the player picks settings themselves)
 
 ### Phase 3 — Survival
 - [ ] Health, damage, respawn; survival vs. creative game modes per area or player
