@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"scabbage/internal/access"
+	"scabbage/internal/chat"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/rate"
 )
 
 const protocolVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
@@ -53,6 +56,7 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 	if !s.console {
 		welcome.World = worldInfo(s.gw.cfg.World)
 		s.startMotion()
+		s.talk = rate.New(time.Now(), chat.PerSecond, chat.Burst)
 	}
 	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Welcome{Welcome: welcome}})
 }

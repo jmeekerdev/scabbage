@@ -178,7 +178,9 @@ Each phase ends with something the family can play. Compact the model context be
       9-slot hotbar, hold to repeat, middle click picks a block)
 - [x] Other players visible (simple blocky avatars + name tags, interpolated)
 - [x] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API
-- [ ] Text chat + emote wheel
+- [x] Text chat + emote wheel
+      (T, Enter or / to type; lines fade; `/approve NAME` and `/deny NAME` for admins; hold E and
+      point, tap 😀, or use the D-pad to emote; emojis float over avatars)
 - [ ] PWA manifest + service worker; landscape fullscreen on phones
 - [ ] Autosave + nightly world backup snapshot
 - **Done when:** all family devices are in one world at once, building together, and the

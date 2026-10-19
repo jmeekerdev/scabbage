@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 6;
+  PROTOCOL_VERSION_CURRENT = 7;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -20,6 +20,8 @@ message ClientMessage {
     RequestChunks request_chunks = 5;
     Move move = 6;
     EditBlock edit_block = 7;
+    SendChat send_chat = 8;
+    SendEmote send_emote = 9;
   }
 }
 
@@ -38,6 +40,8 @@ message ServerMessage {
     PlayersJoined players_joined = 10;
     PlayersMoved players_moved = 11;
     PlayerLeft player_left = 12;
+    Chat chat = 13;
+    EmoteShown emote_shown = 14;
   }
 }
 
@@ -170,6 +174,42 @@ message PlayersMoved {
 
 message PlayerLeft {
   uint32 entity = 1;
+}
+
+// A line typed into chat; text starting with "/" is a command such as "/approve NAME".
+message SendChat {
+  string text = 1;
+}
+
+// A chat line for everyone in the world, the sender included. Notices come from the server,
+// e.g. replies to commands, and go to one player.
+message Chat {
+  string name = 1;
+  uint32 color = 2; // 0xRRGGBB
+  string text = 3;
+  bool notice = 4;
+}
+
+enum Emote {
+  EMOTE_UNSPECIFIED = 0;
+  EMOTE_WAVE = 1;
+  EMOTE_HAPPY = 2;
+  EMOTE_LAUGH = 3;
+  EMOTE_LOVE = 4;
+  EMOTE_THUMBS_UP = 5;
+  EMOTE_WOW = 6;
+  EMOTE_SAD = 7;
+  EMOTE_PARTY = 8;
+}
+
+message SendEmote {
+  Emote emote = 1;
+}
+
+// Someone else emoted; shown above their avatar.
+message EmoteShown {
+  uint32 entity = 1;
+  Emote emote = 2;
 }
 
 message PlayerInfo {

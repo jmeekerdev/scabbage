@@ -2,11 +2,19 @@ import "./style.css";
 import { browserStore, loadSecret, resetSecret } from "./join/identity";
 import { parseInvite } from "./join/invite";
 import { screenForRejection, type Action, type Screen } from "./join/outcome";
-import { encodeEditBlock, encodeMove, encodeRequestChunks, type JoinInit } from "./net/codec";
+import {
+  encodeEditBlock,
+  encodeEmote,
+  encodeMove,
+  encodeRequestChunks,
+  encodeSendChat,
+  type JoinInit,
+} from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
 import type {
   BlockChanged,
+  Emote,
   PlayerPose,
   ServerMessage,
   Teleport,
@@ -35,8 +43,11 @@ import { startScene } from "./render/scene";
 import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
 import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
+import { emojiFor } from "./social/emotes";
 import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
+import { ChatView } from "./ui/chat-view";
 import { $, el } from "./ui/dom";
+import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
@@ -64,11 +75,22 @@ const selection = new Selection(gameScene.scene);
 const hotbar = new Hotbar([]);
 const icons = blockIconPainter();
 let locked = false;
-const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, (l) => {
+const chat = new ChatView(
+  $("#chat"),
+  (text) => conn?.send(encodeSendChat(text)),
+  (sent) =>
+    sent &&
+    !touch &&
+    $("#game")
+      .requestPointerLock()
+      .catch(() => undefined),
+);
+const emotes = new EmoteWheel($("#emotes"), sendEmote);
+const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, emotes, (l) => {
   locked = l;
   hintEl.hidden = l;
 });
-const gamepad = new GamepadControls(player, hotbar, () => navigator.getGamepads());
+const gamepad = new GamepadControls(player, hotbar, () => navigator.getGamepads(), sendEmote);
 const touchControls = touch ? new TouchControls($("#game"), $("#touch"), player) : undefined;
 const avatars = new Avatars(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
@@ -90,7 +112,7 @@ gameScene.onFrame((timeMs) => {
   build(intent.build, [eye.x, eye.y, eye.z]);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
-  avatars.update(others?.sample(performance.now()) ?? []);
+  avatars.update(others?.sample(performance.now()) ?? [], performance.now());
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
@@ -102,6 +124,8 @@ addHudDialog(
     gameScene.apply(s);
   }),
 );
+addHudButton("💬", "Chat", () => chat.open());
+addHudButton("😀", "Emotes", () => emotes.open());
 connect();
 
 /** Reads `#join=CODE` and removes it from the address bar so it isn't re-shared by accident. */
@@ -138,6 +162,9 @@ function connect(join?: JoinInit): void {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
+        else if (msg.body.case === "chat") chat.add(msg.body.value);
+        else if (msg.body.case === "emoteShown")
+          emoteShown(msg.body.value.entity, msg.body.value.emote);
         else if (!rosterChanged(msg)) onAdminMessage?.(msg);
       },
     },
@@ -202,6 +229,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   others = new RemotePlayers(1000 / Math.max(1, tickRateHz));
   hintEl.hidden = document.pointerLockElement !== null || touch;
   $("#touch").hidden = !touch;
+  chat.enabled = true;
 }
 
 /** The server put us back somewhere, usually after rejecting a move. */
@@ -231,6 +259,17 @@ function sendEdit(edit: Edit): void {
   if (pose) conn.send(encodeMove(pose, moves.teleport));
   conn.send(encodeEditBlock(edit));
   world.setBlock(edit.x, edit.y, edit.z, edit.block);
+}
+
+function sendEmote(e: Emote): void {
+  if (!moves) return;
+  conn?.send(encodeEmote(e));
+  popEmoji(document.body, emojiFor(e) ?? "");
+}
+
+function emoteShown(entity: number, e: Emote): void {
+  const emoji = emojiFor(e);
+  if (emoji) avatars.emote(entity, emoji, performance.now());
 }
 
 function blockChanged(c: BlockChanged): void {
@@ -279,4 +318,8 @@ function addHudDialog(label: string, content: Node): void {
   );
   document.body.append(dialog);
   $("#hud-buttons").append(el("button", { onclick: () => dialog.showModal() }, label));
+}
+
+function addHudButton(icon: string, label: string, onclick: () => void): void {
+  $("#hud-buttons").append(el("button", { "aria-label": label, title: label, onclick }, icon));
 }

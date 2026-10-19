@@ -7,6 +7,7 @@ import (
 	"scabbage/internal/edit"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/rate"
 )
 
 // startMotion tracks the player from the world spawn.
@@ -14,7 +15,7 @@ func (s *session) startMotion() {
 	x, y, z := s.gw.cfg.World.Spawn()
 	now := time.Now()
 	s.body = motion.NewTracker(motion.DefaultLimits, motion.Vec{X: x, Y: y, Z: z}, now)
-	s.edits = edit.NewRate(now)
+	s.edits = rate.New(now, edit.PerSecond, edit.Burst)
 }
 
 // move accepts a plausible move, or sends the player back to their last accepted position.

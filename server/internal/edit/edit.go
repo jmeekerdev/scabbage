@@ -2,9 +2,6 @@
 package edit
 
 import (
-	"math"
-	"time"
-
 	"scabbage/internal/motion"
 	"scabbage/internal/world"
 )
@@ -56,26 +53,6 @@ func overlapsAny(r Request, bodies []motion.Vec) bool {
 
 // Edit rate limits: a held mouse button repeats about 4 times a second.
 const (
-	perSecond = 10
-	burst     = 20
+	PerSecond = 10
+	Burst     = 20
 )
-
-// Rate is a token bucket of edits for one player.
-type Rate struct {
-	tokens float64
-	last   time.Time
-}
-
-// NewRate starts with a full bucket.
-func NewRate(now time.Time) *Rate { return &Rate{tokens: burst, last: now} }
-
-// Take spends one edit if any are left.
-func (r *Rate) Take(now time.Time) bool {
-	dt := max(now.Sub(r.last).Seconds(), 0)
-	r.tokens, r.last = math.Min(r.tokens+dt*perSecond, burst), now
-	if r.tokens < 1 {
-		return false
-	}
-	r.tokens--
-	return true
-}

@@ -10,9 +10,9 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
-	"scabbage/internal/edit"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/rate"
 )
 
 const (
@@ -34,7 +34,8 @@ type session struct {
 
 	body     *motion.Tracker // the player's server-side position; nil for the console
 	teleport uint32          // id of the last Teleport sent
-	edits    *edit.Rate
+	edits    *rate.Bucket
+	talk     *rate.Bucket // chat and emotes
 
 	cancel context.CancelFunc // ends the session, e.g. when it can't keep up
 }
@@ -124,6 +125,10 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.move(ctx, body.Move)
 	case *pb.ClientMessage_EditBlock:
 		return s.editBlock(ctx, body.EditBlock)
+	case *pb.ClientMessage_SendChat:
+		return s.sendChat(ctx, body.SendChat)
+	case *pb.ClientMessage_SendEmote:
+		return s.sendEmote(body.SendEmote)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

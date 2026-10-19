@@ -1,6 +1,7 @@
 import { create, fromBinary, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import {
   ClientMessageSchema,
+  type Emote,
   ProtocolVersion,
   ServerMessageSchema,
   type JoinRequestSchema,
@@ -69,6 +70,14 @@ export function encodeMove(
 
 export function encodeEditBlock(e: { x: number; y: number; z: number; block: number }): Bytes {
   return encode({ case: "editBlock", value: { pos: { x: e.x, y: e.y, z: e.z }, block: e.block } });
+}
+
+export function encodeSendChat(text: string): Bytes {
+  return encode({ case: "sendChat", value: { text } });
+}
+
+export function encodeEmote(emote: Emote): Bytes {
+  return encode({ case: "sendEmote", value: { emote } });
 }
 
 export function decodeServer(bytes: Uint8Array): ServerMessage {

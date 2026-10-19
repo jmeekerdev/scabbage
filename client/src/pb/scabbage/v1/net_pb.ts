@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file scabbage/v1/net.proto.
  */
 export const file_scabbage_v1_net: GenFile = /*@__PURE__*/
-  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIs8CCg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAEjQKDnJlcXVlc3RfY2h1bmtzGAUgASgLMhouc2NhYmJhZ2UudjEuUmVxdWVzdENodW5rc0gAEiEKBG1vdmUYBiABKAsyES5zY2FiYmFnZS52MS5Nb3ZlSAASLAoKZWRpdF9ibG9jaxgHIAEoCzIWLnNjYWJiYWdlLnYxLkVkaXRCbG9ja0gAQgYKBGJvZHki4gQKDVNlcnZlck1lc3NhZ2USJwoHd2VsY29tZRgBIAEoCzIULnNjYWJiYWdlLnYxLldlbGNvbWVIABIhCgRwb25nGAIgASgLMhEuc2NhYmJhZ2UudjEuUG9uZ0gAEi0KCmRpc2Nvbm5lY3QYAyABKAsyFy5zY2FiYmFnZS52MS5EaXNjb25uZWN0SAASMAoMam9pbl9wZW5kaW5nGAQgASgLMhguc2NhYmJhZ2UudjEuSm9pblBlbmRpbmdIABI4ChBwZW5kaW5nX3JlcXVlc3RzGAUgASgLMhwuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3RzSAASOQoRam9pbl9jb2RlX2NyZWF0ZWQYBiABKAsyHC5zY2FiYmFnZS52MS5Kb2luQ29kZUNyZWF0ZWRIABIuCgtjaHVua19iYXRjaBgHIAEoCzIXLnNjYWJiYWdlLnYxLkNodW5rQmF0Y2hIABIpCgh0ZWxlcG9ydBgIIAEoCzIVLnNjYWJiYWdlLnYxLlRlbGVwb3J0SAASMgoNYmxvY2tfY2hhbmdlZBgJIAEoCzIZLnNjYWJiYWdlLnYxLkJsb2NrQ2hhbmdlZEgAEjQKDnBsYXllcnNfam9pbmVkGAogASgLMhouc2NhYmJhZ2UudjEuUGxheWVyc0pvaW5lZEgAEjIKDXBsYXllcnNfbW92ZWQYCyABKAsyGS5zY2FiYmFnZS52MS5QbGF5ZXJzTW92ZWRIABIuCgtwbGF5ZXJfbGVmdBgMIAEoCzIXLnNjYWJiYWdlLnYxLlBsYXllckxlZnRIAEIGCgRib2R5IoYBCgVIZWxsbxIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC2NsaWVudF9uYW1lGAIgASgJEhUKDWRldmljZV9zZWNyZXQYAyABKAwSJgoEam9pbhgEIAEoCzIYLnNjYWJiYWdlLnYxLkpvaW5SZXF1ZXN0Eg8KB2NvbnNvbGUYBSABKAgiOAoLSm9pblJlcXVlc3QSDAoEY29kZRgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNIpsBCgdXZWxjb21lEhgKEHByb3RvY29sX3ZlcnNpb24YASABKA0SEwoLc2VydmVyX25hbWUYAiABKAkSFAoMdGlja19yYXRlX2h6GAMgASgNEiQKA3lvdRgEIAEoCzIXLnNjYWJiYWdlLnYxLlBsYXllckluZm8SJQoFd29ybGQYBSABKAsyFi5zY2FiYmFnZS52MS5Xb3JsZEluZm8idQoJV29ybGRJbmZvEg4KBnJhZGl1cxgBIAEoBRIOCgZoZWlnaHQYAiABKAUSIAoFc3Bhd24YAyABKAsyES5zY2FiYmFnZS52MS5WZWMzEiYKBmJsb2NrcxgEIAMoCzIWLnNjYWJiYWdlLnYxLkJsb2NrVHlwZSJJCglCbG9ja1R5cGUSCgoCaWQYASABKA0SDAoEbmFtZRgCIAEoCRINCgVzb2xpZBgDIAEoCBITCgt0cmFuc3BhcmVudBgEIAEoCCInCgRWZWMzEgkKAXgYASABKAISCQoBeRgCIAEoAhIJCgF6GAMgASgCIisKCENodW5rUG9zEgkKAXgYASABKBESCQoBeRgCIAEoERIJCgF6GAMgASgRIjYKDVJlcXVlc3RDaHVua3MSJQoGY2h1bmtzGAEgAygLMhUuc2NhYmJhZ2UudjEuQ2h1bmtQb3MiNAoKQ2h1bmtCYXRjaBImCgZjaHVua3MYASADKAsyFi5zY2FiYmFnZS52MS5DaHVua0RhdGEiPQoJQ2h1bmtEYXRhEiIKA3BvcxgBIAEoCzIVLnNjYWJiYWdlLnYxLkNodW5rUG9zEgwKBGRhdGEYAiABKAwiVAoETW92ZRIeCgNwb3MYASABKAsyES5zY2FiYmFnZS52MS5WZWMzEgsKA3lhdxgCIAEoAhINCgVwaXRjaBgDIAEoAhIQCgh0ZWxlcG9ydBgEIAEoDSI2CghUZWxlcG9ydBIKCgJpZBgBIAEoDRIeCgNwb3MYAiABKAsyES5zY2FiYmFnZS52MS5WZWMzIisKCEJsb2NrUG9zEgkKAXgYASABKBESCQoBeRgCIAEoERIJCgF6GAMgASgRIj4KCUVkaXRCbG9jaxIiCgNwb3MYASABKAsyFS5zY2FiYmFnZS52MS5CbG9ja1BvcxINCgVibG9jaxgCIAEoDSJBCgxCbG9ja0NoYW5nZWQSIgoDcG9zGAEgASgLMhUuc2NhYmJhZ2UudjEuQmxvY2tQb3MSDQoFYmxvY2sYAiABKA0iYQoLT3RoZXJQbGF5ZXISDgoGZW50aXR5GAEgASgNEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SJQoEcG9zZRgEIAEoCzIXLnNjYWJiYWdlLnYxLlBsYXllclBvc2UiWAoKUGxheWVyUG9zZRIOCgZlbnRpdHkYASABKA0SHgoDcG9zGAIgASgLMhEuc2NhYmJhZ2UudjEuVmVjMxILCgN5YXcYAyABKAISDQoFcGl0Y2gYBCABKAIiOgoNUGxheWVyc0pvaW5lZBIpCgdwbGF5ZXJzGAEgAygLMhguc2NhYmJhZ2UudjEuT3RoZXJQbGF5ZXIiNgoMUGxheWVyc01vdmVkEiYKBXBvc2VzGAEgAygLMhcuc2NhYmJhZ2UudjEuUGxheWVyUG9zZSIcCgpQbGF5ZXJMZWZ0Eg4KBmVudGl0eRgBIAEoDSJECgpQbGF5ZXJJbmZvEgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SDQoFYWRtaW4YBCABKAgiDQoLSm9pblBlbmRpbmciQAoPUGVuZGluZ1JlcXVlc3RzEi0KCHJlcXVlc3RzGAEgAygLMhsuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3QiYAoOUGVuZGluZ1JlcXVlc3QSCgoCaWQYASABKAQSDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDRIRCglyZXR1cm5pbmcYBCABKAgSEgoKY3JlYXRlZF9tcxgFIAEoASIxCgpEZWNpZGVKb2luEhIKCnJlcXVlc3RfaWQYASABKAQSDwoHYXBwcm92ZRgCIAEoCCIxCg5DcmVhdGVKb2luQ29kZRIMCgR1c2VzGAEgASgNEhEKCXR0bF9ob3VycxgCIAEoDSJBCg9Kb2luQ29kZUNyZWF0ZWQSDAoEY29kZRgBIAEoCRIMCgR1c2VzGAIgASgNEhIKCmV4cGlyZXNfbXMYAyABKAEiHgoEUGluZxIWCg5jbGllbnRfdGltZV9tcxgBIAEoASI2CgRQb25nEhYKDmNsaWVudF90aW1lX21zGAEgASgBEhYKDnNlcnZlcl90aW1lX21zGAIgASgBIkcKCkRpc2Nvbm5lY3QSDgoGcmVhc29uGAEgASgJEikKBGNvZGUYAiABKA4yGy5zY2FiYmFnZS52MS5EaXNjb25uZWN0Q29kZSpRCg9Qcm90b2NvbFZlcnNpb24SIAocUFJPVE9DT0xfVkVSU0lPTl9VTlNQRUNJRklFRBAAEhwKGFBST1RPQ09MX1ZFUlNJT05fQ1VSUkVOVBAGKpECCg5EaXNjb25uZWN0Q29kZRIfChtESVNDT05ORUNUX0NPREVfVU5TUEVDSUZJRUQQABIcChhESVNDT05ORUNUX0NPREVfUFJPVE9DT0wQARIiCh5ESVNDT05ORUNUX0NPREVfTkVFRF9KT0lOX0NPREUQAhIhCh1ESVNDT05ORUNUX0NPREVfQkFEX0pPSU5fQ09ERRADEhwKGERJU0NPTk5FQ1RfQ09ERV9CQURfTkFNRRAEEhoKFkRJU0NPTk5FQ1RfQ09ERV9ERU5JRUQQBRIgChxESVNDT05ORUNUX0NPREVfUkFURV9MSU1JVEVEEAYSHQoZRElTQ09OTkVDVF9DT0RFX05PVF9BRE1JThAHQi1aK3NjYWJiYWdlL2ludGVybmFsL3BiL3NjYWJiYWdlL3YxO3NjYWJiYWdldjFiBnByb3RvMw");
+  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIqkDCg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAEjQKDnJlcXVlc3RfY2h1bmtzGAUgASgLMhouc2NhYmJhZ2UudjEuUmVxdWVzdENodW5rc0gAEiEKBG1vdmUYBiABKAsyES5zY2FiYmFnZS52MS5Nb3ZlSAASLAoKZWRpdF9ibG9jaxgHIAEoCzIWLnNjYWJiYWdlLnYxLkVkaXRCbG9ja0gAEioKCXNlbmRfY2hhdBgIIAEoCzIVLnNjYWJiYWdlLnYxLlNlbmRDaGF0SAASLAoKc2VuZF9lbW90ZRgJIAEoCzIWLnNjYWJiYWdlLnYxLlNlbmRFbW90ZUgAQgYKBGJvZHkitQUKDVNlcnZlck1lc3NhZ2USJwoHd2VsY29tZRgBIAEoCzIULnNjYWJiYWdlLnYxLldlbGNvbWVIABIhCgRwb25nGAIgASgLMhEuc2NhYmJhZ2UudjEuUG9uZ0gAEi0KCmRpc2Nvbm5lY3QYAyABKAsyFy5zY2FiYmFnZS52MS5EaXNjb25uZWN0SAASMAoMam9pbl9wZW5kaW5nGAQgASgLMhguc2NhYmJhZ2UudjEuSm9pblBlbmRpbmdIABI4ChBwZW5kaW5nX3JlcXVlc3RzGAUgASgLMhwuc2NhYmJhZ2UudjEuUGVuZGluZ1JlcXVlc3RzSAASOQoRam9pbl9jb2RlX2NyZWF0ZWQYBiABKAsyHC5zY2FiYmFnZS52MS5Kb2luQ29kZUNyZWF0ZWRIABIuCgtjaHVua19iYXRjaBgHIAEoCzIXLnNjYWJiYWdlLnYxLkNodW5rQmF0Y2hIABIpCgh0ZWxlcG9ydBgIIAEoCzIVLnNjYWJiYWdlLnYxLlRlbGVwb3J0SAASMgoNYmxvY2tfY2hhbmdlZBgJIAEoCzIZLnNjYWJiYWdlLnYxLkJsb2NrQ2hhbmdlZEgAEjQKDnBsYXllcnNfam9pbmVkGAogASgLMhouc2NhYmJhZ2UudjEuUGxheWVyc0pvaW5lZEgAEjIKDXBsYXllcnNfbW92ZWQYCyABKAsyGS5zY2FiYmFnZS52MS5QbGF5ZXJzTW92ZWRIABIuCgtwbGF5ZXJfbGVmdBgMIAEoCzIXLnNjYWJiYWdlLnYxLlBsYXllckxlZnRIABIhCgRjaGF0GA0gASgLMhEuc2NhYmJhZ2UudjEuQ2hhdEgAEi4KC2Vtb3RlX3Nob3duGA4gASgLMhcuc2NhYmJhZ2UudjEuRW1vdGVTaG93bkgAQgYKBGJvZHkihgEKBUhlbGxvEhgKEHByb3RvY29sX3ZlcnNpb24YASABKA0SEwoLY2xpZW50X25hbWUYAiABKAkSFQoNZGV2aWNlX3NlY3JldBgDIAEoDBImCgRqb2luGAQgASgLMhguc2NhYmJhZ2UudjEuSm9pblJlcXVlc3QSDwoHY29uc29sZRgFIAEoCCI4CgtKb2luUmVxdWVzdBIMCgRjb2RlGAEgASgJEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0imwEKB1dlbGNvbWUSGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRITCgtzZXJ2ZXJfbmFtZRgCIAEoCRIUCgx0aWNrX3JhdGVfaHoYAyABKA0SJAoDeW91GAQgASgLMhcuc2NhYmJhZ2UudjEuUGxheWVySW5mbxIlCgV3b3JsZBgFIAEoCzIWLnNjYWJiYWdlLnYxLldvcmxkSW5mbyJ1CglXb3JsZEluZm8SDgoGcmFkaXVzGAEgASgFEg4KBmhlaWdodBgCIAEoBRIgCgVzcGF3bhgDIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMSJgoGYmxvY2tzGAQgAygLMhYuc2NhYmJhZ2UudjEuQmxvY2tUeXBlIkkKCUJsb2NrVHlwZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEg0KBXNvbGlkGAMgASgIEhMKC3RyYW5zcGFyZW50GAQgASgIIicKBFZlYzMSCQoBeBgBIAEoAhIJCgF5GAIgASgCEgkKAXoYAyABKAIiKwoIQ2h1bmtQb3MSCQoBeBgBIAEoERIJCgF5GAIgASgREgkKAXoYAyABKBEiNgoNUmVxdWVzdENodW5rcxIlCgZjaHVua3MYASADKAsyFS5zY2FiYmFnZS52MS5DaHVua1BvcyI0CgpDaHVua0JhdGNoEiYKBmNodW5rcxgBIAMoCzIWLnNjYWJiYWdlLnYxLkNodW5rRGF0YSI9CglDaHVua0RhdGESIgoDcG9zGAEgASgLMhUuc2NhYmJhZ2UudjEuQ2h1bmtQb3MSDAoEZGF0YRgCIAEoDCJUCgRNb3ZlEh4KA3BvcxgBIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMSCwoDeWF3GAIgASgCEg0KBXBpdGNoGAMgASgCEhAKCHRlbGVwb3J0GAQgASgNIjYKCFRlbGVwb3J0EgoKAmlkGAEgASgNEh4KA3BvcxgCIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMiKwoIQmxvY2tQb3MSCQoBeBgBIAEoERIJCgF5GAIgASgREgkKAXoYAyABKBEiPgoJRWRpdEJsb2NrEiIKA3BvcxgBIAEoCzIVLnNjYWJiYWdlLnYxLkJsb2NrUG9zEg0KBWJsb2NrGAIgASgNIkEKDEJsb2NrQ2hhbmdlZBIiCgNwb3MYASABKAsyFS5zY2FiYmFnZS52MS5CbG9ja1BvcxINCgVibG9jaxgCIAEoDSJhCgtPdGhlclBsYXllchIOCgZlbnRpdHkYASABKA0SDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDRIlCgRwb3NlGAQgASgLMhcuc2NhYmJhZ2UudjEuUGxheWVyUG9zZSJYCgpQbGF5ZXJQb3NlEg4KBmVudGl0eRgBIAEoDRIeCgNwb3MYAiABKAsyES5zY2FiYmFnZS52MS5WZWMzEgsKA3lhdxgDIAEoAhINCgVwaXRjaBgEIAEoAiI6Cg1QbGF5ZXJzSm9pbmVkEikKB3BsYXllcnMYASADKAsyGC5zY2FiYmFnZS52MS5PdGhlclBsYXllciI2CgxQbGF5ZXJzTW92ZWQSJgoFcG9zZXMYASADKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJQb3NlIhwKClBsYXllckxlZnQSDgoGZW50aXR5GAEgASgNIhgKCFNlbmRDaGF0EgwKBHRleHQYASABKAkiQQoEQ2hhdBIMCgRuYW1lGAEgASgJEg0KBWNvbG9yGAIgASgNEgwKBHRleHQYAyABKAkSDgoGbm90aWNlGAQgASgIIi4KCVNlbmRFbW90ZRIhCgVlbW90ZRgBIAEoDjISLnNjYWJiYWdlLnYxLkVtb3RlIj8KCkVtb3RlU2hvd24SDgoGZW50aXR5GAEgASgNEiEKBWVtb3RlGAIgASgOMhIuc2NhYmJhZ2UudjEuRW1vdGUiRAoKUGxheWVySW5mbxIKCgJpZBgBIAEoBBIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNEg0KBWFkbWluGAQgASgIIg0KC0pvaW5QZW5kaW5nIkAKD1BlbmRpbmdSZXF1ZXN0cxItCghyZXF1ZXN0cxgBIAMoCzIbLnNjYWJiYWdlLnYxLlBlbmRpbmdSZXF1ZXN0ImAKDlBlbmRpbmdSZXF1ZXN0EgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SEQoJcmV0dXJuaW5nGAQgASgIEhIKCmNyZWF0ZWRfbXMYBSABKAEiMQoKRGVjaWRlSm9pbhISCgpyZXF1ZXN0X2lkGAEgASgEEg8KB2FwcHJvdmUYAiABKAgiMQoOQ3JlYXRlSm9pbkNvZGUSDAoEdXNlcxgBIAEoDRIRCgl0dGxfaG91cnMYAiABKA0iQQoPSm9pbkNvZGVDcmVhdGVkEgwKBGNvZGUYASABKAkSDAoEdXNlcxgCIAEoDRISCgpleHBpcmVzX21zGAMgASgBIh4KBFBpbmcSFgoOY2xpZW50X3RpbWVfbXMYASABKAEiNgoEUG9uZxIWCg5jbGllbnRfdGltZV9tcxgBIAEoARIWCg5zZXJ2ZXJfdGltZV9tcxgCIAEoASJHCgpEaXNjb25uZWN0Eg4KBnJlYXNvbhgBIAEoCRIpCgRjb2RlGAIgASgOMhsuc2NhYmJhZ2UudjEuRGlzY29ubmVjdENvZGUqUQoPUHJvdG9jb2xWZXJzaW9uEiAKHFBST1RPQ09MX1ZFUlNJT05fVU5TUEVDSUZJRUQQABIcChhQUk9UT0NPTF9WRVJTSU9OX0NVUlJFTlQQByqkAQoFRW1vdGUSFQoRRU1PVEVfVU5TUEVDSUZJRUQQABIOCgpFTU9URV9XQVZFEAESDwoLRU1PVEVfSEFQUFkQAhIPCgtFTU9URV9MQVVHSBADEg4KCkVNT1RFX0xPVkUQBBITCg9FTU9URV9USFVNQlNfVVAQBRINCglFTU9URV9XT1cQBhINCglFTU9URV9TQUQQBxIPCgtFTU9URV9QQVJUWRAIKpECCg5EaXNjb25uZWN0Q29kZRIfChtESVNDT05ORUNUX0NPREVfVU5TUEVDSUZJRUQQABIcChhESVNDT05ORUNUX0NPREVfUFJPVE9DT0wQARIiCh5ESVNDT05ORUNUX0NPREVfTkVFRF9KT0lOX0NPREUQAhIhCh1ESVNDT05ORUNUX0NPREVfQkFEX0pPSU5fQ09ERRADEhwKGERJU0NPTk5FQ1RfQ09ERV9CQURfTkFNRRAEEhoKFkRJU0NPTk5FQ1RfQ09ERV9ERU5JRUQQBRIgChxESVNDT05ORUNUX0NPREVfUkFURV9MSU1JVEVEEAYSHQoZRElTQ09OTkVDVF9DT0RFX05PVF9BRE1JThAHQi1aK3NjYWJiYWdlL2ludGVybmFsL3BiL3NjYWJiYWdlL3YxO3NjYWJiYWdldjFiBnByb3RvMw");
 
 /**
  * Every WebSocket binary frame from a client is one ClientMessage.
@@ -63,6 +63,18 @@ export type ClientMessage = Message<"scabbage.v1.ClientMessage"> & {
      */
     value: EditBlock;
     case: "editBlock";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.SendChat send_chat = 8;
+     */
+    value: SendChat;
+    case: "sendChat";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.SendEmote send_emote = 9;
+     */
+    value: SendEmote;
+    case: "sendEmote";
   } | { case: undefined; value?: undefined };
 };
 
@@ -154,6 +166,18 @@ export type ServerMessage = Message<"scabbage.v1.ServerMessage"> & {
      */
     value: PlayerLeft;
     case: "playerLeft";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.Chat chat = 13;
+     */
+    value: Chat;
+    case: "chat";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.EmoteShown emote_shown = 14;
+     */
+    value: EmoteShown;
+    case: "emoteShown";
   } | { case: undefined; value?: undefined };
 };
 
@@ -722,6 +746,103 @@ export const PlayerLeftSchema: GenMessage<PlayerLeft> = /*@__PURE__*/
   messageDesc(file_scabbage_v1_net, 21);
 
 /**
+ * A line typed into chat; text starting with "/" is a command such as "/approve NAME".
+ *
+ * @generated from message scabbage.v1.SendChat
+ */
+export type SendChat = Message<"scabbage.v1.SendChat"> & {
+  /**
+   * @generated from field: string text = 1;
+   */
+  text: string;
+};
+
+/**
+ * Describes the message scabbage.v1.SendChat.
+ * Use `create(SendChatSchema)` to create a new message.
+ */
+export const SendChatSchema: GenMessage<SendChat> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 22);
+
+/**
+ * A chat line for everyone in the world, the sender included. Notices come from the server,
+ * e.g. replies to commands, and go to one player.
+ *
+ * @generated from message scabbage.v1.Chat
+ */
+export type Chat = Message<"scabbage.v1.Chat"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * 0xRRGGBB
+   *
+   * @generated from field: uint32 color = 2;
+   */
+  color: number;
+
+  /**
+   * @generated from field: string text = 3;
+   */
+  text: string;
+
+  /**
+   * @generated from field: bool notice = 4;
+   */
+  notice: boolean;
+};
+
+/**
+ * Describes the message scabbage.v1.Chat.
+ * Use `create(ChatSchema)` to create a new message.
+ */
+export const ChatSchema: GenMessage<Chat> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 23);
+
+/**
+ * @generated from message scabbage.v1.SendEmote
+ */
+export type SendEmote = Message<"scabbage.v1.SendEmote"> & {
+  /**
+   * @generated from field: scabbage.v1.Emote emote = 1;
+   */
+  emote: Emote;
+};
+
+/**
+ * Describes the message scabbage.v1.SendEmote.
+ * Use `create(SendEmoteSchema)` to create a new message.
+ */
+export const SendEmoteSchema: GenMessage<SendEmote> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 24);
+
+/**
+ * Someone else emoted; shown above their avatar.
+ *
+ * @generated from message scabbage.v1.EmoteShown
+ */
+export type EmoteShown = Message<"scabbage.v1.EmoteShown"> & {
+  /**
+   * @generated from field: uint32 entity = 1;
+   */
+  entity: number;
+
+  /**
+   * @generated from field: scabbage.v1.Emote emote = 2;
+   */
+  emote: Emote;
+};
+
+/**
+ * Describes the message scabbage.v1.EmoteShown.
+ * Use `create(EmoteShownSchema)` to create a new message.
+ */
+export const EmoteShownSchema: GenMessage<EmoteShown> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 25);
+
+/**
  * @generated from message scabbage.v1.PlayerInfo
  */
 export type PlayerInfo = Message<"scabbage.v1.PlayerInfo"> & {
@@ -751,7 +872,7 @@ export type PlayerInfo = Message<"scabbage.v1.PlayerInfo"> & {
  * Use `create(PlayerInfoSchema)` to create a new message.
  */
 export const PlayerInfoSchema: GenMessage<PlayerInfo> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 22);
+  messageDesc(file_scabbage_v1_net, 26);
 
 /**
  * The join request is waiting for an admin; the connection stays open until a decision.
@@ -766,7 +887,7 @@ export type JoinPending = Message<"scabbage.v1.JoinPending"> & {
  * Use `create(JoinPendingSchema)` to create a new message.
  */
 export const JoinPendingSchema: GenMessage<JoinPending> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 23);
+  messageDesc(file_scabbage_v1_net, 27);
 
 /**
  * Sent to admins on connect and whenever the pending list changes.
@@ -785,7 +906,7 @@ export type PendingRequests = Message<"scabbage.v1.PendingRequests"> & {
  * Use `create(PendingRequestsSchema)` to create a new message.
  */
 export const PendingRequestsSchema: GenMessage<PendingRequests> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 24);
+  messageDesc(file_scabbage_v1_net, 28);
 
 /**
  * @generated from message scabbage.v1.PendingRequest
@@ -824,7 +945,7 @@ export type PendingRequest = Message<"scabbage.v1.PendingRequest"> & {
  * Use `create(PendingRequestSchema)` to create a new message.
  */
 export const PendingRequestSchema: GenMessage<PendingRequest> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 25);
+  messageDesc(file_scabbage_v1_net, 29);
 
 /**
  * Admin only.
@@ -848,7 +969,7 @@ export type DecideJoin = Message<"scabbage.v1.DecideJoin"> & {
  * Use `create(DecideJoinSchema)` to create a new message.
  */
 export const DecideJoinSchema: GenMessage<DecideJoin> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 26);
+  messageDesc(file_scabbage_v1_net, 30);
 
 /**
  * Admin only.
@@ -872,7 +993,7 @@ export type CreateJoinCode = Message<"scabbage.v1.CreateJoinCode"> & {
  * Use `create(CreateJoinCodeSchema)` to create a new message.
  */
 export const CreateJoinCodeSchema: GenMessage<CreateJoinCode> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 27);
+  messageDesc(file_scabbage_v1_net, 31);
 
 /**
  * @generated from message scabbage.v1.JoinCodeCreated
@@ -899,7 +1020,7 @@ export type JoinCodeCreated = Message<"scabbage.v1.JoinCodeCreated"> & {
  * Use `create(JoinCodeCreatedSchema)` to create a new message.
  */
 export const JoinCodeCreatedSchema: GenMessage<JoinCodeCreated> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 28);
+  messageDesc(file_scabbage_v1_net, 32);
 
 /**
  * @generated from message scabbage.v1.Ping
@@ -916,7 +1037,7 @@ export type Ping = Message<"scabbage.v1.Ping"> & {
  * Use `create(PingSchema)` to create a new message.
  */
 export const PingSchema: GenMessage<Ping> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 29);
+  messageDesc(file_scabbage_v1_net, 33);
 
 /**
  * @generated from message scabbage.v1.Pong
@@ -938,7 +1059,7 @@ export type Pong = Message<"scabbage.v1.Pong"> & {
  * Use `create(PongSchema)` to create a new message.
  */
 export const PongSchema: GenMessage<Pong> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 30);
+  messageDesc(file_scabbage_v1_net, 34);
 
 /**
  * @generated from message scabbage.v1.Disconnect
@@ -960,7 +1081,7 @@ export type Disconnect = Message<"scabbage.v1.Disconnect"> & {
  * Use `create(DisconnectSchema)` to create a new message.
  */
 export const DisconnectSchema: GenMessage<Disconnect> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 31);
+  messageDesc(file_scabbage_v1_net, 35);
 
 /**
  * Bump CURRENT on any incompatible protocol change.
@@ -974,9 +1095,9 @@ export enum ProtocolVersion {
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 6;
+   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 7;
    */
-  CURRENT = 6,
+  CURRENT = 7,
 }
 
 /**
@@ -984,6 +1105,62 @@ export enum ProtocolVersion {
  */
 export const ProtocolVersionSchema: GenEnum<ProtocolVersion> = /*@__PURE__*/
   enumDesc(file_scabbage_v1_net, 0);
+
+/**
+ * @generated from enum scabbage.v1.Emote
+ */
+export enum Emote {
+  /**
+   * @generated from enum value: EMOTE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: EMOTE_WAVE = 1;
+   */
+  WAVE = 1,
+
+  /**
+   * @generated from enum value: EMOTE_HAPPY = 2;
+   */
+  HAPPY = 2,
+
+  /**
+   * @generated from enum value: EMOTE_LAUGH = 3;
+   */
+  LAUGH = 3,
+
+  /**
+   * @generated from enum value: EMOTE_LOVE = 4;
+   */
+  LOVE = 4,
+
+  /**
+   * @generated from enum value: EMOTE_THUMBS_UP = 5;
+   */
+  THUMBS_UP = 5,
+
+  /**
+   * @generated from enum value: EMOTE_WOW = 6;
+   */
+  WOW = 6,
+
+  /**
+   * @generated from enum value: EMOTE_SAD = 7;
+   */
+  SAD = 7,
+
+  /**
+   * @generated from enum value: EMOTE_PARTY = 8;
+   */
+  PARTY = 8,
+}
+
+/**
+ * Describes the enum scabbage.v1.Emote.
+ */
+export const EmoteSchema: GenEnum<Emote> = /*@__PURE__*/
+  enumDesc(file_scabbage_v1_net, 1);
 
 /**
  * @generated from enum scabbage.v1.DisconnectCode
@@ -1034,5 +1211,5 @@ export enum DisconnectCode {
  * Describes the enum scabbage.v1.DisconnectCode.
  */
 export const DisconnectCodeSchema: GenEnum<DisconnectCode> = /*@__PURE__*/
-  enumDesc(file_scabbage_v1_net, 1);
+  enumDesc(file_scabbage_v1_net, 2);
 

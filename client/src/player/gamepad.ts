@@ -1,3 +1,5 @@
+import type { Emote } from "../pb/scabbage/v1/net_pb";
+import { EMOTES } from "../social/emotes";
 import type { Hotbar } from "./hotbar";
 import { DoubleTap, HoldRepeat, NO_BUILD, NO_INPUT, stickAxes, type Intent } from "./input";
 import type { Player } from "./player";
@@ -10,12 +12,14 @@ export interface PadState {
 
 // Standard-mapping button indices.
 const BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7 } as const;
+// D-pad up, right, down, left send the emotes in those directions on the wheel.
+const DPAD_EMOTES: [number, Emote][] = [12, 15, 13, 14].map((b, i) => [b, EMOTES[i * 2].emote]);
 const DEAD_ZONE = 0.2;
 const LOOK_RADIANS_PER_SECOND = 3;
 const FLY_DOUBLE_TAP_MS = 300;
 const BUILD_REPEAT_MS = 250;
 
-/** A standard gamepad: left stick walks, right stick looks, triggers build, bumpers pick a slot. */
+/** A standard gamepad: left stick walks, right stick looks, triggers build, bumpers pick a slot, D-pad emotes. */
 export class GamepadControls {
   /** True once the pad has been used, so phantom pads don't change the HUD. */
   active = false;
@@ -29,6 +33,7 @@ export class GamepadControls {
     private readonly player: Player,
     private readonly hotbar: Hotbar,
     private readonly pads: () => readonly (PadState | null)[],
+    private readonly onEmote: (e: Emote) => void,
   ) {}
 
   poll(nowMs: number): Intent {
@@ -65,6 +70,7 @@ export class GamepadControls {
     if ((pressed(BTN.a) && this.flyTap.press(nowMs)) || pressed(BTN.y)) this.player.toggleFly();
     if (pressed(BTN.lb)) this.hotbar.scroll(-1);
     if (pressed(BTN.rb)) this.hotbar.scroll(1);
+    for (const [b, e] of DPAD_EMOTES) if (pressed(b)) this.onEmote(e);
     this.hold(this.breaking, BTN.rt, pressed, nowMs);
     this.hold(this.placing, BTN.lt, pressed, nowMs);
   }

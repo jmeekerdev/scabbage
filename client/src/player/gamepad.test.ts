@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { GamepadControls, type PadState } from "./gamepad";
+import { Emote } from "../pb/scabbage/v1/net_pb";
 import { Hotbar } from "./hotbar";
 import { Player } from "./player";
 
-const BUTTONS = { a: 0, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7 };
+const BUTTONS = { a: 0, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, up: 12, right: 15 };
 
 function pad(axes: number[] = [0, 0, 0, 0], held: (keyof typeof BUTTONS)[] = []): PadState {
   const pressed = new Set(held.map((b) => BUTTONS[b]));
@@ -15,8 +16,14 @@ function setup() {
   const player = new Player();
   const hotbar = new Hotbar([1, 2, 3]);
   const state = { current: pad() as PadState | null };
-  const controls = new GamepadControls(player, hotbar, () => [state.current]);
-  return { player, hotbar, state, controls };
+  const emotes: Emote[] = [];
+  const controls = new GamepadControls(
+    player,
+    hotbar,
+    () => [state.current],
+    (e) => emotes.push(e),
+  );
+  return { player, hotbar, state, controls, emotes };
 }
 
 describe("GamepadControls", () => {
@@ -78,5 +85,15 @@ describe("GamepadControls", () => {
     state.current = pad(undefined, ["lb"]);
     controls.poll(100);
     expect(hotbar.selected).toBe(0);
+  });
+
+  it("emotes with the D-pad, matching the wheel's directions", () => {
+    const { state, controls, emotes } = setup();
+    state.current = pad(undefined, ["up"]);
+    controls.poll(0);
+    controls.poll(50);
+    state.current = pad(undefined, ["right"]);
+    controls.poll(100);
+    expect(emotes).toEqual([Emote.WAVE, Emote.LAUGH]);
   });
 });

@@ -1,6 +1,6 @@
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { ClientMessageSchema, ServerMessageSchema } from "../pb/scabbage/v1/net_pb";
+import { ClientMessageSchema, Emote, ServerMessageSchema } from "../pb/scabbage/v1/net_pb";
 import {
   PROTOCOL_VERSION,
   decodeServer,
@@ -8,14 +8,27 @@ import {
   encodeDecideJoin,
   encodeHello,
   encodeEditBlock,
+  encodeEmote,
   encodeMove,
   encodePing,
   encodeRequestChunks,
+  encodeSendChat,
 } from "./codec";
 
 const decodeClient = (b: Uint8Array) => fromBinary(ClientMessageSchema, b).body;
 
 describe("codec", () => {
+  it("encodes a chat line and an emote", () => {
+    expect(decodeClient(encodeSendChat("hi"))).toMatchObject({
+      case: "sendChat",
+      value: { text: "hi" },
+    });
+    expect(decodeClient(encodeEmote(Emote.WAVE))).toMatchObject({
+      case: "sendEmote",
+      value: { emote: Emote.WAVE },
+    });
+  });
+
   it("encodes a block edit", () => {
     const body = decodeClient(encodeEditBlock({ x: -4, y: 20, z: 9, block: 8 }));
     expect(body.case).toBe("editBlock");

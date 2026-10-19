@@ -14,6 +14,8 @@ import type { RemoteState } from "../player/remote-players";
 
 const SKIN = 0xf0c8a0;
 const TAG_HEIGHT = 0.3; // world units
+const EMOTE_SIZE = 0.7; // world units
+const EMOTE_MS = 3000;
 
 /** A box with fixed per-face shading like the chunks: bright top, darker sides and bottom. */
 function shadedBox(w: number, h: number, d: number): BoxGeometry {
@@ -44,6 +46,7 @@ class Avatar {
   private readonly head = new Group();
   private readonly tag: Sprite;
   private readonly clothes: MeshBasicMaterial[];
+  private bubble?: { sprite: Sprite; untilMs: number };
 
   constructor(name: string, color: number) {
     const shirt = new MeshBasicMaterial({ color, vertexColors: true });
@@ -70,6 +73,25 @@ class Avatar {
     this.root.position.set(p.x, p.y, p.z);
     this.root.rotation.y = p.yaw;
     this.head.rotation.x = p.pitch;
+  }
+
+  /** Floats an emoji over the head for a few seconds, replacing any earlier one. */
+  emote(emoji: string, nowMs: number): void {
+    this.clearBubble();
+    const sprite = at(new Sprite(emojiMaterial(emoji)), 0, 2.6, 0);
+    sprite.scale.set(EMOTE_SIZE, EMOTE_SIZE, 1);
+    sprite.renderOrder = 1;
+    this.root.add(sprite);
+    this.bubble = { sprite, untilMs: nowMs + EMOTE_MS };
+  }
+
+  expire(nowMs: number): void {
+    if (this.bubble && nowMs >= this.bubble.untilMs) this.clearBubble();
+  }
+
+  private clearBubble(): void {
+    if (this.bubble) this.root.remove(this.bubble.sprite);
+    this.bubble = undefined;
   }
 
   dispose(): void {
@@ -108,13 +130,38 @@ function nameTag(name: string): Sprite {
   return sprite;
 }
 
+// One material per emoji, kept for the session; there are only a handful.
+const emojiMaterials = new Map<string, SpriteMaterial>();
+
+function emojiMaterial(emoji: string): SpriteMaterial {
+  let m = emojiMaterials.get(emoji);
+  if (m) return m;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.font = "52px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(emoji, 32, 36);
+  }
+  m = new SpriteMaterial({ map: new CanvasTexture(canvas), depthTest: false });
+  emojiMaterials.set(emoji, m);
+  return m;
+}
+
 /** Draws other players, adding and removing figures to match each frame's list. */
 export class Avatars {
   private readonly shown = new Map<number, Avatar>();
 
   constructor(private readonly scene: Scene) {}
 
-  update(players: readonly RemoteState[]): void {
+  /** Shows an emote over a player, if they are drawn. */
+  emote(entity: number, emoji: string, nowMs: number): void {
+    this.shown.get(entity)?.emote(emoji, nowMs);
+  }
+
+  update(players: readonly RemoteState[], nowMs: number): void {
     const seen = new Set<number>();
     for (const p of players) {
       seen.add(p.entity);
@@ -125,6 +172,7 @@ export class Avatars {
         this.scene.add(a.root);
       }
       a.pose(p.pose);
+      a.expire(nowMs);
     }
     for (const [entity, a] of this.shown) {
       if (seen.has(entity)) continue;

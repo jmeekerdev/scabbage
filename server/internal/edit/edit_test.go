@@ -2,7 +2,6 @@ package edit
 
 import (
 	"testing"
-	"time"
 
 	"scabbage/internal/motion"
 	"scabbage/internal/world"
@@ -69,20 +68,5 @@ func TestSolidBlocksMayNotOverlapPlayers(t *testing.T) {
 	}
 	if !Allowed(feet, place(0, 11, 0, world.Water), world.Air, others) {
 		t.Fatal("water may overlap players")
-	}
-}
-
-func TestRateRefillsOverTime(t *testing.T) {
-	t0 := time.Unix(100, 0)
-	r := NewRate(t0)
-	n := 0
-	for r.Take(t0) {
-		n++
-	}
-	if n != burst {
-		t.Fatalf("took %d at once, want %d", n, burst)
-	}
-	if !r.Take(t0.Add(time.Second / perSecond)) {
-		t.Fatal("rate should refill")
 	}
 }
