@@ -85,6 +85,10 @@ export function encodeMoveItem(from: number, to: number): Bytes {
   return encode({ case: "moveItem", value: { from, to } });
 }
 
+export function encodeCraft(recipe: number): Bytes {
+  return encode({ case: "craft", value: { recipe } });
+}
+
 export function encodeSendChat(text: string): Bytes {
   return encode({ case: "sendChat", value: { text } });
 }

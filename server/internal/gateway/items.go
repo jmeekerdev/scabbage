@@ -31,7 +31,7 @@ func (s *session) loadInventory() error {
 func inventoryProto(inv *inventory.Inventory) *pb.Inventory {
 	out := &pb.Inventory{Slots: make([]*pb.ItemStack, len(inv))}
 	for i, st := range inv {
-		out.Slots[i] = &pb.ItemStack{Block: uint32(st.Block), Count: uint32(st.Count)}
+		out.Slots[i] = stackProto(st)
 	}
 	return out
 }

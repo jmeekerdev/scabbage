@@ -142,3 +142,12 @@ func TestItem(t *testing.T) {
 		t.Fatal("Item should turn stairs to face north and leave other blocks alone")
 	}
 }
+
+func TestBuiltinFindsBlocksByName(t *testing.T) {
+	if b, ok := Builtin("planks_slab"); !ok || b != StoneSlab+2 {
+		t.Fatalf("planks_slab = %v, %v", b, ok)
+	}
+	if _, ok := Builtin("unobtainium"); ok {
+		t.Fatal("found a block that does not exist")
+	}
+}

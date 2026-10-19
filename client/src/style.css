@@ -712,6 +712,10 @@ body.page .requests {
   background: rgb(255 255 255 / 12%);
 }
 
+.inventory .slot:disabled {
+  opacity: 0.35;
+}
+
 .inventory .slot.held {
   outline: 3px solid #ffd54a;
 }

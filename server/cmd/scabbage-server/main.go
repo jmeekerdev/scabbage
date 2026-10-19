@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"scabbage/internal/art"
 	"scabbage/internal/backup"
 	"scabbage/internal/config"
+	"scabbage/internal/crafting"
 	"scabbage/internal/gateway"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
@@ -73,11 +75,16 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	svc := access.New(db, access.Options{OnPendingChange: func() { gw.PendingChanged() }})
 	pieces := art.New(db, art.Options{OnPendingChange: func() { gw.ArtChanged() }, Reserved: world.IsBuiltinName})
+	recipes, err := crafting.Load(filepath.Join(cfg.DataDir, "recipes.json"))
+	if err != nil {
+		return fmt.Errorf("recipes.json: %w", err)
+	}
 	gw, err = gateway.New(gateway.Config{
 		Hub:            hub,
 		Access:         svc,
 		Art:            pieces,
 		World:          w,
+		Recipes:        recipes,
 		ServerName:     cfg.ServerName,
 		Mode:           access.Mode(cfg.Mode),
 		OriginPatterns: cfg.Origins,

@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 12;
+  PROTOCOL_VERSION_CURRENT = 13;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -27,6 +27,7 @@ message ClientMessage {
     SetAdmin set_admin = 12;
     SetGameMode set_game_mode = 13;
     MoveItem move_item = 14;
+    Craft craft = 15;
   }
 }
 
@@ -92,6 +93,7 @@ message WorldInfo {
   Vec3 spawn = 3;
   repeated BlockType blocks = 4; // indexed by block ID
   repeated Texture textures = 5; // built-in textures an admin repainted
+  repeated Recipe recipes = 6; // what survival players can craft; Craft names them by index
 }
 
 message BlockType {
@@ -310,6 +312,17 @@ message Inventory {
 message MoveItem {
   uint32 from = 1;
   uint32 to = 2;
+}
+
+// Makes one stack from others the player carries, in any arrangement.
+message Recipe {
+  ItemStack make = 1;
+  repeated ItemStack from = 2;
+}
+
+// Crafts a recipe once; the server answers with the new Inventory, or nothing if it can't.
+message Craft {
+  uint32 recipe = 1; // index into WorldInfo.recipes
 }
 
 // An item lying in the world, waiting to be picked up.

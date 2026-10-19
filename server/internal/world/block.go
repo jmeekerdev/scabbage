@@ -152,12 +152,18 @@ func Blocks() []BlockInfo {
 
 // IsBuiltinName reports whether a built-in block is called name.
 func IsBuiltinName(name string) bool {
+	_, ok := Builtin(name)
+	return ok
+}
+
+// Builtin finds the built-in block called name.
+func Builtin(name string) (Block, bool) {
 	for _, b := range blocks {
 		if b.Name == name {
-			return true
+			return b.ID, true
 		}
 	}
-	return false
+	return Air, false
 }
 
 // Info returns a block's properties; unknown IDs behave like air.

@@ -26,6 +26,7 @@ func (g *Gateway) worldInfo() *pb.WorldInfo {
 		Spawn:    &pb.Vec3{X: float32(x), Y: float32(y), Z: float32(z)},
 		Blocks:   palette.Blocks,
 		Textures: palette.Textures,
+		Recipes:  recipesProto(g.cfg.Recipes),
 	}
 }
 

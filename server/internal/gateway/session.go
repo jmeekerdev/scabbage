@@ -148,6 +148,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.setGameMode(ctx, body.SetGameMode)
 	case *pb.ClientMessage_MoveItem:
 		return s.moveItem(body.MoveItem)
+	case *pb.ClientMessage_Craft:
+		return s.craft(body.Craft)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

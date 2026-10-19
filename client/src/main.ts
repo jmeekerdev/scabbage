@@ -8,6 +8,7 @@ import {
   encodeEditBlock,
   encodeEmote,
   encodeMove,
+  encodeCraft,
   encodeMoveItem,
   encodeRequestChunks,
   encodeSendChat,
@@ -110,7 +111,11 @@ const picker = new BlockPicker((block) => {
   picker.node.closest("dialog")?.close();
 });
 const inventory = new Inventory();
-const backpack = new InventoryView(inventory, (from, to) => conn?.send(encodeMoveItem(from, to)));
+const backpack = new InventoryView(
+  inventory,
+  (from, to) => conn?.send(encodeMoveItem(from, to)),
+  (recipe) => conn?.send(encodeCraft(recipe)),
+);
 const miner = new Miner();
 let survival = false;
 inventory.onChange = () => {
@@ -311,6 +316,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   hotbar.slots.splice(0, Infinity, ...hotbarBlocks(info.blocks));
   hotbar.select(0);
   applyBlocks(info.blocks, info.textures);
+  backpack.setRecipes(info.recipes.map((r) => ({ make: stack(r.make), from: r.from.map(stack) })));
   const spawn = info.spawn;
   player.place(spawn?.x ?? 0, spawn?.y ?? 0, spawn?.z ?? 0);
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
@@ -320,6 +326,11 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   chat.enabled = true;
   document.body.classList.add("in-world");
 }
+
+const stack = (s?: { block: number; count: number }) => ({
+  block: s?.block ?? 0,
+  count: s?.count ?? 0,
+});
 
 /** Uses a new block list everywhere blocks matter: drawing, collisions, building and the hotbar. */
 function applyBlocks(blocks: BlockType[], textures: Texture[]): void {

@@ -12,6 +12,7 @@ import (
 
 	"scabbage/internal/access"
 	"scabbage/internal/art"
+	"scabbage/internal/crafting"
 	"scabbage/internal/drops"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
@@ -23,6 +24,7 @@ type Config struct {
 	Access         *access.Service
 	Art            *art.Service
 	World          *world.World
+	Recipes        []crafting.Recipe // crafting.Default() when nil
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -50,6 +52,9 @@ func New(cfg Config) (*Gateway, error) {
 	}
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
+	}
+	if cfg.Recipes == nil {
+		cfg.Recipes = crafting.Default()
 	}
 	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}}
 	return g, g.loadArt()

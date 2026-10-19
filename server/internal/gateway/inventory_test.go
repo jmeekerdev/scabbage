@@ -44,10 +44,16 @@ func (ts *testServer) besideSpawn(t *testing.T, dy int32, b world.Block) (x, y, 
 // mineStone breaks stone beside spawn in survival and waits for the cobblestone to be picked up.
 func (ts *testServer) mineStone(t *testing.T, c *websocket.Conn) (x, y, z int32) {
 	t.Helper()
-	x, y, z = ts.besideSpawn(t, 0, world.Stone)
+	return ts.mine(t, c, world.Stone, world.Cobblestone)
+}
+
+// mine breaks b beside spawn in survival and waits for what it drops to land in slot 0.
+func (ts *testServer) mine(t *testing.T, c *websocket.Conn, b, drop world.Block) (x, y, z int32) {
+	t.Helper()
+	x, y, z = ts.besideSpawn(t, 0, b)
 	send(t, c, editBlock(x, y, z, world.Air))
 	inv := recvWhere(t, c, isInventory).GetInventory()
-	if s := inv.Slots[0]; s.Block != uint32(world.Cobblestone) || s.Count != 1 {
+	if s := inv.Slots[0]; s.Block != uint32(drop) || s.Count != 1 {
 		t.Fatalf("slot 0 = %v", s)
 	}
 	return x, y, z

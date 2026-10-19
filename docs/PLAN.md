@@ -216,7 +216,9 @@ Each phase ends with something the family can play. Compact the model context be
       an item (stone → cobblestone, grass → dirt) that is picked up by walking near it and expires
       after 5 minutes; placing uses up the selected slot; the server times digs and checks slots;
       creative keeps its unlimited hotbar and instant breaking)
-- [ ] Crafting recipes (data-driven)
+- [x] Crafting recipes (data-driven) (shapeless recipes in an embedded JSON book, replaceable by
+      `data/recipes.json`; sent in WorldInfo; the Backpack's "Make" row crafts with a tap and dims
+      what you can't afford; the server checks inputs and room before trading; survival only)
 - [ ] Mobs: passive animals + night monsters with simple server-side AI
 - [ ] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode
 

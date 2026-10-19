@@ -56,6 +56,33 @@ func (inv *Inventory) Take(slot int, b world.Block) bool {
 	return true
 }
 
+// Remove takes n of b, from the last slots first so the hotbar keeps its blocks; all or nothing.
+func (inv *Inventory) Remove(b world.Block, n int) bool {
+	if inv.count(b) < n {
+		return false
+	}
+	for i := Slots - 1; i >= 0 && n > 0; i-- {
+		if s := &inv[i]; s.Block == b && s.Count > 0 {
+			took := min(n, int(s.Count))
+			if s.Count -= uint8(took); s.Count == 0 {
+				*s = Stack{}
+			}
+			n -= took
+		}
+	}
+	return true
+}
+
+func (inv *Inventory) count(b world.Block) int {
+	n := 0
+	for _, s := range inv {
+		if s.Block == b {
+			n += int(s.Count)
+		}
+	}
+	return n
+}
+
 // Move drops the stack at from onto to: matching blocks merge, anything else swaps.
 func (inv *Inventory) Move(from, to int) bool {
 	if from == to || from < 0 || to < 0 || from >= Slots || to >= Slots {

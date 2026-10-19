@@ -81,3 +81,23 @@ func TestDecodeDropsUnknownBlocks(t *testing.T) {
 		t.Fatalf("got %+v, %v", got[4], err)
 	}
 }
+
+func TestRemoveTakesFromTheBackpackBeforeTheHotbar(t *testing.T) {
+	var inv Inventory
+	inv[0] = Stack{world.Log, 3}
+	inv[20] = Stack{world.Log, 2}
+	if !inv.Remove(world.Log, 3) {
+		t.Fatal("could not remove 3 of 5 logs")
+	}
+	if inv[20] != (Stack{}) || inv[0] != (Stack{world.Log, 2}) {
+		t.Fatalf("got %+v and %+v", inv[0], inv[20])
+	}
+}
+
+func TestRemoveLeavesTheInventoryAloneWhenShort(t *testing.T) {
+	var inv Inventory
+	inv[5] = Stack{world.Sand, 2}
+	if inv.Remove(world.Sand, 3) || inv[5] != (Stack{world.Sand, 2}) {
+		t.Fatalf("removed from too few: %+v", inv[5])
+	}
+}
