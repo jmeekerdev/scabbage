@@ -26,13 +26,9 @@ func expectBlockChanged(t *testing.T, c *websocket.Conn, x, y, z int32, want wor
 // joinKid admits a second player and returns both connections with nothing left to read.
 func (ts *testServer) joinKid(t *testing.T) (admin, kid *websocket.Conn) {
 	t.Helper()
-	admin = ts.joinAdmin(t)
-	kid = ts.requestJoin(t, secret(2), "Kid")
-	list := recv(t, admin).GetPendingRequests()
-	send(t, admin, decide(list.Requests[0].Id, true))
-	recv(t, kid)   // welcome
-	recv(t, admin) // empty pending list
-	waitPlayers(t, ts.hub, 2)
+	admin, kid = ts.admitKid(t)
+	adminSeesJoin(t, admin)
+	recvJoined(t, kid)
 	return admin, kid
 }
 

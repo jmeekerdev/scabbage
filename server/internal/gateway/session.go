@@ -71,7 +71,7 @@ func (s *session) run(ctx context.Context) error {
 	if !s.console {
 		hub := s.gw.cfg.Hub
 		hub.Join()
-		s.gw.setPlayer(s, s.body.Pos())
+		s.gw.addPlayer(s)
 		s.log.Info("player joined", "name", s.player.Name, "players", hub.Players())
 		defer func() {
 			s.gw.removePlayer(s)

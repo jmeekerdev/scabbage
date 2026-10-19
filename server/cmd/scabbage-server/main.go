@@ -49,10 +49,14 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		}
 	}()
 	logger.Info("world ready", "seed", w.Meta().Seed, "generator", w.Meta().Generator, "radius", w.Meta().Radius)
-	hub := sim.NewHub(sim.Config{TickRate: cfg.TickRate, OnIdle: unloadWorld(w, logger)})
+	var gw *gateway.Gateway
+	hub := sim.NewHub(sim.Config{
+		TickRate: cfg.TickRate,
+		OnTick:   func(uint64) { gw.Tick() },
+		OnIdle:   unloadWorld(w, logger),
+	})
 	defer hub.Close()
 
-	var gw *gateway.Gateway
 	svc := access.New(db, access.Options{OnPendingChange: func() { gw.PendingChanged() }})
 	gw = gateway.New(gateway.Config{
 		Hub:            hub,

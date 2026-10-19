@@ -35,10 +35,10 @@ func startServer(t *testing.T) *testServer {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	hub := sim.NewHub(sim.Config{TickRate: 20})
+	var gw *Gateway
+	hub := sim.NewHub(sim.Config{TickRate: 20, OnTick: func(uint64) { gw.Tick() }})
 	t.Cleanup(hub.Close)
 
-	var gw *Gateway
 	svc := access.New(db, access.Options{OnPendingChange: func() { gw.PendingChanged() }})
 	w, err := world.Open(world.NewStore(db), "main", world.Defaults{Seed: 42, Radius: 64})
 	if err != nil {
@@ -236,6 +236,7 @@ func TestNonAdminCannotDecide(t *testing.T) {
 	list := recv(t, admin).GetPendingRequests()
 	send(t, admin, decide(list.Requests[0].Id, true))
 	recv(t, kid) // Welcome
+	recvJoined(t, kid)
 
 	send(t, kid, decide(1, true))
 	expectDisconnect(t, kid, pb.DisconnectCode_DISCONNECT_CODE_NOT_ADMIN)

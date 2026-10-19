@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 5;
+  PROTOCOL_VERSION_CURRENT = 6;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -35,6 +35,9 @@ message ServerMessage {
     ChunkBatch chunk_batch = 7;
     Teleport teleport = 8;
     BlockChanged block_changed = 9;
+    PlayersJoined players_joined = 10;
+    PlayersMoved players_moved = 11;
+    PlayerLeft player_left = 12;
   }
 }
 
@@ -138,6 +141,35 @@ message EditBlock {
 message BlockChanged {
   BlockPos pos = 1;
   uint32 block = 2;
+}
+
+// Other players in the world. Entity ids are per connection, so one player on two devices is two.
+message OtherPlayer {
+  uint32 entity = 1;
+  string name = 2;
+  uint32 color = 3; // 0xRRGGBB
+  PlayerPose pose = 4;
+}
+
+message PlayerPose {
+  uint32 entity = 1;
+  Vec3 pos = 2; // feet center
+  float yaw = 3;
+  float pitch = 4;
+}
+
+// Sent to a newcomer with everyone already there, and to everyone else when someone arrives.
+message PlayersJoined {
+  repeated OtherPlayer players = 1;
+}
+
+// Once per tick, the players that moved since the last one (never the recipient).
+message PlayersMoved {
+  repeated PlayerPose poses = 1;
+}
+
+message PlayerLeft {
+  uint32 entity = 1;
 }
 
 message PlayerInfo {

@@ -11,8 +11,6 @@ import (
 	"github.com/coder/websocket"
 
 	"scabbage/internal/access"
-	"scabbage/internal/motion"
-	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
 )
@@ -33,8 +31,9 @@ type Gateway struct {
 	cfg     Config
 	mu      sync.Mutex
 	admins  map[*session]struct{}
-	players map[*session]motion.Vec // in-world sessions and their last accepted feet position
-	editMu  sync.Mutex              // makes each edit's check, change and broadcast atomic
+	players map[*session]*avatar // in-world sessions
+	entity  uint32               // last entity id handed out
+	editMu  sync.Mutex           // makes each edit's check, change and broadcast atomic
 }
 
 // New returns a Gateway with defaults applied.
@@ -45,7 +44,7 @@ func New(cfg Config) *Gateway {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	return &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]motion.Vec{}}
+	return &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}}
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -87,37 +86,4 @@ func (g *Gateway) removeAdmin(s *session) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	delete(g.admins, s)
-}
-
-// setPlayer adds or updates an in-world session's position.
-func (g *Gateway) setPlayer(s *session, at motion.Vec) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.players[s] = at
-}
-
-func (g *Gateway) removePlayer(s *session) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	delete(g.players, s)
-}
-
-// bodies returns every in-world player's position.
-func (g *Gateway) bodies() []motion.Vec {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	out := make([]motion.Vec, 0, len(g.players))
-	for _, at := range g.players {
-		out = append(out, at)
-	}
-	return out
-}
-
-// broadcast queues msg for every in-world session.
-func (g *Gateway) broadcast(msg *pb.ServerMessage) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	for s := range g.players {
-		s.push(msg)
-	}
 }

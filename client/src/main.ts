@@ -5,7 +5,14 @@ import { screenForRejection, type Action, type Screen } from "./join/outcome";
 import { encodeEditBlock, encodeMove, encodeRequestChunks, type JoinInit } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
-import type { BlockChanged, Teleport, Welcome, WorldInfo } from "./pb/scabbage/v1/net_pb";
+import type {
+  BlockChanged,
+  PlayerPose,
+  ServerMessage,
+  Teleport,
+  Welcome,
+  WorldInfo,
+} from "./pb/scabbage/v1/net_pb";
 import {
   aim,
   breakEdit,
@@ -16,9 +23,11 @@ import {
 } from "./player/building";
 import { Hotbar, hotbarBlocks } from "./player/hotbar";
 import { KeyboardMouse, type BuildActions } from "./player/keyboard-mouse";
-import { MoveSync } from "./player/move-sync";
+import { MoveSync, type Pose } from "./player/move-sync";
 import type { SolidAt } from "./player/physics";
 import { Player } from "./player/player";
+import { RemotePlayers } from "./player/remote-players";
+import { Avatars } from "./render/avatars";
 import { blockIconPainter } from "./render/icons";
 import { startScene } from "./render/scene";
 import { Selection } from "./render/selection";
@@ -54,7 +63,9 @@ const controls = new KeyboardMouse($("#game"), player, hotbar, (locked) => {
   hintEl.hidden = locked;
   $("#crosshair").hidden = !locked;
 });
+const avatars = new Avatars(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
+let others: RemotePlayers | undefined; // set while in the world
 let solid: SolidAt = () => true;
 let building: BuildWorld | undefined;
 let lastFrameMs: number | undefined;
@@ -67,6 +78,7 @@ gameScene.onFrame((timeMs) => {
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
   world.tick(eye.x, eye.z, settings.viewDistance);
   build(controls.actions(timeMs), [eye.x, eye.y, eye.z]);
+  avatars.update(others?.sample(performance.now()) ?? []);
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
@@ -97,7 +109,10 @@ function connect(join?: JoinInit): void {
       onStatus(status, detail) {
         statusEl.textContent = detail ? `${status}: ${detail}` : status;
         statusEl.dataset.status = status;
-        if (status !== "connected") pingEl.textContent = "";
+        if (status !== "connected") {
+          pingEl.textContent = "";
+          others = undefined;
+        }
       },
       onRtt: (ms) => (pingEl.textContent = `ping ${Math.round(ms)} ms`),
       onPending: () =>
@@ -111,7 +126,7 @@ function connect(join?: JoinInit): void {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
-        else onAdminMessage?.(msg);
+        else if (!rosterChanged(msg)) onAdminMessage?.(msg);
       },
     },
   );
@@ -172,6 +187,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   const spawn = info.spawn;
   player.place(spawn?.x ?? 0, spawn?.y ?? 0, spawn?.z ?? 0);
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
+  others = new RemotePlayers(1000 / Math.max(1, tickRateHz));
   hintEl.hidden = document.pointerLockElement !== null || touch;
 }
 
@@ -206,6 +222,29 @@ function sendEdit(edit: Edit): void {
 
 function blockChanged(c: BlockChanged): void {
   if (c.pos) world.setBlock(c.pos.x, c.pos.y, c.pos.z, c.block);
+}
+
+/** Applies other players arriving, moving or leaving; false if `msg` is about something else. */
+function rosterChanged(msg: ServerMessage): boolean {
+  const now = performance.now();
+  const b = msg.body;
+  if (b.case === "playersJoined")
+    for (const p of b.value.players) others?.join(p, poseOf(p.pose), now);
+  else if (b.case === "playersMoved")
+    for (const p of b.value.poses) others?.move(p.entity, poseOf(p), now);
+  else if (b.case === "playerLeft") others?.leave(b.value.entity);
+  else return false;
+  return true;
+}
+
+function poseOf(p: PlayerPose | undefined): Pose {
+  return {
+    x: p?.pos?.x ?? 0,
+    y: p?.pos?.y ?? 0,
+    z: p?.pos?.z ?? 0,
+    yaw: p?.yaw ?? 0,
+    pitch: p?.pitch ?? 0,
+  };
 }
 
 /** In-game admin tools: join-request toasts and an invite dialog. */

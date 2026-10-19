@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 5
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 6
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0: "PROTOCOL_VERSION_UNSPECIFIED",
-		5: "PROTOCOL_VERSION_CURRENT",
+		6: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     5,
+		"PROTOCOL_VERSION_CURRENT":     6,
 	}
 )
 
@@ -309,6 +309,9 @@ type ServerMessage struct {
 	//	*ServerMessage_ChunkBatch
 	//	*ServerMessage_Teleport
 	//	*ServerMessage_BlockChanged
+	//	*ServerMessage_PlayersJoined
+	//	*ServerMessage_PlayersMoved
+	//	*ServerMessage_PlayerLeft
 	Body          isServerMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -432,6 +435,33 @@ func (x *ServerMessage) GetBlockChanged() *BlockChanged {
 	return nil
 }
 
+func (x *ServerMessage) GetPlayersJoined() *PlayersJoined {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_PlayersJoined); ok {
+			return x.PlayersJoined
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetPlayersMoved() *PlayersMoved {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_PlayersMoved); ok {
+			return x.PlayersMoved
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetPlayerLeft() *PlayerLeft {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_PlayerLeft); ok {
+			return x.PlayerLeft
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Body interface {
 	isServerMessage_Body()
 }
@@ -472,6 +502,18 @@ type ServerMessage_BlockChanged struct {
 	BlockChanged *BlockChanged `protobuf:"bytes,9,opt,name=block_changed,json=blockChanged,proto3,oneof"`
 }
 
+type ServerMessage_PlayersJoined struct {
+	PlayersJoined *PlayersJoined `protobuf:"bytes,10,opt,name=players_joined,json=playersJoined,proto3,oneof"`
+}
+
+type ServerMessage_PlayersMoved struct {
+	PlayersMoved *PlayersMoved `protobuf:"bytes,11,opt,name=players_moved,json=playersMoved,proto3,oneof"`
+}
+
+type ServerMessage_PlayerLeft struct {
+	PlayerLeft *PlayerLeft `protobuf:"bytes,12,opt,name=player_left,json=playerLeft,proto3,oneof"`
+}
+
 func (*ServerMessage_Welcome) isServerMessage_Body() {}
 
 func (*ServerMessage_Pong) isServerMessage_Body() {}
@@ -489,6 +531,12 @@ func (*ServerMessage_ChunkBatch) isServerMessage_Body() {}
 func (*ServerMessage_Teleport) isServerMessage_Body() {}
 
 func (*ServerMessage_BlockChanged) isServerMessage_Body() {}
+
+func (*ServerMessage_PlayersJoined) isServerMessage_Body() {}
+
+func (*ServerMessage_PlayersMoved) isServerMessage_Body() {}
+
+func (*ServerMessage_PlayerLeft) isServerMessage_Body() {}
 
 // First message on every connection.
 type Hello struct {
@@ -1395,6 +1443,277 @@ func (x *BlockChanged) GetBlock() uint32 {
 	return 0
 }
 
+// Other players in the world. Entity ids are per connection, so one player on two devices is two.
+type OtherPlayer struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entity        uint32                 `protobuf:"varint,1,opt,name=entity,proto3" json:"entity,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Color         uint32                 `protobuf:"varint,3,opt,name=color,proto3" json:"color,omitempty"` // 0xRRGGBB
+	Pose          *PlayerPose            `protobuf:"bytes,4,opt,name=pose,proto3" json:"pose,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OtherPlayer) Reset() {
+	*x = OtherPlayer{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OtherPlayer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OtherPlayer) ProtoMessage() {}
+
+func (x *OtherPlayer) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OtherPlayer.ProtoReflect.Descriptor instead.
+func (*OtherPlayer) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *OtherPlayer) GetEntity() uint32 {
+	if x != nil {
+		return x.Entity
+	}
+	return 0
+}
+
+func (x *OtherPlayer) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OtherPlayer) GetColor() uint32 {
+	if x != nil {
+		return x.Color
+	}
+	return 0
+}
+
+func (x *OtherPlayer) GetPose() *PlayerPose {
+	if x != nil {
+		return x.Pose
+	}
+	return nil
+}
+
+type PlayerPose struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entity        uint32                 `protobuf:"varint,1,opt,name=entity,proto3" json:"entity,omitempty"`
+	Pos           *Vec3                  `protobuf:"bytes,2,opt,name=pos,proto3" json:"pos,omitempty"` // feet center
+	Yaw           float32                `protobuf:"fixed32,3,opt,name=yaw,proto3" json:"yaw,omitempty"`
+	Pitch         float32                `protobuf:"fixed32,4,opt,name=pitch,proto3" json:"pitch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlayerPose) Reset() {
+	*x = PlayerPose{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlayerPose) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlayerPose) ProtoMessage() {}
+
+func (x *PlayerPose) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlayerPose.ProtoReflect.Descriptor instead.
+func (*PlayerPose) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *PlayerPose) GetEntity() uint32 {
+	if x != nil {
+		return x.Entity
+	}
+	return 0
+}
+
+func (x *PlayerPose) GetPos() *Vec3 {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *PlayerPose) GetYaw() float32 {
+	if x != nil {
+		return x.Yaw
+	}
+	return 0
+}
+
+func (x *PlayerPose) GetPitch() float32 {
+	if x != nil {
+		return x.Pitch
+	}
+	return 0
+}
+
+// Sent to a newcomer with everyone already there, and to everyone else when someone arrives.
+type PlayersJoined struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Players       []*OtherPlayer         `protobuf:"bytes,1,rep,name=players,proto3" json:"players,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlayersJoined) Reset() {
+	*x = PlayersJoined{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlayersJoined) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlayersJoined) ProtoMessage() {}
+
+func (x *PlayersJoined) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlayersJoined.ProtoReflect.Descriptor instead.
+func (*PlayersJoined) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *PlayersJoined) GetPlayers() []*OtherPlayer {
+	if x != nil {
+		return x.Players
+	}
+	return nil
+}
+
+// Once per tick, the players that moved since the last one (never the recipient).
+type PlayersMoved struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Poses         []*PlayerPose          `protobuf:"bytes,1,rep,name=poses,proto3" json:"poses,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlayersMoved) Reset() {
+	*x = PlayersMoved{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlayersMoved) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlayersMoved) ProtoMessage() {}
+
+func (x *PlayersMoved) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlayersMoved.ProtoReflect.Descriptor instead.
+func (*PlayersMoved) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *PlayersMoved) GetPoses() []*PlayerPose {
+	if x != nil {
+		return x.Poses
+	}
+	return nil
+}
+
+type PlayerLeft struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entity        uint32                 `protobuf:"varint,1,opt,name=entity,proto3" json:"entity,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlayerLeft) Reset() {
+	*x = PlayerLeft{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlayerLeft) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlayerLeft) ProtoMessage() {}
+
+func (x *PlayerLeft) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlayerLeft.ProtoReflect.Descriptor instead.
+func (*PlayerLeft) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *PlayerLeft) GetEntity() uint32 {
+	if x != nil {
+		return x.Entity
+	}
+	return 0
+}
+
 type PlayerInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1407,7 +1726,7 @@ type PlayerInfo struct {
 
 func (x *PlayerInfo) Reset() {
 	*x = PlayerInfo{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[17]
+	mi := &file_scabbage_v1_net_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1419,7 +1738,7 @@ func (x *PlayerInfo) String() string {
 func (*PlayerInfo) ProtoMessage() {}
 
 func (x *PlayerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[17]
+	mi := &file_scabbage_v1_net_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1432,7 +1751,7 @@ func (x *PlayerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlayerInfo.ProtoReflect.Descriptor instead.
 func (*PlayerInfo) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{17}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *PlayerInfo) GetId() uint64 {
@@ -1472,7 +1791,7 @@ type JoinPending struct {
 
 func (x *JoinPending) Reset() {
 	*x = JoinPending{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[18]
+	mi := &file_scabbage_v1_net_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1484,7 +1803,7 @@ func (x *JoinPending) String() string {
 func (*JoinPending) ProtoMessage() {}
 
 func (x *JoinPending) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[18]
+	mi := &file_scabbage_v1_net_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1497,7 +1816,7 @@ func (x *JoinPending) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinPending.ProtoReflect.Descriptor instead.
 func (*JoinPending) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{18}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{23}
 }
 
 // Sent to admins on connect and whenever the pending list changes.
@@ -1510,7 +1829,7 @@ type PendingRequests struct {
 
 func (x *PendingRequests) Reset() {
 	*x = PendingRequests{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[19]
+	mi := &file_scabbage_v1_net_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1522,7 +1841,7 @@ func (x *PendingRequests) String() string {
 func (*PendingRequests) ProtoMessage() {}
 
 func (x *PendingRequests) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[19]
+	mi := &file_scabbage_v1_net_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1535,7 +1854,7 @@ func (x *PendingRequests) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingRequests.ProtoReflect.Descriptor instead.
 func (*PendingRequests) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{19}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *PendingRequests) GetRequests() []*PendingRequest {
@@ -1558,7 +1877,7 @@ type PendingRequest struct {
 
 func (x *PendingRequest) Reset() {
 	*x = PendingRequest{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[20]
+	mi := &file_scabbage_v1_net_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1570,7 +1889,7 @@ func (x *PendingRequest) String() string {
 func (*PendingRequest) ProtoMessage() {}
 
 func (x *PendingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[20]
+	mi := &file_scabbage_v1_net_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1583,7 +1902,7 @@ func (x *PendingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PendingRequest.ProtoReflect.Descriptor instead.
 func (*PendingRequest) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{20}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *PendingRequest) GetId() uint64 {
@@ -1632,7 +1951,7 @@ type DecideJoin struct {
 
 func (x *DecideJoin) Reset() {
 	*x = DecideJoin{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[21]
+	mi := &file_scabbage_v1_net_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1644,7 +1963,7 @@ func (x *DecideJoin) String() string {
 func (*DecideJoin) ProtoMessage() {}
 
 func (x *DecideJoin) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[21]
+	mi := &file_scabbage_v1_net_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1657,7 +1976,7 @@ func (x *DecideJoin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DecideJoin.ProtoReflect.Descriptor instead.
 func (*DecideJoin) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{21}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *DecideJoin) GetRequestId() uint64 {
@@ -1685,7 +2004,7 @@ type CreateJoinCode struct {
 
 func (x *CreateJoinCode) Reset() {
 	*x = CreateJoinCode{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[22]
+	mi := &file_scabbage_v1_net_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1697,7 +2016,7 @@ func (x *CreateJoinCode) String() string {
 func (*CreateJoinCode) ProtoMessage() {}
 
 func (x *CreateJoinCode) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[22]
+	mi := &file_scabbage_v1_net_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1710,7 +2029,7 @@ func (x *CreateJoinCode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateJoinCode.ProtoReflect.Descriptor instead.
 func (*CreateJoinCode) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{22}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreateJoinCode) GetUses() uint32 {
@@ -1738,7 +2057,7 @@ type JoinCodeCreated struct {
 
 func (x *JoinCodeCreated) Reset() {
 	*x = JoinCodeCreated{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[23]
+	mi := &file_scabbage_v1_net_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1750,7 +2069,7 @@ func (x *JoinCodeCreated) String() string {
 func (*JoinCodeCreated) ProtoMessage() {}
 
 func (x *JoinCodeCreated) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[23]
+	mi := &file_scabbage_v1_net_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1763,7 +2082,7 @@ func (x *JoinCodeCreated) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinCodeCreated.ProtoReflect.Descriptor instead.
 func (*JoinCodeCreated) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{23}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *JoinCodeCreated) GetCode() string {
@@ -1796,7 +2115,7 @@ type Ping struct {
 
 func (x *Ping) Reset() {
 	*x = Ping{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[24]
+	mi := &file_scabbage_v1_net_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1808,7 +2127,7 @@ func (x *Ping) String() string {
 func (*Ping) ProtoMessage() {}
 
 func (x *Ping) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[24]
+	mi := &file_scabbage_v1_net_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1821,7 +2140,7 @@ func (x *Ping) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ping.ProtoReflect.Descriptor instead.
 func (*Ping) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{24}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *Ping) GetClientTimeMs() float64 {
@@ -1841,7 +2160,7 @@ type Pong struct {
 
 func (x *Pong) Reset() {
 	*x = Pong{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[25]
+	mi := &file_scabbage_v1_net_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1853,7 +2172,7 @@ func (x *Pong) String() string {
 func (*Pong) ProtoMessage() {}
 
 func (x *Pong) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[25]
+	mi := &file_scabbage_v1_net_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1866,7 +2185,7 @@ func (x *Pong) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pong.ProtoReflect.Descriptor instead.
 func (*Pong) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{25}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *Pong) GetClientTimeMs() float64 {
@@ -1893,7 +2212,7 @@ type Disconnect struct {
 
 func (x *Disconnect) Reset() {
 	*x = Disconnect{}
-	mi := &file_scabbage_v1_net_proto_msgTypes[26]
+	mi := &file_scabbage_v1_net_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1905,7 +2224,7 @@ func (x *Disconnect) String() string {
 func (*Disconnect) ProtoMessage() {}
 
 func (x *Disconnect) ProtoReflect() protoreflect.Message {
-	mi := &file_scabbage_v1_net_proto_msgTypes[26]
+	mi := &file_scabbage_v1_net_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1918,7 +2237,7 @@ func (x *Disconnect) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Disconnect.ProtoReflect.Descriptor instead.
 func (*Disconnect) Descriptor() ([]byte, []int) {
-	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{26}
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *Disconnect) GetReason() string {
@@ -1950,7 +2269,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x04move\x18\x06 \x01(\v2\x11.scabbage.v1.MoveH\x00R\x04move\x127\n" +
 	"\n" +
 	"edit_block\x18\a \x01(\v2\x16.scabbage.v1.EditBlockH\x00R\teditBlockB\x06\n" +
-	"\x04body\"\xb6\x04\n" +
+	"\x04body\"\xf9\x05\n" +
 	"\rServerMessage\x120\n" +
 	"\awelcome\x18\x01 \x01(\v2\x14.scabbage.v1.WelcomeH\x00R\awelcome\x12'\n" +
 	"\x04pong\x18\x02 \x01(\v2\x11.scabbage.v1.PongH\x00R\x04pong\x129\n" +
@@ -1963,7 +2282,12 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\vchunk_batch\x18\a \x01(\v2\x17.scabbage.v1.ChunkBatchH\x00R\n" +
 	"chunkBatch\x123\n" +
 	"\bteleport\x18\b \x01(\v2\x15.scabbage.v1.TeleportH\x00R\bteleport\x12@\n" +
-	"\rblock_changed\x18\t \x01(\v2\x19.scabbage.v1.BlockChangedH\x00R\fblockChangedB\x06\n" +
+	"\rblock_changed\x18\t \x01(\v2\x19.scabbage.v1.BlockChangedH\x00R\fblockChanged\x12C\n" +
+	"\x0eplayers_joined\x18\n" +
+	" \x01(\v2\x1a.scabbage.v1.PlayersJoinedH\x00R\rplayersJoined\x12@\n" +
+	"\rplayers_moved\x18\v \x01(\v2\x19.scabbage.v1.PlayersMovedH\x00R\fplayersMoved\x12:\n" +
+	"\vplayer_left\x18\f \x01(\v2\x17.scabbage.v1.PlayerLeftH\x00R\n" +
+	"playerLeftB\x06\n" +
 	"\x04body\"\xc0\x01\n" +
 	"\x05Hello\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
@@ -2027,7 +2351,25 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x05block\x18\x02 \x01(\rR\x05block\"M\n" +
 	"\fBlockChanged\x12'\n" +
 	"\x03pos\x18\x01 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\x12\x14\n" +
-	"\x05block\x18\x02 \x01(\rR\x05block\"\\\n" +
+	"\x05block\x18\x02 \x01(\rR\x05block\"|\n" +
+	"\vOtherPlayer\x12\x16\n" +
+	"\x06entity\x18\x01 \x01(\rR\x06entity\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05color\x18\x03 \x01(\rR\x05color\x12+\n" +
+	"\x04pose\x18\x04 \x01(\v2\x17.scabbage.v1.PlayerPoseR\x04pose\"q\n" +
+	"\n" +
+	"PlayerPose\x12\x16\n" +
+	"\x06entity\x18\x01 \x01(\rR\x06entity\x12#\n" +
+	"\x03pos\x18\x02 \x01(\v2\x11.scabbage.v1.Vec3R\x03pos\x12\x10\n" +
+	"\x03yaw\x18\x03 \x01(\x02R\x03yaw\x12\x14\n" +
+	"\x05pitch\x18\x04 \x01(\x02R\x05pitch\"C\n" +
+	"\rPlayersJoined\x122\n" +
+	"\aplayers\x18\x01 \x03(\v2\x18.scabbage.v1.OtherPlayerR\aplayers\"=\n" +
+	"\fPlayersMoved\x12-\n" +
+	"\x05poses\x18\x01 \x03(\v2\x17.scabbage.v1.PlayerPoseR\x05poses\"$\n" +
+	"\n" +
+	"PlayerLeft\x12\x16\n" +
+	"\x06entity\x18\x01 \x01(\rR\x06entity\"\\\n" +
 	"\n" +
 	"PlayerInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
@@ -2068,7 +2410,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x04code\x18\x02 \x01(\x0e2\x1b.scabbage.v1.DisconnectCodeR\x04code*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x05*\x91\x02\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x06*\x91\x02\n" +
 	"\x0eDisconnectCode\x12\x1f\n" +
 	"\x1bDISCONNECT_CODE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18DISCONNECT_CODE_PROTOCOL\x10\x01\x12\"\n" +
@@ -2092,7 +2434,7 @@ func file_scabbage_v1_net_proto_rawDescGZIP() []byte {
 }
 
 var file_scabbage_v1_net_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_scabbage_v1_net_proto_goTypes = []any{
 	(ProtocolVersion)(0),    // 0: scabbage.v1.ProtocolVersion
 	(DisconnectCode)(0),     // 1: scabbage.v1.DisconnectCode
@@ -2113,53 +2455,65 @@ var file_scabbage_v1_net_proto_goTypes = []any{
 	(*BlockPos)(nil),        // 16: scabbage.v1.BlockPos
 	(*EditBlock)(nil),       // 17: scabbage.v1.EditBlock
 	(*BlockChanged)(nil),    // 18: scabbage.v1.BlockChanged
-	(*PlayerInfo)(nil),      // 19: scabbage.v1.PlayerInfo
-	(*JoinPending)(nil),     // 20: scabbage.v1.JoinPending
-	(*PendingRequests)(nil), // 21: scabbage.v1.PendingRequests
-	(*PendingRequest)(nil),  // 22: scabbage.v1.PendingRequest
-	(*DecideJoin)(nil),      // 23: scabbage.v1.DecideJoin
-	(*CreateJoinCode)(nil),  // 24: scabbage.v1.CreateJoinCode
-	(*JoinCodeCreated)(nil), // 25: scabbage.v1.JoinCodeCreated
-	(*Ping)(nil),            // 26: scabbage.v1.Ping
-	(*Pong)(nil),            // 27: scabbage.v1.Pong
-	(*Disconnect)(nil),      // 28: scabbage.v1.Disconnect
+	(*OtherPlayer)(nil),     // 19: scabbage.v1.OtherPlayer
+	(*PlayerPose)(nil),      // 20: scabbage.v1.PlayerPose
+	(*PlayersJoined)(nil),   // 21: scabbage.v1.PlayersJoined
+	(*PlayersMoved)(nil),    // 22: scabbage.v1.PlayersMoved
+	(*PlayerLeft)(nil),      // 23: scabbage.v1.PlayerLeft
+	(*PlayerInfo)(nil),      // 24: scabbage.v1.PlayerInfo
+	(*JoinPending)(nil),     // 25: scabbage.v1.JoinPending
+	(*PendingRequests)(nil), // 26: scabbage.v1.PendingRequests
+	(*PendingRequest)(nil),  // 27: scabbage.v1.PendingRequest
+	(*DecideJoin)(nil),      // 28: scabbage.v1.DecideJoin
+	(*CreateJoinCode)(nil),  // 29: scabbage.v1.CreateJoinCode
+	(*JoinCodeCreated)(nil), // 30: scabbage.v1.JoinCodeCreated
+	(*Ping)(nil),            // 31: scabbage.v1.Ping
+	(*Pong)(nil),            // 32: scabbage.v1.Pong
+	(*Disconnect)(nil),      // 33: scabbage.v1.Disconnect
 }
 var file_scabbage_v1_net_proto_depIdxs = []int32{
 	4,  // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
-	26, // 1: scabbage.v1.ClientMessage.ping:type_name -> scabbage.v1.Ping
-	23, // 2: scabbage.v1.ClientMessage.decide_join:type_name -> scabbage.v1.DecideJoin
-	24, // 3: scabbage.v1.ClientMessage.create_join_code:type_name -> scabbage.v1.CreateJoinCode
+	31, // 1: scabbage.v1.ClientMessage.ping:type_name -> scabbage.v1.Ping
+	28, // 2: scabbage.v1.ClientMessage.decide_join:type_name -> scabbage.v1.DecideJoin
+	29, // 3: scabbage.v1.ClientMessage.create_join_code:type_name -> scabbage.v1.CreateJoinCode
 	11, // 4: scabbage.v1.ClientMessage.request_chunks:type_name -> scabbage.v1.RequestChunks
 	14, // 5: scabbage.v1.ClientMessage.move:type_name -> scabbage.v1.Move
 	17, // 6: scabbage.v1.ClientMessage.edit_block:type_name -> scabbage.v1.EditBlock
 	6,  // 7: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
-	27, // 8: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
-	28, // 9: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
-	20, // 10: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
-	21, // 11: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
-	25, // 12: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
+	32, // 8: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
+	33, // 9: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
+	25, // 10: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
+	26, // 11: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
+	30, // 12: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
 	12, // 13: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
 	15, // 14: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
 	18, // 15: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
-	5,  // 16: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
-	19, // 17: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
-	7,  // 18: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
-	9,  // 19: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
-	8,  // 20: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
-	10, // 21: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
-	13, // 22: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
-	10, // 23: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
-	9,  // 24: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
-	9,  // 25: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
-	16, // 26: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
-	16, // 27: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
-	22, // 28: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
-	1,  // 29: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	21, // 16: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
+	22, // 17: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
+	23, // 18: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
+	5,  // 19: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
+	24, // 20: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
+	7,  // 21: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
+	9,  // 22: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
+	8,  // 23: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
+	10, // 24: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
+	13, // 25: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
+	10, // 26: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
+	9,  // 27: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
+	9,  // 28: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
+	16, // 29: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
+	16, // 30: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
+	20, // 31: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
+	9,  // 32: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
+	19, // 33: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
+	20, // 34: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
+	27, // 35: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
+	1,  // 36: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
+	37, // [37:37] is the sub-list for method output_type
+	37, // [37:37] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_scabbage_v1_net_proto_init() }
@@ -2186,6 +2540,9 @@ func file_scabbage_v1_net_proto_init() {
 		(*ServerMessage_ChunkBatch)(nil),
 		(*ServerMessage_Teleport)(nil),
 		(*ServerMessage_BlockChanged)(nil),
+		(*ServerMessage_PlayersJoined)(nil),
+		(*ServerMessage_PlayersMoved)(nil),
+		(*ServerMessage_PlayerLeft)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2193,7 +2550,7 @@ func file_scabbage_v1_net_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scabbage_v1_net_proto_rawDesc), len(file_scabbage_v1_net_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   27,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

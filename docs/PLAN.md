@@ -176,7 +176,7 @@ Each phase ends with something the family can play. Compact the model context be
       (client shows its edit at once; the server checks reach, rate, replaceable target and
       player overlap, then broadcasts BlockChanged or corrects the sender. Crosshair, outline,
       9-slot hotbar, hold to repeat, middle click picks a block)
-- [ ] Other players visible (simple blocky avatars + name tags, interpolated)
+- [x] Other players visible (simple blocky avatars + name tags, interpolated)
 - [ ] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API
 - [ ] Text chat + emote wheel
 - [ ] PWA manifest + service worker; landscape fullscreen on phones
