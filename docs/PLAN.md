@@ -184,7 +184,8 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] PWA manifest + service worker; landscape fullscreen on phones
       (installable over HTTPS; ⛶ toggles fullscreen sideways on Android;
       iPhones get a turn-sideways hint, or install to the home screen; hashed assets cached for good)
-- [ ] Autosave + nightly world backup snapshot
+- [x] Autosave + nightly world backup snapshot
+      (saves every minute while anyone plays; 04:00 copies kept 7 nights in data/backups)
 - **Done when:** all family devices are in one world at once, building together, and the
   world is still there after a server restart.
 

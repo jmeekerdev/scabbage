@@ -14,7 +14,8 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Config{Addr: ":8080", WebDir: "web", DataDir: "data", ServerName: "Scabbage", TickRate: 20}
+	want := Config{Addr: ":8080", WebDir: "web", DataDir: "data", ServerName: "Scabbage", TickRate: 20,
+		Backups: 7, BackupHour: 4}
 	if !reflect.DeepEqual(c, want) {
 		t.Fatalf("got %+v, want %+v", c, want)
 	}
@@ -50,5 +51,21 @@ func TestFlagsOverrideEnv(t *testing.T) {
 func TestInvalidTickRate(t *testing.T) {
 	if _, err := Load([]string{"-tick-rate", "0"}, env(nil)); err == nil {
 		t.Fatal("expected error for tick rate 0")
+	}
+}
+
+func TestBackupSettings(t *testing.T) {
+	c, err := Load([]string{"-backups", "0"}, env(map[string]string{"SCABBAGE_BACKUP_HOUR": "23"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Backups != 0 || c.BackupHour != 23 {
+		t.Fatalf("backups = %d, hour = %d", c.Backups, c.BackupHour)
+	}
+}
+
+func TestInvalidBackupHour(t *testing.T) {
+	if _, err := Load([]string{"-backup-hour", "24"}, env(nil)); err == nil {
+		t.Fatal("expected error for hour 24")
 	}
 }

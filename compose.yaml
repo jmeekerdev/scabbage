@@ -11,6 +11,7 @@ services:
     environment:
       GOMEMLIMIT: 1800MiB
       SCABBAGE_NAME: ${SCABBAGE_NAME:-Scabbage}
+      TZ: ${TZ:-UTC} # nightly backups run at 04:00 in this zone, into the data volume's backups/
     volumes:
       - scabbage-data:/data
     mem_limit: 2g

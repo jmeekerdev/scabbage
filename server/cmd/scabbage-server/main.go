@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"scabbage/internal/access"
+	"scabbage/internal/backup"
 	"scabbage/internal/config"
 	"scabbage/internal/gateway"
 	"scabbage/internal/sim"
@@ -21,6 +22,9 @@ import (
 	"scabbage/internal/web"
 	"scabbage/internal/world"
 )
+
+// autosaveEvery bounds how much building a crash can lose while players are on.
+const autosaveEvery = time.Minute
 
 func main() {
 	cfg, err := config.Load(os.Args[1:], os.Getenv)
@@ -44,17 +48,25 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := w.Flush(); err != nil {
-			logger.Error("saving world", "err", err)
-		}
-	}()
+	defer saveWorld(w, logger)
 	logger.Info("world ready", "seed", w.Meta().Seed, "generator", w.Meta().Generator, "radius", w.Meta().Radius)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if cfg.Backups > 0 {
+		go backup.Daily(ctx, cfg.BackupHour, nightlyBackup(db, w, cfg, logger))
+	}
+
 	var gw *gateway.Gateway
+	saveTicks := uint64(autosaveEvery.Seconds()) * uint64(cfg.TickRate)
 	hub := sim.NewHub(sim.Config{
 		TickRate: cfg.TickRate,
-		OnTick:   func(uint64) { gw.Tick() },
-		OnIdle:   unloadWorld(w, logger),
+		OnTick: func(tick uint64) {
+			gw.Tick()
+			if tick%saveTicks == 0 {
+				go saveWorld(w, logger) // keeps disk writes off the tick loop
+			}
+		},
+		OnIdle: unloadWorld(w, logger),
 	})
 	defer hub.Close()
 
@@ -77,8 +89,6 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	mux.Handle("/", web.Static(cfg.WebDir))
 
 	srv := &http.Server{Addr: cfg.Addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
@@ -95,6 +105,26 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	return nil
+}
+
+func saveWorld(w *world.World, logger *slog.Logger) {
+	if err := w.Flush(); err != nil {
+		logger.Error("saving world", "err", err)
+	}
+}
+
+// nightlyBackup saves the world, then copies the database into data/backups.
+func nightlyBackup(db *sql.DB, w *world.World, cfg config.Config, logger *slog.Logger) func(time.Time) {
+	b := backup.Backups{DB: db, Dir: filepath.Join(cfg.DataDir, "backups"), Keep: cfg.Backups}
+	return func(now time.Time) {
+		saveWorld(w, logger)
+		path, err := b.Snapshot(now)
+		if err != nil {
+			logger.Error("backing up", "err", err)
+			return
+		}
+		logger.Info("backed up", "path", path)
+	}
 }
 
 // unloadWorld saves and drops the world, then returns freed memory to the OS.
