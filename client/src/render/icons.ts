@@ -1,4 +1,5 @@
 import type { RenderTable } from "../world/mesher";
+import { isStairs, Shape } from "../world/shapes";
 import { flipRows, type Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 
@@ -10,20 +11,27 @@ export function blockIconPainter(
   const icons = new Map<number, HTMLCanvasElement>();
   return (block) => {
     let icon = icons.get(block);
-    if (!icon) icons.set(block, (icon = paintIcon(atlas, table.layers[block * 6] ?? -1)));
+    if (!icon) {
+      icon = paintIcon(atlas, table.layers[block * 6] ?? -1, table.shape[block] ?? Shape.CUBE);
+      icons.set(block, icon);
+    }
     return icon;
   };
 }
 
-/** One layer drawn onto a canvas; texture rows run bottom-up, canvas rows top-down. */
-export function paintIcon(atlas: Atlas, layer: number): HTMLCanvasElement {
+/** One layer cut to the shape's side view; texture rows run bottom-up, canvas rows top-down. */
+export function paintIcon(atlas: Atlas, layer: number, shape: number): HTMLCanvasElement {
   const bytes = TEXTURE_SIZE * TEXTURE_SIZE * 4;
   const from = Math.max(0, layer) * bytes;
-  return paintPixels(
-    flipRows(atlas.pixels.subarray(from, from + bytes)),
-    TEXTURE_SIZE,
-    TEXTURE_SIZE,
-  );
+  const pixels = flipRows(atlas.pixels.subarray(from, from + bytes));
+  const half = TEXTURE_SIZE / 2;
+  const shown = (x: number, y: number) =>
+    y >= half || (shape !== Shape.SLAB && (!isStairs(shape) || x >= half));
+  for (let y = 0; y < TEXTURE_SIZE; y++) {
+    for (let x = 0; x < TEXTURE_SIZE; x++)
+      if (!shown(x, y)) pixels[(y * TEXTURE_SIZE + x) * 4 + 3] = 0;
+  }
+  return paintPixels(pixels, TEXTURE_SIZE, TEXTURE_SIZE);
 }
 
 /** A canvas showing RGBA pixels (rows top-down) at their natural size. */

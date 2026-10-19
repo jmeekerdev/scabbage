@@ -1,8 +1,10 @@
+import { heldBlock } from "../world/shapes";
 import { el } from "./dom";
 
 export interface PickableBlock {
   id: number;
   name: string;
+  shape: number;
 }
 
 // Breaking-only or invisible blocks never go in the hotbar.
@@ -15,7 +17,10 @@ export class BlockPicker {
   constructor(private readonly pick: (block: number) => void) {}
 
   set(blocks: readonly PickableBlock[], icon: (block: number) => HTMLCanvasElement): void {
-    const choices = blocks.filter((b) => !UNPLACEABLE.has(b.name));
+    // Stairs turn as they are placed, so only the north-facing ones are offered.
+    const choices = blocks.filter(
+      (b) => !UNPLACEABLE.has(b.name) && heldBlock(b.id, b.shape) === b.id,
+    );
     this.node.replaceChildren(
       el("h1", {}, "Blocks"),
       el(

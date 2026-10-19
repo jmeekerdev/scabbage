@@ -24,8 +24,9 @@ describe("skyAt", () => {
   });
 
   it("changes smoothly and repeats every day", () => {
+    const range = 1 - MIN_LIGHT;
     for (let f = 0; f < 1; f += 0.001) {
-      expect(Math.abs(at(f + 0.001).daylight - at(f).daylight)).toBeLessThan(0.02);
+      expect(Math.abs(at(f + 0.001).daylight - at(f).daylight) / range).toBeLessThan(0.03);
     }
     expect(at(1.3).daylight).toBeCloseTo(at(0.3).daylight);
   });

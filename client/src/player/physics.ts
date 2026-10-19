@@ -1,3 +1,5 @@
+import type { Box } from "../world/shapes";
+
 // Body size must match server/internal/motion; speeds must stay under its limits.
 export const HALF_WIDTH = 0.3;
 export const HEIGHT = 1.8;
@@ -9,9 +11,10 @@ const GRAVITY = 28;
 const JUMP_SPEED = 8.4;
 const TERMINAL_SPEED = 50;
 const EPS = 1e-6;
+const STEP_HEIGHT = 0.5; // server/internal/motion allows the same
 
-/** Whether the block at integer x,y,z blocks movement. */
-export type SolidAt = (x: number, y: number, z: number) => boolean;
+/** What players collide with in the block at integer x,y,z. */
+export type BoxesAt = (x: number, y: number, z: number) => readonly Box[];
 
 /** What the player wants to do this step; forward and right are -1..1. */
 export interface MoveInput {
@@ -36,18 +39,24 @@ export function newBody(x: number, y: number, z: number): Body {
 }
 
 /** Advances the body by dt seconds, facing yaw (0 looks toward -z). */
-export function stepBody(b: Body, input: MoveInput, yaw: number, dt: number, solid: SolidAt): void {
+export function stepBody(
+  b: Body,
+  input: MoveInput,
+  yaw: number,
+  dt: number,
+  boxesAt: BoxesAt,
+): void {
   const speed = b.flying ? FLY_SPEED : WALK_SPEED;
   const [vx, vz] = horizontalVelocity(input, yaw, speed);
   b.vy = b.flying ? flyVertical(input) : fallVertical(b, input, dt);
 
   const falling = b.vy < 0;
-  const hitY = moveAxis(b, 1, b.vy * dt, solid);
+  const hitY = moveAxis(b, 1, b.vy * dt, boxesAt);
   b.onGround = falling && hitY;
   if (hitY) b.vy = 0;
   if (b.onGround) b.flying = false;
-  moveAxis(b, 0, vx * dt, solid);
-  moveAxis(b, 2, vz * dt, solid);
+  walkAxis(b, 0, vx * dt, boxesAt);
+  walkAxis(b, 2, vz * dt, boxesAt);
 }
 
 function horizontalVelocity(input: MoveInput, yaw: number, speed: number): [number, number] {
@@ -71,28 +80,54 @@ function fallVertical(b: Body, input: MoveInput, dt: number): number {
 type Axis = 0 | 1 | 2;
 const KEYS = ["x", "y", "z"] as const;
 
-/** Moves along one axis until the first solid block; returns whether one was hit. */
-function moveAxis(b: Body, axis: Axis, delta: number, solid: SolidAt): boolean {
+/** Walks a horizontal axis, lifting a grounded body onto slabs and stairs in the way. */
+function walkAxis(b: Body, axis: Axis, delta: number, boxesAt: BoxesAt): void {
+  const start = b[KEYS[axis]];
+  if (!moveAxis(b, axis, delta, boxesAt) || !b.onGround) return;
+  const lifted = { ...b };
+  moveAxis(lifted, 1, STEP_HEIGHT, boxesAt);
+  moveAxis(lifted, axis, delta - (b[KEYS[axis]] - start), boxesAt);
+  moveAxis(lifted, 1, -STEP_HEIGHT, boxesAt);
+  if (Math.abs(lifted[KEYS[axis]] - b[KEYS[axis]]) > EPS) Object.assign(b, lifted);
+}
+
+/** Moves along one axis until the first collision box; returns whether one was hit. */
+function moveAxis(b: Body, axis: Axis, delta: number, boxesAt: BoxesAt): boolean {
   if (delta === 0) return false;
   const [lo, hi] = bounds(b);
-  const face = delta > 0 ? hi[axis] : lo[axis];
-  const target = face + delta;
-  let reached = target;
-  let hit = false;
-  // Cells the leading face passes through, nearest first, including the one it starts in.
-  const first = delta > 0 ? Math.floor(face) : Math.ceil(face) - 1;
-  const last = delta > 0 ? Math.ceil(target) - 1 : Math.floor(target);
   const dir = delta > 0 ? 1 : -1;
-  for (let c = first; dir * (last - c) >= 0; c += dir) {
-    if (sliceSolid(lo, hi, axis, c, solid)) {
-      // Never back up: a body already overlapping a solid cell just stays put.
-      reached = delta > 0 ? Math.max(face, c) : Math.min(face, c + 1);
-      hit = true;
-      break;
+  const face = dir > 0 ? hi[axis] : lo[axis];
+  let reached = face + delta;
+  let hit = false;
+  const cells = (a: number) =>
+    a === axis
+      ? [Math.floor(Math.min(face, reached)), Math.floor(Math.max(face, reached))]
+      : [Math.floor(lo[a] + EPS), Math.ceil(hi[a] - EPS) - 1];
+  const [[x0, x1], [y0, y1], [z0, z1]] = [cells(0), cells(1), cells(2)];
+  for (let y = y0; y <= y1; y++) {
+    for (let z = z0; z <= z1; z++) {
+      for (let x = x0; x <= x1; x++) {
+        for (const box of boxesAt(x, y, z)) {
+          const cell = [x, y, z];
+          if (!crosses(box, cell, lo, hi, axis)) continue;
+          const near = cell[axis] + box[dir > 0 ? axis : axis + 3];
+          const far = cell[axis] + box[dir > 0 ? axis + 3 : axis];
+          const stop = stopAt(near, far, face, dir);
+          if (stop === undefined || dir * (stop - reached) > 0) continue;
+          reached = stop;
+          hit = true;
+        }
+      }
     }
   }
-  b[KEYS[axis]] += reached - face;
+  b[KEYS[axis]] += dir > 0 ? Math.max(0, reached - face) : Math.min(0, reached - face);
   return hit;
+}
+
+/** Where the leading face stops for a box, or undefined if the box is behind it. */
+function stopAt(near: number, far: number, face: number, dir: number): number | undefined {
+  if (dir * (near - face) >= -EPS) return near;
+  return dir * (far - face) > EPS ? face : undefined; // already inside: stay put, never get pushed out
 }
 
 function bounds(b: Body): [number[], number[]] {
@@ -102,17 +137,11 @@ function bounds(b: Body): [number[], number[]] {
   ];
 }
 
-/** Whether any block in layer c along axis, within the body's cross-section, is solid. */
-function sliceSolid(lo: number[], hi: number[], axis: Axis, c: number, solid: SolidAt): boolean {
-  const range = (a: number) =>
-    a === axis ? [c, c] : [Math.floor(lo[a] + EPS), Math.ceil(hi[a] - EPS) - 1];
-  const [x0, x1] = range(0);
-  const [y0, y1] = range(1);
-  const [z0, z1] = range(2);
-  for (let y = y0; y <= y1; y++) {
-    for (let z = z0; z <= z1; z++) {
-      for (let x = x0; x <= x1; x++) if (solid(x, y, z)) return true;
-    }
+/** Whether a box in cell overlaps the body's cross-section across the moving axis. */
+function crosses(box: Box, cell: number[], lo: number[], hi: number[], axis: Axis): boolean {
+  for (let a = 0; a < 3; a++) {
+    if (a === axis) continue;
+    if (cell[a] + box[a] >= hi[a] - EPS || cell[a] + box[a + 3] <= lo[a] + EPS) return false;
   }
-  return false;
+  return true;
 }

@@ -4,14 +4,39 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"scabbage/internal/world"
 )
 
 var t0 = time.Unix(1000, 0)
 
-// floor is solid below y=10; wallX adds a one-block wall at x=5.
-func floor(_, y, _ int32) bool { return y < 10 }
+var (
+	full = []world.Box{world.FullBox}
+	slab = []world.Box{{Max: [3]float64{1, 0.5, 1}}}
+)
 
-func wallX(x, y, z int32) bool { return floor(x, y, z) || x == 5 }
+// cubes turns a cell test into collision boxes.
+func cubes(solid func(x, y, z int32) bool) BoxesFunc {
+	return func(x, y, z int32) []world.Box {
+		if solid(x, y, z) {
+			return full
+		}
+		return nil
+	}
+}
+
+// floor is solid below y=10; wallX adds a one-block wall at x=5; slabX a slab there instead.
+var (
+	floor = cubes(func(_, y, _ int32) bool { return y < 10 })
+	wallX = cubes(func(x, y, _ int32) bool { return y < 10 || x == 5 })
+)
+
+func slabX(x, y, z int32) []world.Box {
+	if x == 5 && y == 10 {
+		return slab
+	}
+	return floor(x, y, z)
+}
 
 func newTracker() *Tracker { return NewTracker(DefaultLimits, Vec{0.5, 10, 0.5}, t0) }
 
@@ -112,5 +137,15 @@ func TestResetMovesWithoutChecks(t *testing.T) {
 	tr.Reset(Vec{100, 50, 100}, at(10))
 	if tr.Pos() != (Vec{100, 50, 100}) || !tr.Move(Vec{101, 50, 100}, at(60), floor) {
 		t.Fatal("reset should move the player and keep tracking from there")
+	}
+}
+
+func TestStandsOnSlabs(t *testing.T) {
+	tr := NewTracker(DefaultLimits, Vec{4.5, 10, 0.5}, t0)
+	if tr.Move(Vec{5.5, 10.2, 0.5}, at(1000), slabX) {
+		t.Fatal("feet inside the slab should be rejected")
+	}
+	if !tr.Move(Vec{5.5, 10.5, 0.5}, at(1000), slabX) {
+		t.Fatal("stepping up onto the slab should be allowed")
 	}
 }

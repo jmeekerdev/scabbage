@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 9;
+  PROTOCOL_VERSION_CURRENT = 10;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -93,6 +93,19 @@ message BlockType {
   bool solid = 3;
   bool transparent = 4;
   bytes pixels = 5; // custom blocks only: 16×16 RGBA, rows top-down
+  Shape shape = 6;
+  uint32 light = 7; // how brightly it glows, 0 to 12
+}
+
+// Block geometry; stairs' tall half faces the named direction (north is -z).
+enum Shape {
+  SHAPE_UNSPECIFIED = 0; // a full cube
+  SHAPE_SLAB = 1;
+  SHAPE_STAIRS_NORTH = 2;
+  SHAPE_STAIRS_EAST = 3;
+  SHAPE_STAIRS_SOUTH = 4;
+  SHAPE_STAIRS_WEST = 5;
+  SHAPE_TORCH = 6;
 }
 
 // A built-in block texture repainted by an admin, e.g. "grass_side".

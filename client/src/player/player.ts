@@ -1,6 +1,6 @@
 import { Look } from "./input";
 import type { Pose } from "./move-sync";
-import { EYE_HEIGHT, newBody, stepBody, type MoveInput, type SolidAt } from "./physics";
+import { EYE_HEIGHT, newBody, stepBody, type MoveInput, type BoxesAt } from "./physics";
 
 const STEP = 1 / 60;
 const STEP_SLOP = 1e-9; // summed frame times drift just below whole steps
@@ -25,7 +25,7 @@ export class Player {
     this.body.vy = 0;
   }
 
-  update(dt: number, input: MoveInput, solid: SolidAt): void {
+  update(dt: number, input: MoveInput, solid: BoxesAt): void {
     this.spare += Math.min(dt, MAX_FRAME);
     while (this.spare >= STEP - STEP_SLOP) {
       this.spare -= STEP;

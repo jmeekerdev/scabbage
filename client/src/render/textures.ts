@@ -19,6 +19,33 @@ const speckle =
 const DIRT: [number, number, number] = [134, 96, 67];
 const GRASS: [number, number, number] = [95, 159, 53];
 
+/** Wool colors; each paints the server's "<color>_wool" block. */
+const WOOL: [string, [number, number, number]][] = [
+  ["white", [233, 236, 236]],
+  ["orange", [240, 118, 19]],
+  ["magenta", [189, 68, 179]],
+  ["light_blue", [58, 175, 217]],
+  ["yellow", [248, 198, 39]],
+  ["lime", [112, 185, 25]],
+  ["pink", [237, 141, 172]],
+  ["gray", [62, 68, 71]],
+  ["light_gray", [142, 142, 134]],
+  ["cyan", [21, 137, 145]],
+  ["purple", [121, 42, 172]],
+  ["blue", [53, 57, 157]],
+  ["brown", [114, 71, 40]],
+  ["green", [84, 109, 27]],
+  ["red", [161, 39, 34]],
+  ["black", [30, 31, 35]],
+];
+export const WOOL_COLORS = WOOL.map(([name]) => name);
+
+/** Soft knitted wool: a faint diagonal weave over fine noise. */
+const wool =
+  (rgb: [number, number, number]): Painter =>
+  (x, y, n) =>
+    shade(rgb, ((x + y) % 4 < 2 ? 0.95 : 1.03) * (0.94 + n() * 0.12));
+
 // Row 0 is the bottom of the texture (v = 0), so side textures read bottom-up.
 const PAINTERS: Record<string, Painter> = {
   missing: (x, y) => (((x >> 3) + (y >> 3)) % 2 ? [255, 0, 255, 255] : [20, 20, 20, 255]),
@@ -58,6 +85,20 @@ const PAINTERS: Record<string, Painter> = {
       : shade([155, 64, 48], 0.88 + n() * 0.24);
   },
   bedrock: (_x, _y, n) => shade([60, 60, 60], 0.4 + n() * 0.9),
+  lamp: (x, y, n) => {
+    const frame = x === 0 || y === 0 || x === 15 || y === 15;
+    const bars = x % 5 === 0 || y % 5 === 0;
+    if (frame) return shade([92, 70, 44], 0.9 + n() * 0.2);
+    return bars ? shade([200, 150, 60], 0.95) : shade([255, 226, 140], 0.96 + n() * 0.08);
+  },
+  // The torch box spans columns 6–9 and rows 0–9, so only that part is painted.
+  torch: (x, y, n) => {
+    if (x < 6 || x > 9 || y > 9) return [0, 0, 0, 0];
+    if (y < 6) return shade([110, 80, 45], 0.9 + n() * 0.2);
+    const core = x > 6 && x < 9 && y > 6 && y < 9;
+    return core ? [255, 244, 170, 255] : shade([255, 178, 50], 0.95 + n() * 0.1);
+  },
+  ...Object.fromEntries(WOOL.map(([name, rgb]) => [`${name}_wool`, wool(rgb)])),
 };
 
 export const TEXTURE_NAMES = Object.keys(PAINTERS);

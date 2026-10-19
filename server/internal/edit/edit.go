@@ -26,9 +26,9 @@ func Allowed(feet motion.Vec, r Request, current world.Block, bodies []motion.Ve
 		return false
 	}
 	if r.Block == world.Air {
-		return world.Info(current).Solid && current != world.Bedrock
+		return world.Info(current).Targetable() && current != world.Bedrock
 	}
-	if !r.Block.Valid() || r.Block == world.Bedrock || world.Info(current).Solid {
+	if !r.Block.Valid() || r.Block == world.Bedrock || world.Info(current).Targetable() {
 		return false
 	}
 	return !world.Info(r.Block).Solid || !overlapsAny(r, bodies)
@@ -42,7 +42,12 @@ func inReach(feet motion.Vec, r Request) bool {
 }
 
 func overlapsAny(r Request, bodies []motion.Vec) bool {
-	only := func(x, y, z int32) bool { return x == r.X && y == r.Y && z == r.Z }
+	only := func(x, y, z int32) []world.Box {
+		if x == r.X && y == r.Y && z == r.Z {
+			return []world.Box{world.FullBox}
+		}
+		return nil
+	}
 	for _, b := range bodies {
 		if motion.Blocked(b, only) {
 			return true

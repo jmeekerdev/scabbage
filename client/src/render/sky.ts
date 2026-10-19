@@ -1,6 +1,6 @@
 /** One full day–night cycle; every client derives the time from its clock, so all agree. */
 export const DAY_MS = 20 * 60_000;
-export const MIN_LIGHT = 0.35; // night stays bright enough to keep playing
+export const MIN_LIGHT = 0.0875; // dark enough that lamps and torches matter
 
 export interface Rgb {
   r: number;

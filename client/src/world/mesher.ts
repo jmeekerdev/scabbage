@@ -1,4 +1,8 @@
 import { CHUNK_SIZE as S } from "./constants";
+import { SHAPE_BOXES, Shape, type Box } from "./shapes";
+
+/** Mesh positions and uvs count eighths of a block, so shapes like slabs fit in bytes. */
+export const POSITION_SCALE = 8;
 
 /** Padded volumes hold a chunk plus a one-block border copied from its neighbors. */
 export const PADDED = S + 2;
@@ -24,14 +28,17 @@ export interface RenderTable {
   layers: Int16Array; // texture layer per face, -1 for air
   transparent: Uint8Array; // neighbors' faces stay visible
   translucent: Uint8Array; // drawn in the blended pass (water)
+  shape: Uint8Array; // a Shape; anything but a cube is drawn box by box
+  light: Uint8Array; // how brightly it glows
 }
 
 export interface MeshData {
-  positions: Uint8Array; // chunk-local corners, 0–16
-  uvs: Uint8Array; // in blocks, so textures repeat once per block
+  positions: Uint8Array; // chunk-local corners in eighths, 0–128
+  uvs: Uint8Array; // in eighths, so textures repeat once per block
   faces: Uint8Array;
   layers: Uint16Array;
   ao: Uint8Array; // 0 (tucked in a corner) to 3 (open), per vertex
+  light: Uint8Array; // block light, 0 to MAX_LIGHT, per vertex
   indices: Uint16Array | Uint32Array;
 }
 
@@ -40,22 +47,87 @@ export interface ChunkMesh {
   translucent: MeshData;
 }
 
-/** Builds greedy-merged quads for every visible face in a padded chunk volume. */
-export function meshChunk(volume: Uint16Array, table: RenderTable): ChunkMesh {
+/** A padded chunk volume with its block light levels; no light means darkness everywhere. */
+interface Volume {
+  blocks: Uint16Array;
+  light?: Uint8Array;
+  table: RenderTable;
+}
+
+/**
+ * Builds greedy-merged quads for every visible cube face in a padded chunk volume, then
+ * draws other shapes box by box. `light` holds a block light level per padded cell.
+ */
+export function meshChunk(blocks: Uint16Array, table: RenderTable, light?: Uint8Array): ChunkMesh {
+  const vol: Volume = { blocks, light, table };
   const opaque = new MeshBuilder();
   const translucent = new MeshBuilder();
   const mask = new Int32Array(S * S);
+  const lights = new Int32Array(S * S);
   for (let face = 0; face < 6; face++) {
     for (let slice = 0; slice < S; slice++) {
-      fillMask(mask, volume, table, face, slice);
-      greedy(mask, (key, i, j, w, h) => {
+      fillMask(mask, lights, vol, face, slice);
+      greedy(mask, lights, (key, light, i, j, w, h) => {
         const block = key & 0xffff;
         const out = table.translucent[block] ? translucent : opaque;
-        out.quad(face, slice, i, j, w, h, table.layers[block * 6 + face], key >>> 16);
+        const plane = (face & 1 ? slice : slice + 1) * POSITION_SCALE;
+        const rect = [i, j, i + w, j + h].map((c) => c * POSITION_SCALE);
+        out.quad(face, plane, rect, table.layers[block * 6 + face], key >>> 16, light);
       });
     }
   }
+  meshShapes(vol, opaque);
   return { opaque: opaque.build(), translucent: translucent.build() };
+}
+
+const OPEN = 0xff; // all four corners unshaded
+
+/** Draws each non-cube block's boxes, skipping faces flat against an opaque neighbor. */
+function meshShapes(vol: Volume, out: MeshBuilder): void {
+  const { blocks, table } = vol;
+  for (let y = 0; y < S; y++) {
+    for (let z = 0; z < S; z++) {
+      for (let x = 0; x < S; x++) {
+        const block = blocks[paddedIndex(x, y, z)];
+        const shape = table.shape[block] ?? Shape.CUBE;
+        if (block === 0 || shape === Shape.CUBE) continue;
+        const l = lightAt(vol, x, y, z) * 0x1111; // the same level at all four corners
+        for (const box of SHAPE_BOXES[shape] ?? []) {
+          for (let face = 0; face < 6; face++) {
+            if (hiddenByNeighbor(vol, box, face, x, y, z)) continue;
+            emitBoxFace(out, box, face, [x, y, z], table.layers[block * 6 + face], l);
+          }
+        }
+      }
+    }
+  }
+}
+
+function hiddenByNeighbor(vol: Volume, box: Box, face: number, x: number, y: number, z: number) {
+  const d = face >> 1;
+  const onEdge = face & 1 ? box[d] === 0 : box[d + 3] === POSITION_SCALE;
+  const n = FACE_NORMALS[face];
+  return (
+    onEdge && vol.table.transparent[vol.blocks[paddedIndex(x + n[0], y + n[1], z + n[2])]] === 0
+  );
+}
+
+function emitBoxFace(
+  out: MeshBuilder,
+  box: Box,
+  face: number,
+  cell: number[],
+  layer: number,
+  light: number,
+): void {
+  const [d, u, v] = axes(face);
+  const at = (a: number, hi: boolean) => cell[a] * POSITION_SCALE + box[hi ? a + 3 : a];
+  const plane = at(d, (face & 1) === 0);
+  out.quad(face, plane, [at(u, false), at(v, false), at(u, true), at(v, true)], layer, OPEN, light);
+}
+
+function lightAt(vol: Volume, x: number, y: number, z: number): number {
+  return vol.light ? vol.light[paddedIndex(x, y, z)] : 0;
 }
 
 /** Axes of a face: d is its normal axis, u and v span the face (u × v points along +d). */
@@ -72,11 +144,14 @@ const CORNERS = [
   [-1, 1],
 ] as const;
 
-/** Marks each visible face cell with its block and corner shading (block | ao << 16), or 0. */
+/**
+ * Marks each visible cube face cell with its block and corner shading (block | ao << 16),
+ * or 0, and its four corner light levels packed 4 bits each.
+ */
 function fillMask(
   mask: Int32Array,
-  vol: Uint16Array,
-  table: RenderTable,
+  lights: Int32Array,
+  vol: Volume,
   face: number,
   slice: number,
 ): void {
@@ -88,18 +163,44 @@ function fillMask(
     for (let i = 0; i < S; i++) {
       p[u] = i;
       p[v] = j;
-      const block = vol[paddedIndex(p[0], p[1], p[2])];
-      const next = vol[paddedIndex(p[0] + n[0], p[1] + n[1], p[2] + n[2])];
-      const visible = faceVisible(block, next, table);
-      mask[i + j * S] = visible ? block | (cornerShades(vol, table, p, n, u, v) << 16) : 0;
+      const block = vol.blocks[paddedIndex(p[0], p[1], p[2])];
+      const next = vol.blocks[paddedIndex(p[0] + n[0], p[1] + n[1], p[2] + n[2])];
+      const visible = faceVisible(block, next, vol.table);
+      mask[i + j * S] = visible ? block | (cornerShades(vol, p, n, u, v) << 16) : 0;
+      lights[i + j * S] = visible && vol.light ? cornerLights(vol, p, n, u, v) : 0;
     }
   }
 }
 
+/** Smooth light per face corner: the average of the open cells around it in front of the face. */
+function cornerLights(
+  vol: Volume,
+  p: number[],
+  n: readonly number[],
+  u: number,
+  v: number,
+): number {
+  const front = [p[0] + n[0], p[1] + n[1], p[2] + n[2]];
+  const cell = (du: number, dv: number) => {
+    const q = [...front];
+    q[u] += du;
+    q[v] += dv;
+    const open = vol.table.transparent[vol.blocks[paddedIndex(q[0], q[1], q[2])]] === 1;
+    return open ? lightAt(vol, q[0], q[1], q[2]) : -1;
+  };
+  let packed = 0;
+  CORNERS.forEach(([cu, cv], k) => {
+    const [a, b] = [cell(cu, 0), cell(0, cv)];
+    const around = [cell(0, 0), a, b, a < 0 && b < 0 ? -1 : cell(cu, cv)].filter((l) => l >= 0);
+    const avg = Math.round(around.reduce((s, l) => s + l, 0) / around.length);
+    packed |= avg << (k * 4);
+  });
+  return packed;
+}
+
 /** Packs 2-bit occlusion for each face corner, from the blocks around the cell in front. */
 function cornerShades(
-  vol: Uint16Array,
-  table: RenderTable,
+  vol: Volume,
   p: number[],
   n: readonly number[],
   u: number,
@@ -109,7 +210,7 @@ function cornerShades(
     const q = [p[0] + n[0], p[1] + n[1], p[2] + n[2]];
     q[u] += du;
     q[v] += dv;
-    return table.transparent[vol[paddedIndex(q[0], q[1], q[2])]] === 0 ? 1 : 0;
+    return vol.table.transparent[vol.blocks[paddedIndex(q[0], q[1], q[2])]] === 0 ? 1 : 0;
   };
   let packed = 0;
   CORNERS.forEach(([cu, cv], k) => {
@@ -122,35 +223,38 @@ function cornerShades(
 }
 
 function faceVisible(block: number, neighbor: number, table: RenderTable): boolean {
-  return block !== 0 && block !== neighbor && table.transparent[neighbor] === 1;
+  const cube = (table.shape[block] ?? Shape.CUBE) === Shape.CUBE;
+  return block !== 0 && cube && block !== neighbor && table.transparent[neighbor] === 1;
 }
 
-/** Covers equal non-zero mask cells with as few rectangles as possible, clearing the mask. */
+/** Covers equal non-zero mask cells (with equal light) in as few rectangles as possible. */
 function greedy(
   mask: Int32Array,
-  emit: (block: number, i: number, j: number, w: number, h: number) => void,
+  lights: Int32Array,
+  emit: (key: number, light: number, i: number, j: number, w: number, h: number) => void,
 ): void {
+  const same = (k: number, key: number, light: number) => mask[k] === key && lights[k] === light;
   for (let j = 0; j < S; j++) {
     for (let i = 0; i < S;) {
-      const block = mask[i + j * S];
-      if (block === 0) {
+      const key = mask[i + j * S];
+      const light = lights[i + j * S];
+      if (key === 0) {
         i++;
         continue;
       }
       let w = 1;
-      while (i + w < S && mask[i + w + j * S] === block) w++;
+      while (i + w < S && same(i + w + j * S, key, light)) w++;
       let h = 1;
-      while (j + h < S && rowMatches(mask, block, i, j + h, w)) h++;
+      const rowMatches = (row: number) => {
+        for (let k = i; k < i + w; k++) if (!same(k + row * S, key, light)) return false;
+        return true;
+      };
+      while (j + h < S && rowMatches(j + h)) h++;
       for (let y = j; y < j + h; y++) mask.fill(0, i + y * S, i + w + y * S);
-      emit(block, i, j, w, h);
+      emit(key, light, i, j, w, h);
       i += w;
     }
   }
-}
-
-function rowMatches(mask: Int32Array, block: number, i: number, j: number, w: number): boolean {
-  for (let k = i; k < i + w; k++) if (mask[k + j * S] !== block) return false;
-  return true;
 }
 
 /** Texture axes per normal axis: side faces put v on height so textures stand upright. */
@@ -167,27 +271,26 @@ class MeshBuilder {
   private faces = new Uint8Array(256);
   private layers = new Uint16Array(256);
   private ao = new Uint8Array(256);
+  private light = new Uint8Array(256);
   private vertices = 0;
 
+  /** One face rectangle [u0, v0, u1, v1] lying in `plane` along the face's normal axis. */
   quad(
     face: number,
-    slice: number,
-    i: number,
-    j: number,
-    w: number,
-    h: number,
+    plane: number,
+    [u0, v0, u1, v1]: number[],
     layer: number,
     shades: number,
+    lights: number,
   ): void {
     this.reserve(this.vertices + 4);
     const [d, u, v] = axes(face);
     const [tu, tv] = TEX_AXES[d];
-    const plane = face & 1 ? slice : slice + 1;
     const corners = [
-      [i, j],
-      [i + w, j],
-      [i + w, j + h],
-      [i, j + h],
+      [u0, v0],
+      [u1, v0],
+      [u1, v1],
+      [u0, v1],
     ];
     for (const [c, [cu, cv]] of corners.entries()) {
       const p = [0, 0, 0];
@@ -201,6 +304,7 @@ class MeshBuilder {
       this.faces[k] = face;
       this.layers[k] = layer;
       this.ao[k] = (shades >> (c * 2)) & 3;
+      this.light[k] = (lights >> (c * 4)) & 15;
     }
   }
 
@@ -218,6 +322,7 @@ class MeshBuilder {
       faces: this.faces.slice(0, n),
       layers: this.layers.slice(0, n),
       ao: this.ao.slice(0, n),
+      light: this.light.slice(0, n),
       indices,
     };
   }
@@ -240,6 +345,7 @@ class MeshBuilder {
     this.faces = grow(this.faces);
     this.layers = grow(this.layers);
     this.ao = grow(this.ao);
+    this.light = grow(this.light);
   }
 }
 

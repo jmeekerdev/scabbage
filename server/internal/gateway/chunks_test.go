@@ -29,6 +29,9 @@ func TestWelcomeDescribesTheWorld(t *testing.T) {
 	if len(info.Blocks) != len(world.Blocks()) || info.Blocks[world.Glass].Name != "glass" || !info.Blocks[world.Glass].Transparent {
 		t.Fatalf("block table = %v", info.Blocks)
 	}
+	if torch := info.Blocks[world.Torch]; torch.Shape != pb.Shape_SHAPE_TORCH || torch.Light == 0 {
+		t.Fatalf("torch = %v", torch)
+	}
 }
 
 func TestChunkRequestGetsOneBatchInOrder(t *testing.T) {

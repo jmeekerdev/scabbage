@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { chunkKey, type ChunkPos } from "./coords";
-import type { ChunkMesh } from "./mesher";
+import { REGION_VOLUME } from "./light";
+import { PADDED_VOLUME, type ChunkMesh } from "./mesher";
 import { WorldClient, type ChunkView, type Mesher } from "./world-client";
 
 const AIR = Uint8Array.of(1, 1, 0);
 const STONE = Uint8Array.of(1, 1, 1);
+const TORCH = 2;
 const bounds = { radius: 32, height: 32 }; // chunk columns -2..1, two layers
 
 class FakeMesher implements Mesher {
@@ -42,6 +44,7 @@ function setup(slots?: number) {
   const view = new FakeView();
   const world = new WorldClient({ send: (b) => sent.push(b), mesher, view });
   world.start(bounds);
+  world.setLights(Uint8Array.of(0, 0, 11));
   return { sent, mesher, view, world };
 }
 
@@ -111,14 +114,33 @@ describe("WorldClient", () => {
     expect(view.shown.has(chunkKey(0, 0, 0))).toBe(false);
   });
 
-  it("re-meshes a changed chunk, and its neighbor when the block is on their shared face", () => {
+  it("re-meshes a changed chunk, and the neighbors whose border holds the block", () => {
     const { sent, mesher, view, world } = loaded();
     world.setBlock(0, 15, 5, 0); // top layer of chunk 0,0,0
     expect(world.blockAt(0, 15, 5)).toBe(0);
     world.tick(0, 0, 1);
-    expect(mesher.jobs.length).toBe(3); // itself, the -x neighbor and the chunk above
+    expect(mesher.jobs.length).toBe(4); // itself, the -x neighbor, the one above and their shared edge
     expect(sent.length).toBe(0);
     expect(view.shown.size).toBe(10);
+  });
+
+  it("re-meshes every chunk a new light reaches, with a light region", () => {
+    const { mesher, world } = loaded();
+    world.setBlock(5, 5, 5, TORCH);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(10); // all of the loaded chunks in view
+    expect(mesher.jobs.every((j) => j.volume.length === REGION_VOLUME)).toBe(true);
+  });
+
+  it("re-meshes around a light that was removed, without a light region", () => {
+    const { mesher, world } = loaded();
+    world.setBlock(5, 5, 5, TORCH);
+    world.tick(0, 0, 1);
+    mesher.finishAll();
+    world.setBlock(5, 5, 5, 0);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(10);
+    expect(mesher.jobs.every((j) => j.volume.length === PADDED_VOLUME)).toBe(true);
   });
 
   it("ignores changes to chunks that aren't loaded", () => {

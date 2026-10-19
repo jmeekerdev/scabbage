@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { FULL_BLOCK, type Box } from "../world/shapes";
 import {
   FLY_SPEED,
   HALF_WIDTH,
@@ -7,13 +8,20 @@ import {
   WALK_SPEED,
   type Body,
   type MoveInput,
-  type SolidAt,
+  type BoxesAt,
 } from "./physics";
 
 const DT = 1 / 60;
 const idle: MoveInput = { forward: 0, right: 0, jump: false, descend: false };
-const floor: SolidAt = (_x, y) => y < 10;
-const wallAtX5: SolidAt = (x, y, z) => floor(x, y, z) || x === 5;
+const cubes =
+  (solid: (x: number, y: number, z: number) => boolean): BoxesAt =>
+  (x, y, z) =>
+    solid(x, y, z) ? FULL_BLOCK : [];
+const below10 = (_x: number, y: number) => y < 10;
+const floor = cubes(below10);
+const wallAtX5 = cubes((x, y) => below10(x, y) || x === 5);
+const SLAB: Box[] = [[0, 0, 0, 1, 0.5, 1]];
+const slabAtX5: BoxesAt = (x, y, z) => (x === 5 && y === 10 ? SLAB : floor(x, y, z));
 
 function run(b: Body, input: Partial<MoveInput>, seconds: number, solid = floor, yaw = 0): Body {
   for (let t = 0; t < seconds; t += DT) stepBody(b, { ...idle, ...input }, yaw, DT, solid);
@@ -76,7 +84,7 @@ describe("stepBody", () => {
   });
 
   it("bumps its head on a ceiling", () => {
-    const ceiling: SolidAt = (x, y, z) => floor(x, y, z) || y === 12;
+    const ceiling = cubes((x, y) => below10(x, y) || y === 12);
     const b = run(newBody(0.5, 10, 0.5), {}, 0.1, ceiling);
     stepBody(b, { ...idle, jump: true }, 0, DT, ceiling);
     run(b, {}, 0.3, ceiling);
@@ -103,7 +111,22 @@ describe("stepBody", () => {
   });
 
   it("stays put inside unloaded (solid) terrain instead of being pushed out", () => {
-    const b = run(newBody(0.5, 10, 0.5), { forward: 1, right: 1 }, 1, () => true);
+    const b = run(newBody(0.5, 10, 0.5), { forward: 1, right: 1 }, 1, () => FULL_BLOCK);
     expect([b.x, b.y, b.z]).toEqual([0.5, 10, 0.5]);
+  });
+
+  it("stands on slabs", () => {
+    const b = run(newBody(5.5, 12, 0.5), {}, 2, slabAtX5);
+    expect(b.y).toBeCloseTo(10.5, 5);
+    expect(b.onGround).toBe(true);
+  });
+
+  it("steps up onto slabs while walking but not onto full blocks", () => {
+    const up = run(newBody(4.5, 10, 0.5), { right: 1 }, 0.25, slabAtX5);
+    expect(up.x).toBeGreaterThan(5);
+    expect(up.y).toBeCloseTo(10.5, 5);
+    const blocked = run(newBody(4.5, 10, 0.5), { right: 1 }, 1, wallAtX5);
+    expect(blocked.x).toBeCloseTo(5 - HALF_WIDTH, 5);
+    expect(blocked.y).toBeCloseTo(10, 5);
   });
 });

@@ -1,7 +1,7 @@
 import { blockAt, chunkIndex, CHUNK_VOLUME, type Chunk } from "./chunk";
 import { CHUNK_SIZE as S } from "./constants";
 import { chunkKey, type ChunkKey, type ChunkPos } from "./coords";
-import { FACE_NORMALS, PADDED_VOLUME, paddedIndex } from "./mesher";
+import { FACE_NORMALS } from "./mesher";
 import { columnInside, type WorldBounds } from "./streamer";
 
 /** The client's copy of loaded chunks. */
@@ -58,19 +58,25 @@ export class ChunkStore {
     });
   }
 
-  /** Copies the chunk and the touching layer of each face neighbor; anything missing is air. */
-  padded(x: number, y: number, z: number, out = new Uint16Array(PADDED_VOLUME)): Uint16Array {
-    out.fill(0);
-    const self = this.get(x, y, z);
-    if (self) copyRegion(out, self, [0, 0, 0], [S, S, S], [0, 0, 0]);
-    for (const n of FACE_NORMALS) {
-      const neighbor = this.get(x + n[0], y + n[1], z + n[2]);
-      if (!neighbor) continue;
-      // The slab one block past this chunk's face is the neighbor's opposite edge.
-      const from = n.map((d) => (d < 0 ? S - 1 : 0));
-      const size = n.map((d) => (d === 0 ? S : 1));
-      const to = n.map((d) => (d > 0 ? S : d < 0 ? -1 : 0));
-      copyRegion(out, neighbor, from, size, to);
+  /** The chunk plus a one-block border from its neighbors, as the mesher reads it. */
+  padded(x: number, y: number, z: number): Uint16Array {
+    return this.region(x, y, z, 1);
+  }
+
+  /**
+   * Copies the chunk and every block within `margin` of it from all 26 neighbors; anything
+   * missing is air. Indexed like paddedIndex, with each coordinate from -margin.
+   */
+  region(x: number, y: number, z: number, margin: number): Uint16Array {
+    const size = S + 2 * margin;
+    const out = new Uint16Array(size ** 3);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const c = this.get(x + dx, y + dy, z + dz);
+          if (c) copyNeighbor(out, size, margin, c, [dx, dy, dz]);
+        }
+      }
     }
     return out;
   }
@@ -82,24 +88,15 @@ export class ChunkStore {
 
 const mod = (v: number) => ((v % S) + S) % S;
 
-/** Copies a box of size blocks starting at `from` in chunk c to `to` in a padded volume. */
-function copyRegion(
-  out: Uint16Array,
-  c: Chunk,
-  from: number[],
-  size: number[],
-  to: number[],
-): void {
-  for (let y = 0; y < size[1]; y++) {
-    for (let z = 0; z < size[2]; z++) {
-      for (let x = 0; x < size[0]; x++) {
-        out[paddedIndex(to[0] + x, to[1] + y, to[2] + z)] = blockAt(
-          c,
-          from[0] + x,
-          from[1] + y,
-          from[2] + z,
-        );
-      }
+/** Copies the part of neighbor c (at offset d from the chunk) within margin into a region. */
+function copyNeighbor(out: Uint16Array, size: number, margin: number, c: Chunk, d: number[]): void {
+  const from = d.map((o) => (o < 0 ? S - margin : 0));
+  const to = d.map((o) => (o > 0 ? margin : S));
+  const at = (l: number, a: number) => l + d[a] * S + margin;
+  for (let y = from[1]; y < to[1]; y++) {
+    for (let z = from[2]; z < to[2]; z++) {
+      const row = (at(y, 1) * size + at(z, 2)) * size;
+      for (let x = from[0]; x < to[0]; x++) out[row + at(x, 0)] = blockAt(c, x, y, z);
     }
   }
 }

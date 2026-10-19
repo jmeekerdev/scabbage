@@ -55,6 +55,7 @@ export function createWorldRenderer(
       for (const m of materials) if (m.uniforms.blocks) m.uniforms.blocks.value = tex;
       old?.dispose();
       mesher.setTable(table);
+      world.setLights(table.light);
       return { atlas, table };
     },
     receive(batch) {

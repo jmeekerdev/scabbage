@@ -12,6 +12,8 @@ import {
 } from "three";
 import type { Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
+import { MAX_LIGHT } from "../world/light";
+import { POSITION_SCALE } from "../world/mesher";
 
 /** Every block texture as one array texture; repeat wrapping lets merged quads tile per block. */
 export function blockTextures(atlas: Atlas): DataArrayTexture {
@@ -29,18 +31,21 @@ const vertexShader = /* glsl */ `
 attribute float face;
 attribute float layer;
 attribute float ao;
+attribute float light;
 varying vec2 vUv;
 varying float vLayer;
 varying float vShade;
+varying float vGlow;
 #include <fog_pars_vertex>
 void main() {
-  vUv = uv;
+  vUv = uv / POSITION_SCALE;
+  vGlow = light > 0.0 ? pow(0.82, MAX_LIGHT - light) : 0.0; // each block away dims it a little
   vLayer = layer;
   // Fixed per-face light: bright tops, darker sides and bottoms.
   int f = int(face + 0.5);
   vShade = f == 2 ? 1.0 : f == 3 ? 0.5 : f < 2 ? 0.8 : 0.65;
   vShade *= 0.5 + ao / 6.0; // corners tucked against blocks go darker
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  vec4 mvPosition = modelViewMatrix * vec4(position / POSITION_SCALE, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
 }`;
@@ -52,6 +57,7 @@ uniform float daylight;
 varying vec2 vUv;
 varying float vLayer;
 varying float vShade;
+varying float vGlow;
 #include <fog_pars_fragment>
 void main() {
   vec4 color = texture(blocks, vec3(vUv, vLayer));
@@ -59,7 +65,8 @@ void main() {
   if (color.a < 0.5) discard;
   color.a = 1.0;
   #endif
-  gl_FragColor = vec4(color.rgb * vShade * daylight, color.a);
+  vec3 lit = max(vec3(daylight), vec3(1.0, 0.86, 0.66) * vGlow); // lamps glow warm
+  gl_FragColor = vec4(color.rgb * vShade * lit, color.a);
   #include <colorspace_fragment>
   #include <fog_fragment>
 }`;
@@ -85,6 +92,11 @@ function chunkMaterial(
   const uniforms = UniformsUtils.merge([UniformsLib.fog]);
   uniforms.blocks = { value: blocks };
   uniforms.daylight = daylight;
+  const defines = {
+    POSITION_SCALE: POSITION_SCALE.toFixed(1),
+    MAX_LIGHT: MAX_LIGHT.toFixed(1),
+    ...extra?.defines,
+  };
   return new ShaderMaterial({
     uniforms,
     vertexShader,
@@ -92,5 +104,6 @@ function chunkMaterial(
     fog: true,
     side: FrontSide,
     ...extra,
+    defines,
   });
 }

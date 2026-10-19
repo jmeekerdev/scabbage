@@ -41,7 +41,7 @@ import { GamepadControls } from "./player/gamepad";
 import { combineIntents, type BuildActions } from "./player/input";
 import { KeyboardMouse } from "./player/keyboard-mouse";
 import { MoveSync, type Pose } from "./player/move-sync";
-import type { SolidAt } from "./player/physics";
+import type { BoxesAt } from "./player/physics";
 import { Player } from "./player/player";
 import { RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
@@ -67,6 +67,7 @@ import {
 } from "./ui/pwa";
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
+import { collisionBoxes, FULL_BLOCK, heldBlock, type Box } from "./world/shapes";
 import { solidQuery } from "./world/solid";
 import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
@@ -117,7 +118,7 @@ const audio = new GameAudio(settings.sound, settings.music);
 const footsteps = new Footsteps();
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
-let solid: SolidAt = () => true;
+let solid: BoxesAt = () => FULL_BLOCK;
 let building: BuildWorld | undefined;
 let bounds: WorldBounds | undefined; // set while in the world
 let me: PlayerInfo | undefined;
@@ -284,9 +285,9 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   const { atlas, table } = world.setBlocks(blocks, textures);
   read = atlas.read;
   const blockAt = (x: number, y: number, z: number) => world.blockAt(x, y, z);
-  const solidById: boolean[] = [];
-  for (const b of blocks) solidById[b.id] = b.solid;
-  solid = solidQuery(bounds, solidById, blockAt);
+  const boxesById: (readonly Box[])[] = [];
+  for (const b of blocks) boxesById[b.id] = collisionBoxes(b.shape, b.solid);
+  solid = solidQuery(bounds, boxesById, blockAt);
   building = buildWorldFor({ ...bounds, blocks }, blockAt);
   const name = (id: number) => blocks.find((b) => b.id === id)?.name ?? "missing";
   mountHotbar($("#hotbar"), hotbar, name, blockIconPainter(atlas, table));
@@ -323,11 +324,14 @@ function build(act: BuildActions, eye: [number, number, number]): void {
   const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
   selection.show(hit);
   if (!hit || !building) return;
-  if (act.picking) hotbar.pick(building.blockAt(hit.x, hit.y, hit.z) ?? 0);
+  if (act.picking) {
+    const block = building.blockAt(hit.x, hit.y, hit.z) ?? 0;
+    hotbar.pick(heldBlock(block, building.shape[block] ?? 0));
+  }
   const edit = act.breaking
     ? breakEdit(hit, building)
     : act.placing
-      ? placeEdit(hit, hotbar.current(), player.body, building)
+      ? placeEdit(hit, hotbar.current(), player.body, player.look.yaw, building)
       : undefined;
   if (edit) sendEdit(edit);
 }

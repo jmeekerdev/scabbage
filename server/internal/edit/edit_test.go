@@ -70,3 +70,12 @@ func TestSolidBlocksMayNotOverlapPlayers(t *testing.T) {
 		t.Fatal("water may overlap players")
 	}
 }
+
+func TestTorchesBreakAndBlockPlacing(t *testing.T) {
+	if !Allowed(feet, place(2, 9, 0, world.Air), world.Torch, nil) {
+		t.Fatal("breaking a torch should be allowed")
+	}
+	if Allowed(feet, place(2, 10, 0, world.Planks), world.Torch, nil) {
+		t.Fatal("placing into a torch should be rejected")
+	}
+}

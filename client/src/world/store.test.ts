@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { chunkIndex, CHUNK_VOLUME, type Chunk } from "./chunk";
 import { chunkKey } from "./coords";
+import { LIGHT_MARGIN, REGION_VOLUME, regionIndex } from "./light";
 import { paddedIndex } from "./mesher";
 import { ChunkStore } from "./store";
 
@@ -51,6 +52,21 @@ describe("ChunkStore", () => {
     expect(v[paddedIndex(16, 5, 6)]).toBe(7);
     expect(v[paddedIndex(16, 5, 7)]).toBe(0);
     expect(v[paddedIndex(5, -1, 5)]).toBe(0); // below the world
+  });
+
+  it("pads corners and edges from diagonal neighbors too", () => {
+    const s = new ChunkStore(bounds);
+    s.set({ x: 1, y: 1, z: -1 }, uniform(4));
+    expect(s.padded(0, 0, 0)[paddedIndex(16, 16, -1)]).toBe(4);
+  });
+
+  it("copies a light region reaching LIGHT_MARGIN into every neighbor", () => {
+    const s = new ChunkStore(bounds);
+    s.set({ x: -1, y: 0, z: 0 }, uniform(3));
+    const r = s.region(0, 0, 0, LIGHT_MARGIN);
+    expect(r).toHaveLength(REGION_VOLUME);
+    expect(r[regionIndex(-LIGHT_MARGIN, 5, 5)]).toBe(3);
+    expect(r[regionIndex(0, 5, 5)]).toBe(0);
   });
 
   it("looks up blocks by world position", () => {

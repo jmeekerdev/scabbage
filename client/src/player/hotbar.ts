@@ -7,7 +7,7 @@ const STARTER_BLOCKS = [
   "log",
   "brick",
   "glass",
-  "leaves",
+  "torch",
 ];
 
 /** IDs of the starter blocks the server knows, in hotbar order. */

@@ -199,7 +199,9 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] In-browser pixel editor: avatar skins and custom block textures (admin-approved)
       (🎨 Create: skins in the classic 64×32 layout with a 3D preview, new blocks (up to 64, IDs from 256),
       admins repaint built-in textures; Blocks dialog picks any block into the hotbar)
-- [ ] Larger block palette: glass, light sources, stairs/slabs, colored wool
+- [x] Larger block palette: glass, light sources, stairs/slabs, colored wool
+      (16 wool colors, lamp and torch with client-side flood-fill light, slabs and stairs in
+      stone, cobblestone, planks and brick with box collision and a half-block step-up)
 - [ ] Graphics quality presets (auto-detect weaker phones)
 
 ### Phase 3 — Survival

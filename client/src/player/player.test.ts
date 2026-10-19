@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { EYE_HEIGHT, WALK_SPEED, type MoveInput, type SolidAt } from "./physics";
+import { EYE_HEIGHT, WALK_SPEED, type MoveInput, type BoxesAt } from "./physics";
+import { FULL_BLOCK } from "../world/shapes";
 import { Player } from "./player";
 
-const floor: SolidAt = (_x, y) => y < 10;
+const floor: BoxesAt = (_x, y) => (y < 10 ? FULL_BLOCK : []);
 const walk: MoveInput = { forward: 1, right: 0, jump: false, descend: false };
 
 describe("Player", () => {

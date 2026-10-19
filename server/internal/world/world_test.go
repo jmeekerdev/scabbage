@@ -223,8 +223,8 @@ func TestSolidWallsInTheBorderAndFloor(t *testing.T) {
 		{0, MaxY, 0, false}, // open sky
 	}
 	for _, c := range cases {
-		if got := w.Solid(c.x, c.y, c.z); got != c.want {
-			t.Errorf("Solid(%d,%d,%d) = %v, want %v", c.x, c.y, c.z, got, c.want)
+		if got := len(w.Boxes(c.x, c.y, c.z)) > 0; got != c.want {
+			t.Errorf("Boxes(%d,%d,%d) = %v, want %v", c.x, c.y, c.z, got, c.want)
 		}
 	}
 }

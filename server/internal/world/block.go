@@ -26,7 +26,15 @@ const (
 	Glass
 	Brick
 	Bedrock
+	WhiteWool   // 16 colors in woolColors order
+	Lamp        = WhiteWool + 16
+	Torch       = Lamp + 1
+	StoneSlab   = Torch + 1     // one per shapedMaterials entry
+	StoneStairs = StoneSlab + 4 // four facings per material: north, east, south, west
 )
+
+// MaxLight is the brightest a block glows; light fades by one per block.
+const MaxLight = 12
 
 // BlockInfo describes how a block behaves.
 type BlockInfo struct {
@@ -34,22 +42,59 @@ type BlockInfo struct {
 	Name        string
 	Solid       bool // collides with players
 	Transparent bool // neighbors' faces stay visible
+	Shape       Shape
+	Light       uint8 // how brightly it glows, up to MaxLight
 }
 
-var blocks = []BlockInfo{
-	{Air, "air", false, true},
-	{Stone, "stone", true, false},
-	{Dirt, "dirt", true, false},
-	{Grass, "grass", true, false},
-	{Sand, "sand", true, false},
-	{Water, "water", false, true},
-	{Log, "log", true, false},
-	{Leaves, "leaves", true, true},
-	{Planks, "planks", true, false},
-	{Cobblestone, "cobblestone", true, false},
-	{Glass, "glass", true, true},
-	{Brick, "brick", true, false},
-	{Bedrock, "bedrock", true, false},
+var (
+	woolColors = []string{
+		"white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
+		"light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black",
+	}
+	shapedMaterials = []string{"stone", "cobblestone", "planks", "brick"}
+	facings         = []string{"", "_east", "_south", "_west"}
+)
+
+var blocks = palette()
+
+// palette lists the built-in blocks by ID; only ever append to it.
+func palette() []BlockInfo {
+	out := []BlockInfo{
+		{ID: Air, Name: "air", Solid: false, Transparent: true},
+		{ID: Stone, Name: "stone", Solid: true, Transparent: false},
+		{ID: Dirt, Name: "dirt", Solid: true, Transparent: false},
+		{ID: Grass, Name: "grass", Solid: true, Transparent: false},
+		{ID: Sand, Name: "sand", Solid: true, Transparent: false},
+		{ID: Water, Name: "water", Solid: false, Transparent: true},
+		{ID: Log, Name: "log", Solid: true, Transparent: false},
+		{ID: Leaves, Name: "leaves", Solid: true, Transparent: true},
+		{ID: Planks, Name: "planks", Solid: true, Transparent: false},
+		{ID: Cobblestone, Name: "cobblestone", Solid: true, Transparent: false},
+		{ID: Glass, Name: "glass", Solid: true, Transparent: true},
+		{ID: Brick, Name: "brick", Solid: true, Transparent: false},
+		{ID: Bedrock, Name: "bedrock", Solid: true},
+	}
+	for _, c := range woolColors {
+		out = append(out, BlockInfo{Name: c + "_wool", Solid: true})
+	}
+	out = append(out,
+		BlockInfo{Name: "lamp", Solid: true, Light: MaxLight},
+		BlockInfo{Name: "torch", Transparent: true, Shape: TorchShape, Light: MaxLight - 1},
+	)
+	for _, m := range shapedMaterials {
+		out = append(out, BlockInfo{Name: m + "_slab", Solid: true, Transparent: true, Shape: Slab})
+	}
+	for _, m := range shapedMaterials {
+		for f, suffix := range facings {
+			out = append(out, BlockInfo{
+				Name: m + "_stairs" + suffix, Solid: true, Transparent: true, Shape: StairsNorth + Shape(f),
+			})
+		}
+	}
+	for id := range out {
+		out[id].ID = Block(id)
+	}
+	return out
 }
 
 // FirstCustom is the lowest ID for blocks players paint; built-ins stay below it.
