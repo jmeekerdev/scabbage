@@ -193,7 +193,9 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] Better avatars (rigged blocky characters, animations), sounds, music toggle
       (synthesized in the browser, no audio files; music starts off)
 - [x] Ambient occlusion + simple sky/day–night cycle (20-minute day from the wall clock, so every device agrees; nights stay playable)
-- [ ] In-browser pixel editor: avatar skins and custom block textures (admin-approved)
+- [x] In-browser pixel editor: avatar skins and custom block textures (admin-approved)
+      (🎨 Create: skins in the classic 64×32 layout with a 3D preview, new blocks (up to 64, IDs from 256),
+      admins repaint built-in textures; Blocks dialog picks any block into the hotbar)
 - [ ] Larger block palette: glass, light sources, stairs/slabs, colored wool
 - [ ] Graphics quality presets (auto-detect weaker phones)
 

@@ -61,15 +61,7 @@ func TestMovesFromBeforeATeleportAreIgnored(t *testing.T) {
 
 func TestConsoleCannotMove(t *testing.T) {
 	ts := startServer(t)
-	_ = ts.joinAdmin(t).Close(websocket.StatusNormalClosure, "")
-	waitPlayers(t, ts.hub, 0)
-
-	c := dial(t, ts.url)
-	msg := hello(secret(1), nil)
-	msg.GetHello().Console = true
-	send(t, c, msg)
-	recv(t, c) // welcome
-	recv(t, c) // pending list
+	c := ts.joinConsole(t)
 	send(t, c, move(0, 0, 0, 0))
 	expectDisconnect(t, c, pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL)
 }

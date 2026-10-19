@@ -3,7 +3,7 @@ import type { Pose } from "./move-sync";
 import { RemotePlayers } from "./remote-players";
 
 const pose = (x: number, yaw = 0): Pose => ({ x, y: 10, z: 0, yaw, pitch: 0 });
-const mom = { entity: 1, name: "Mom", color: 0xff0000 };
+const mom = { entity: 1, name: "Mom", color: 0xff0000, skin: new Uint8Array() };
 
 /** Remote players delayed by two 50 ms ticks, with Mom joining at x=0 at time 0. */
 function withMom(): RemotePlayers {
@@ -17,6 +17,13 @@ const xAt = (r: RemotePlayers, nowMs: number) => r.sample(nowMs)[0]?.pose.x;
 describe("RemotePlayers", () => {
   it("shows a player where they joined", () => {
     expect(withMom().sample(0)).toEqual([{ ...mom, pose: pose(0) }]);
+  });
+
+  it("swaps in a new skin", () => {
+    const r = withMom();
+    const skin = new Uint8Array([1, 2, 3, 4]);
+    r.setSkin(1, skin);
+    expect(r.sample(0)[0]?.skin).toBe(skin);
   });
 
   it("interpolates between moves, a little in the past", () => {

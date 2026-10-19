@@ -1,10 +1,11 @@
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { ClientMessageSchema, Emote, ServerMessageSchema } from "../pb/scabbage/v1/net_pb";
+import { ArtKind, ClientMessageSchema, Emote, ServerMessageSchema } from "../pb/scabbage/v1/net_pb";
 import {
   PROTOCOL_VERSION,
   decodeServer,
   encodeCreateJoinCode,
+  encodeDecideArt,
   encodeDecideJoin,
   encodeHello,
   encodeEditBlock,
@@ -13,6 +14,7 @@ import {
   encodePing,
   encodeRequestChunks,
   encodeSendChat,
+  encodeSubmitArt,
 } from "./codec";
 
 const decodeClient = (b: Uint8Array) => fromBinary(ClientMessageSchema, b).body;
@@ -82,6 +84,17 @@ describe("codec", () => {
     expect(decide.case === "decideJoin" && decide.value.requestId).toBe(4n);
     const code = decodeClient(encodeCreateJoinCode(3, 24));
     expect(code.case === "createJoinCode" && code.value.uses).toBe(3);
+  });
+
+  it("encodes art and its approval", () => {
+    const art = decodeClient(encodeSubmitArt(ArtKind.BLOCK, "Flower", new Uint8Array([1, 2])));
+    expect(art).toMatchObject({
+      case: "submitArt",
+      value: { kind: ArtKind.BLOCK, name: "Flower" },
+    });
+    expect(art.case === "submitArt" && [...art.value.pixels]).toEqual([1, 2]);
+    const decide = decodeClient(encodeDecideArt(5n, false));
+    expect(decide).toMatchObject({ case: "decideArt", value: { id: 5n, approve: false } });
   });
 
   it("decodes a server pong", () => {

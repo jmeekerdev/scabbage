@@ -1,4 +1,5 @@
 import type { RenderTable } from "../world/mesher";
+import { customLayerName } from "./atlas";
 import { TEXTURE_NAMES } from "./textures";
 
 export interface BlockStyle {
@@ -30,10 +31,22 @@ export interface BlockTypeInfo {
   id: number;
   name: string;
   transparent: boolean;
+  pixels?: Uint8Array; // custom blocks only
+}
+
+const builtinLayer = (name: string) => TEXTURE_NAMES.indexOf(name);
+
+/** How a block looks: custom blocks use their own picture on every face. */
+export function styleOf(t: BlockTypeInfo): BlockStyle {
+  if (t.pixels?.length) return same(customLayerName(t.id));
+  return BLOCK_STYLES[t.name] ?? same("missing");
 }
 
 /** Turns the server's block list into the mesher's per-ID lookup arrays. */
-export function buildRenderTable(types: readonly BlockTypeInfo[]): RenderTable {
+export function buildRenderTable(
+  types: readonly BlockTypeInfo[],
+  layerOf: (texture: string) => number = builtinLayer,
+): RenderTable {
   const n = Math.max(0, ...types.map((t) => t.id)) + 1;
   const table: RenderTable = {
     layers: new Int16Array(n * 6).fill(-1),
@@ -43,11 +56,15 @@ export function buildRenderTable(types: readonly BlockTypeInfo[]): RenderTable {
   for (const t of types) {
     table.transparent[t.id] = t.transparent ? 1 : 0;
     if (t.name === "air") continue;
-    const style = BLOCK_STYLES[t.name] ?? same("missing");
+    const style = styleOf(t);
     table.translucent[t.id] = style.translucent ? 1 : 0;
     // Face order: +x, -x, +y, -y, +z, -z.
     const faces = [style.side, style.side, style.top, style.bottom, style.side, style.side];
-    faces.forEach((name, f) => (table.layers[t.id * 6 + f] = TEXTURE_NAMES.indexOf(name)));
+    const missing = layerOf("missing");
+    faces.forEach((name, f) => {
+      const layer = layerOf(name);
+      table.layers[t.id * 6 + f] = layer < 0 ? missing : layer;
+    });
   }
   return table;
 }

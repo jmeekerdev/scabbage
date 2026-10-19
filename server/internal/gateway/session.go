@@ -30,7 +30,8 @@ type session struct {
 	in      chan inbound
 	out     chan *pb.ServerMessage
 	player  access.Player
-	console bool // admin console: no world, no hub
+	console bool   // admin console: no world, no hub
+	skin    []byte // approved skin, nil for the default; guarded by gw.mu once in the world
 
 	body     *motion.Tracker // the player's server-side position; nil for the console
 	teleport uint32          // id of the last Teleport sent
@@ -86,6 +87,9 @@ func (s *session) run(ctx context.Context) error {
 		if err := s.sendPending(ctx); err != nil {
 			return err
 		}
+		if err := s.sendArtPending(ctx); err != nil {
+			return err
+		}
 	}
 	return s.serve(ctx)
 }
@@ -129,6 +133,10 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.sendChat(ctx, body.SendChat)
 	case *pb.ClientMessage_SendEmote:
 		return s.sendEmote(body.SendEmote)
+	case *pb.ClientMessage_SubmitArt:
+		return s.submitArt(ctx, body.SubmitArt)
+	case *pb.ClientMessage_DecideArt:
+		return s.decideArt(ctx, body.DecideArt)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

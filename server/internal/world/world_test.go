@@ -138,6 +138,9 @@ func TestStarterBlocks(t *testing.T) {
 		t.Error("block properties wrong")
 	}
 	for i, b := range Blocks() {
+		if b.ID >= FirstCustom {
+			break // other tests register custom blocks
+		}
 		if b.ID != Block(i) || b.Name == "" {
 			t.Errorf("block %d = %+v", i, b)
 		}

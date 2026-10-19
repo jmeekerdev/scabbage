@@ -4,6 +4,7 @@ export interface RemoteInfo {
   entity: number;
   name: string;
   color: number;
+  skin: Uint8Array; // empty for the default look
 }
 
 export interface RemoteState extends RemoteInfo {
@@ -36,6 +37,11 @@ export class RemotePlayers {
     if (nowMs - last.atMs > 2 * this.tickMs)
       snaps.push({ atMs: nowMs - this.tickMs, pose: last.pose });
     snaps.push({ atMs: nowMs, pose });
+  }
+
+  setSkin(entity: number, skin: Uint8Array): void {
+    const p = this.players.get(entity);
+    if (p) p.info = { ...p.info, skin };
   }
 
   leave(entity: number): void {

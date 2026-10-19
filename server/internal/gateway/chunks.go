@@ -16,19 +16,17 @@ const maxChunksPerRequest = 64
 const maxChunkRange = 15
 
 // worldInfo describes the world so the client can stream and draw it.
-func worldInfo(w *world.World) *pb.WorldInfo {
+func (g *Gateway) worldInfo() *pb.WorldInfo {
+	w := g.cfg.World
 	x, y, z := w.Spawn()
-	info := &pb.WorldInfo{
-		Radius: w.Meta().Radius,
-		Height: world.MaxY,
-		Spawn:  &pb.Vec3{X: float32(x), Y: float32(y), Z: float32(z)},
+	palette := g.palette()
+	return &pb.WorldInfo{
+		Radius:   w.Meta().Radius,
+		Height:   world.MaxY,
+		Spawn:    &pb.Vec3{X: float32(x), Y: float32(y), Z: float32(z)},
+		Blocks:   palette.Blocks,
+		Textures: palette.Textures,
 	}
-	for _, b := range world.Blocks() {
-		info.Blocks = append(info.Blocks, &pb.BlockType{
-			Id: uint32(b.ID), Name: b.Name, Solid: b.Solid, Transparent: b.Transparent,
-		})
-	}
-	return info
 }
 
 // nearPlayer reports whether chunk p's column is within maxChunkRange of the player's.

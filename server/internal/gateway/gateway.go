@@ -11,6 +11,7 @@ import (
 	"github.com/coder/websocket"
 
 	"scabbage/internal/access"
+	"scabbage/internal/art"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
 )
@@ -19,6 +20,7 @@ import (
 type Config struct {
 	Hub            *sim.Hub
 	Access         *access.Service
+	Art            *art.Service
 	World          *world.World
 	ServerName     string
 	HelloTimeout   time.Duration
@@ -34,17 +36,19 @@ type Gateway struct {
 	players map[*session]*avatar // in-world sessions
 	entity  uint32               // last entity id handed out
 	editMu  sync.Mutex           // makes each edit's check, change and broadcast atomic
+	art     artCache             // guarded by mu
 }
 
-// New returns a Gateway with defaults applied.
-func New(cfg Config) *Gateway {
+// New returns a Gateway with defaults applied, registering the custom blocks already approved.
+func New(cfg Config) (*Gateway, error) {
 	if cfg.HelloTimeout == 0 {
 		cfg.HelloTimeout = 10 * time.Second
 	}
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	return &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}}
+	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}}
+	return g, g.loadArt()
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {

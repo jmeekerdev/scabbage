@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"scabbage/internal/access"
+	"scabbage/internal/art"
 	"scabbage/internal/backup"
 	"scabbage/internal/config"
 	"scabbage/internal/gateway"
@@ -71,14 +72,19 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	defer hub.Close()
 
 	svc := access.New(db, access.Options{OnPendingChange: func() { gw.PendingChanged() }})
-	gw = gateway.New(gateway.Config{
+	pieces := art.New(db, art.Options{OnPendingChange: func() { gw.ArtChanged() }, Reserved: world.IsBuiltinName})
+	gw, err = gateway.New(gateway.Config{
 		Hub:            hub,
 		Access:         svc,
+		Art:            pieces,
 		World:          w,
 		ServerName:     cfg.ServerName,
 		OriginPatterns: cfg.Origins,
 		Logger:         logger,
 	})
+	if err != nil {
+		return err
+	}
 	if err := logAdminInvite(svc, logger); err != nil {
 		return err
 	}

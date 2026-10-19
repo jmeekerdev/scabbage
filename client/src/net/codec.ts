@@ -1,5 +1,6 @@
 import { create, fromBinary, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import {
+  type ArtKind,
   ClientMessageSchema,
   type Emote,
   ProtocolVersion,
@@ -78,6 +79,14 @@ export function encodeSendChat(text: string): Bytes {
 
 export function encodeEmote(emote: Emote): Bytes {
   return encode({ case: "sendEmote", value: { emote } });
+}
+
+export function encodeSubmitArt(kind: ArtKind, name: string, pixels: Uint8Array): Bytes {
+  return encode({ case: "submitArt", value: { kind, name, pixels } });
+}
+
+export function encodeDecideArt(id: bigint, approve: boolean): Bytes {
+  return encode({ case: "decideArt", value: { id, approve } });
 }
 
 export function decodeServer(bytes: Uint8Array): ServerMessage {

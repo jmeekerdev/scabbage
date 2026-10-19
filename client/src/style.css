@@ -578,3 +578,142 @@ body.page .requests {
     transform: translate(-50%, -60px) scale(1.2);
   }
 }
+
+/* Admin toasts: join requests, then art waiting for approval. */
+.toast-group {
+  display: grid;
+  gap: 8px;
+}
+
+.request canvas.art {
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+/* Block picker: every placeable block. */
+.picker .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.picker .slot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  font-size: 12px;
+}
+
+.picker .slot canvas {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+
+.picker .slot span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Only while open: a display rule on a closed dialog would show it. */
+.create[open] {
+  display: grid;
+  gap: 10px;
+}
+
+/* Pixel editor. */
+.editor {
+  width: min(520px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.editor h1 {
+  font-size: 20px;
+}
+
+.editor .tabs,
+.editor .tools,
+.editor .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.editor .tabs button {
+  min-height: 36px;
+  padding: 4px 10px;
+}
+
+.editor button.selected {
+  background: #1e88e5;
+}
+
+.editor .easel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.editor canvas.pixels {
+  max-width: 100%;
+  border-radius: 6px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.editor canvas.preview {
+  width: 120px;
+  height: 160px;
+  border-radius: 10px;
+  background: #2b3550;
+}
+
+.editor canvas.tiles {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+
+.editor .tool {
+  min-width: 48px;
+  font-size: 20px;
+}
+
+.editor .palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.editor .swatch {
+  min-height: 32px;
+  padding: 0;
+  border: 2px solid rgb(255 255 255 / 25%);
+  background: var(--swatch);
+}
+
+.editor .palette input[type="color"] {
+  width: 100%;
+  height: 32px;
+  padding: 0;
+}
+
+.editor .actions input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.editor .actions .primary {
+  width: auto;
+  flex: 1;
+}

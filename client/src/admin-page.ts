@@ -3,7 +3,7 @@ import { browserStore, loadSecret } from "./join/identity";
 import { Connection } from "./net/connection";
 import { socketUrl } from "./net/url";
 import type { ServerMessage } from "./pb/scabbage/v1/net_pb";
-import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
+import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { $, el } from "./ui/dom";
 
 // Console mode authenticates this device's admin account without waking the game world.
@@ -43,6 +43,8 @@ function mount(name: string): void {
   const send = conn.send.bind(conn);
   const pendingRoot = el("div", { class: "requests" });
   const pending = new PendingList(pendingRoot, send, "Nobody is waiting right now.");
+  const artRoot = el("div", { class: "requests" });
+  const art = new ArtList(artRoot, send, "No new art to look at.");
   const invite = new InvitePanel(send, location.origin);
   page.replaceChildren(
     el("h1", {}, "Scabbage admin"),
@@ -54,7 +56,8 @@ function mount(name: string): void {
     ),
     insecure ? el("p", { class: "warning" }, INSECURE_WARNING) : "",
     el("section", {}, el("h2", {}, "Waiting to join"), pendingRoot),
+    el("section", {}, el("h2", {}, "New art"), artRoot),
     invite.node,
   );
-  onMessage = adminRouter(pending, invite);
+  onMessage = adminRouter(pending, art, invite);
 }

@@ -55,6 +55,16 @@ var migrations = []string{
 		data     BLOB NOT NULL,
 		PRIMARY KEY (world_id, x, y, z)
 	) WITHOUT ROWID;`,
+	`CREATE TABLE art (
+		id         INTEGER PRIMARY KEY,
+		kind       TEXT NOT NULL CHECK (kind IN ('skin', 'block', 'texture')),
+		player_id  INTEGER REFERENCES players(id) ON DELETE SET NULL,
+		name       TEXT NOT NULL,
+		pixels     BLOB NOT NULL,
+		approved   INTEGER NOT NULL DEFAULT 0,
+		block_id   INTEGER UNIQUE,
+		created_ms INTEGER NOT NULL
+	);`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

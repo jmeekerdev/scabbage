@@ -23,7 +23,7 @@ func (a *avatar) pose() *pb.PlayerPose {
 }
 
 func (s *session) other(a *avatar) *pb.OtherPlayer {
-	return &pb.OtherPlayer{Entity: a.entity, Name: s.player.Name, Color: s.player.Color, Pose: a.pose()}
+	return &pb.OtherPlayer{Entity: a.entity, Name: s.player.Name, Color: s.player.Color, Pose: a.pose(), Skin: s.skin}
 }
 
 // addPlayer puts a session in the world, introducing it and everyone already there to each other.

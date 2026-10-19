@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
+	"scabbage/internal/art"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
@@ -44,7 +45,11 @@ func startServer(t *testing.T) *testServer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gw = New(Config{Hub: hub, Access: svc, World: w, ServerName: "test", HelloTimeout: time.Second})
+	pieces := art.New(db, art.Options{OnPendingChange: func() { gw.ArtChanged() }, Reserved: world.IsBuiltinName})
+	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, ServerName: "test", HelloTimeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
 	return &testServer{hub: hub, svc: svc, world: w, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
@@ -140,6 +145,24 @@ func (ts *testServer) joinAdmin(t *testing.T) *websocket.Conn {
 	if p := recv(t, c).GetPendingRequests(); p == nil || len(p.Requests) != 0 {
 		t.Fatalf("admin should get an empty pending list, got %v", p)
 	}
+	if a := recv(t, c).GetArtRequests(); a == nil {
+		t.Fatal("admin should get the art waiting for approval")
+	}
+	return c
+}
+
+// joinConsole connects the admin's device as the admin console, past its opening messages.
+func (ts *testServer) joinConsole(t *testing.T) *websocket.Conn {
+	t.Helper()
+	_ = ts.joinAdmin(t).Close(websocket.StatusNormalClosure, "")
+	waitPlayers(t, ts.hub, 0)
+	c := dial(t, ts.url)
+	msg := hello(secret(1), nil)
+	msg.GetHello().Console = true
+	send(t, c, msg)
+	recv(t, c) // welcome
+	recv(t, c) // pending joins
+	recv(t, c) // pending art
 	return c
 }
 

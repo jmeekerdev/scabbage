@@ -1,8 +1,17 @@
 import type { Bytes } from "../net/codec";
-import { encodeCreateJoinCode, encodeDecideJoin } from "../net/codec";
-import type { JoinCodeCreated, PendingRequest, ServerMessage } from "../pb/scabbage/v1/net_pb";
+import { encodeCreateJoinCode, encodeDecideArt, encodeDecideJoin } from "../net/codec";
+import {
+  ArtKind,
+  type ArtRequest,
+  type JoinCodeCreated,
+  type PendingRequest,
+  type ServerMessage,
+} from "../pb/scabbage/v1/net_pb";
 import { formatCode, inviteLink } from "../join/invite";
 import { colorCss } from "../join/rules";
+import { paintPixels } from "../render/icons";
+import { FRONT_H, FRONT_W, frontView } from "../render/skin";
+import { TEXTURE_SIZE } from "../render/textures";
 import { el } from "./dom";
 
 type Send = (bytes: Bytes) => void;
@@ -38,6 +47,43 @@ export class PendingList {
       el("button", { class: "deny", onclick: () => decide(false) }, "No"),
     );
   }
+}
+
+/** Cards for pixel art waiting for approval, each with a picture of it. */
+export class ArtList {
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly send: Send,
+    private readonly emptyText = "",
+  ) {}
+
+  set(requests: ArtRequest[]): void {
+    const cards = requests.map((r) => this.card(r));
+    const empty = this.emptyText ? [el("p", { class: "muted" }, this.emptyText)] : [];
+    this.root.replaceChildren(...(cards.length ? cards : empty));
+  }
+
+  private card(r: ArtRequest): HTMLElement {
+    const decide = (approve: boolean) => this.send(encodeDecideArt(r.id, approve));
+    const what = r.kind === ArtKind.SKIN ? " made a new look" : ` made a block: ${r.name}`;
+    return el(
+      "div",
+      { class: "request" },
+      artPicture(r),
+      el("div", { class: "who" }, el("strong", {}, r.author), what),
+      el("button", { class: "approve", onclick: () => decide(true) }, "Looks good"),
+      el("button", { class: "deny", onclick: () => decide(false) }, "No"),
+    );
+  }
+}
+
+function artPicture(r: ArtRequest): HTMLCanvasElement {
+  const canvas =
+    r.kind === ArtKind.SKIN
+      ? paintPixels(frontView(r.pixels), FRONT_W, FRONT_H)
+      : paintPixels(r.pixels, TEXTURE_SIZE, TEXTURE_SIZE);
+  canvas.className = "art";
+  return canvas;
 }
 
 const USE_CHOICES = [1, 5, 10];
@@ -115,9 +161,10 @@ async function copyText(input: HTMLInputElement, button: HTMLButtonElement): Pro
 }
 
 /** Routes admin-related server messages to the widgets that show them. */
-export function adminRouter(pending: PendingList, invite: InvitePanel) {
+export function adminRouter(pending: PendingList, art: ArtList, invite: InvitePanel) {
   return (msg: ServerMessage) => {
     if (msg.body.case === "pendingRequests") pending.set(msg.body.value.requests);
+    if (msg.body.case === "artRequests") art.set(msg.body.value.requests);
     if (msg.body.case === "joinCodeCreated") invite.show(msg.body.value);
   };
 }

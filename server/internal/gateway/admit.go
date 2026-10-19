@@ -47,14 +47,17 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 	if hello.Console && !s.player.Admin {
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_NOT_ADMIN, "the admin console is for admins")
 	}
+	if s.skin, err = s.gw.cfg.Art.Skin(s.player.ID); err != nil {
+		return err
+	}
 	welcome := &pb.Welcome{
 		ProtocolVersion: protocolVersion,
 		ServerName:      s.gw.cfg.ServerName,
 		TickRateHz:      uint32(s.gw.cfg.Hub.TickRate()),
-		You:             playerInfo(s.player),
+		You:             playerInfo(s.player, s.skin),
 	}
 	if !s.console {
-		welcome.World = worldInfo(s.gw.cfg.World)
+		welcome.World = s.gw.worldInfo()
 		s.startMotion()
 		s.talk = rate.New(time.Now(), chat.PerSecond, chat.Burst)
 	}

@@ -10,16 +10,12 @@ import {
   UniformsUtils,
   type Texture,
 } from "three";
-import { paintTextures, TEXTURE_NAMES, TEXTURE_SIZE } from "./textures";
+import type { Atlas } from "./atlas";
+import { TEXTURE_SIZE } from "./textures";
 
 /** Every block texture as one array texture; repeat wrapping lets merged quads tile per block. */
-export function blockTextures(): DataArrayTexture {
-  const tex = new DataArrayTexture(
-    paintTextures(),
-    TEXTURE_SIZE,
-    TEXTURE_SIZE,
-    TEXTURE_NAMES.length,
-  );
+export function blockTextures(atlas: Atlas): DataArrayTexture {
+  const tex = new DataArrayTexture(atlas.pixels, TEXTURE_SIZE, TEXTURE_SIZE, atlas.depth);
   tex.colorSpace = SRGBColorSpace;
   tex.magFilter = NearestFilter;
   tex.minFilter = LinearMipmapNearestFilter;

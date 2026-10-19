@@ -78,8 +78,8 @@ func (g *Gateway) pendingMessage() (*pb.ServerMessage, error) {
 	return &pb.ServerMessage{Body: &pb.ServerMessage_PendingRequests{PendingRequests: list}}, nil
 }
 
-func playerInfo(p access.Player) *pb.PlayerInfo {
-	return &pb.PlayerInfo{Id: uint64(p.ID), Name: p.Name, Color: p.Color, Admin: p.Admin}
+func playerInfo(p access.Player, skin []byte) *pb.PlayerInfo {
+	return &pb.PlayerInfo{Id: uint64(p.ID), Name: p.Name, Color: p.Color, Admin: p.Admin, Skin: skin}
 }
 
 func clamp(v, lo, hi int) int { return max(lo, min(v, hi)) }

@@ -1,28 +1,38 @@
-import { BLOCK_STYLES } from "./blocks";
-import { paintTextures, TEXTURE_NAMES, TEXTURE_SIZE } from "./textures";
+import type { RenderTable } from "../world/mesher";
+import { flipRows, type Atlas } from "./atlas";
+import { TEXTURE_SIZE } from "./textures";
 
 /** Block icons from their side textures, each drawn once; an icon can be shown in one place. */
-export function blockIconPainter(): (name: string) => HTMLCanvasElement {
-  const pixels = paintTextures();
-  const icons = new Map<string, HTMLCanvasElement>();
-  return (name) => {
-    let icon = icons.get(name);
-    if (!icon) icons.set(name, (icon = paintIcon(pixels, name)));
+export function blockIconPainter(
+  atlas: Atlas,
+  table: RenderTable,
+): (block: number) => HTMLCanvasElement {
+  const icons = new Map<number, HTMLCanvasElement>();
+  return (block) => {
+    let icon = icons.get(block);
+    if (!icon) icons.set(block, (icon = paintIcon(atlas, table.layers[block * 6] ?? -1)));
     return icon;
   };
 }
 
-function paintIcon(pixels: Uint8Array, name: string): HTMLCanvasElement {
-  const layer = Math.max(0, TEXTURE_NAMES.indexOf(BLOCK_STYLES[name]?.side ?? "missing"));
-  const row = TEXTURE_SIZE * 4;
-  const img = new ImageData(TEXTURE_SIZE, TEXTURE_SIZE);
-  // Texture rows run bottom-up; canvas rows run top-down.
-  for (let y = 0; y < TEXTURE_SIZE; y++) {
-    const from = (layer * TEXTURE_SIZE + TEXTURE_SIZE - 1 - y) * row;
-    img.data.set(pixels.subarray(from, from + row), y * row);
-  }
+/** One layer drawn onto a canvas; texture rows run bottom-up, canvas rows top-down. */
+export function paintIcon(atlas: Atlas, layer: number): HTMLCanvasElement {
+  const bytes = TEXTURE_SIZE * TEXTURE_SIZE * 4;
+  const from = Math.max(0, layer) * bytes;
+  return paintPixels(
+    flipRows(atlas.pixels.subarray(from, from + bytes)),
+    TEXTURE_SIZE,
+    TEXTURE_SIZE,
+  );
+}
+
+/** A canvas showing RGBA pixels (rows top-down) at their natural size. */
+export function paintPixels(pixels: Uint8Array, w: number, h: number): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = TEXTURE_SIZE;
+  canvas.width = w;
+  canvas.height = h;
+  const img = new ImageData(w, h);
+  img.data.set(pixels.subarray(0, w * h * 4));
   canvas.getContext("2d")?.putImageData(img, 0, 0);
   return canvas;
 }

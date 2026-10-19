@@ -83,7 +83,8 @@ func TestConsoleCannotRequestChunks(t *testing.T) {
 	if w := recv(t, c).GetWelcome(); w == nil || w.World != nil {
 		t.Fatalf("console welcome = %v", w)
 	}
-	recv(t, c) // pending list
+	recv(t, c) // pending joins
+	recv(t, c) // pending art
 	send(t, c, requestChunks(&pb.ChunkPos{}))
 	expectDisconnect(t, c, pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL)
 }

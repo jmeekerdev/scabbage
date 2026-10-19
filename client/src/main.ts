@@ -10,18 +10,23 @@ import {
   encodeMove,
   encodeRequestChunks,
   encodeSendChat,
+  encodeSubmitArt,
   type JoinInit,
 } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
-import type {
-  BlockChanged,
-  Emote,
-  PlayerPose,
-  ServerMessage,
-  Teleport,
-  Welcome,
-  WorldInfo,
+import {
+  ArtKind,
+  type BlockChanged,
+  type BlockType,
+  type Emote,
+  type PlayerInfo,
+  type PlayerPose,
+  type ServerMessage,
+  type Teleport,
+  type Texture,
+  type Welcome,
+  type WorldInfo,
 } from "./pb/scabbage/v1/net_pb";
 import {
   aim,
@@ -39,18 +44,21 @@ import { MoveSync, type Pose } from "./player/move-sync";
 import type { SolidAt } from "./player/physics";
 import { Player } from "./player/player";
 import { RemotePlayers } from "./player/remote-players";
-import { Avatars } from "./render/avatars";
+import { Avatars, skinPixels } from "./render/avatars";
 import { blockIconPainter } from "./render/icons";
+import { TEXTURE_NAMES } from "./render/textures";
 import { startScene } from "./render/scene";
 import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
 import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
 import { emojiFor } from "./social/emotes";
-import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
+import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
+import { BlockPicker } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
 import { $, el } from "./ui/dom";
 import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
+import { openPixelEditor, type EditorMode, type Submission } from "./ui/pixel-editor";
 import {
   canGoFullscreen,
   registerServiceWorker,
@@ -60,6 +68,7 @@ import {
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
 import { solidQuery } from "./world/solid";
+import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 
 const overlay = $("#overlay");
@@ -81,7 +90,10 @@ const world = createWorldRenderer(gameScene, (chunks) => conn?.send(encodeReques
 const player = new Player();
 const selection = new Selection(gameScene.scene);
 const hotbar = new Hotbar([]);
-const icons = blockIconPainter();
+const picker = new BlockPicker((block) => {
+  hotbar.pick(block);
+  picker.node.closest("dialog")?.close();
+});
 let locked = false;
 const chat = new ChatView(
   $("#chat"),
@@ -107,6 +119,9 @@ let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
 let solid: SolidAt = () => true;
 let building: BuildWorld | undefined;
+let bounds: WorldBounds | undefined; // set while in the world
+let me: PlayerInfo | undefined;
+let read: (texture: string) => Uint8Array | undefined = () => undefined; // current block textures
 let lastFrameMs: number | undefined;
 gameScene.onFrame((timeMs) => {
   const dt = lastFrameMs === undefined ? 0 : (timeMs - lastFrameMs) / 1000;
@@ -136,12 +151,23 @@ addHudDialog(
     audio.set(s.sound, s.music);
   }),
 );
+addHudDialog("Blocks", picker.node);
+addHudButton("🎨", "Create", () => createDialog.showModal());
 addHudButton("💬", "Chat", () => chat.open());
 addHudButton("😀", "Emotes", () => emotes.open());
 if (touch && canGoFullscreen()) {
   addHudButton("⛶", "Fullscreen", () => void toggleLandscape().catch(() => undefined));
   unlockOnFullscreenExit();
 }
+const createDialog = el(
+  "dialog",
+  { class: "card create" },
+  el("h1", {}, "Create"),
+  createButton("🧑 My look", "skin"),
+  createButton("🧱 New block", "block"),
+  el("button", { onclick: () => createDialog.close() }, "Close"),
+);
+document.body.append(createDialog);
 registerServiceWorker();
 connect();
 
@@ -184,6 +210,10 @@ function connect(join?: JoinInit): void {
           audio.play("pop", 0.6);
         } else if (msg.body.case === "emoteShown")
           emoteShown(msg.body.value.entity, msg.body.value.emote);
+        else if (msg.body.case === "blocksChanged")
+          applyBlocks(msg.body.value.blocks, msg.body.value.textures);
+        else if (msg.body.case === "skinChanged")
+          others?.setSkin(msg.body.value.entity, msg.body.value.skin);
         else if (!rosterChanged(msg)) onAdminMessage?.(msg);
       },
     },
@@ -226,22 +256,17 @@ function act(action?: Action): void {
 function enterGame(w: Welcome): void {
   hideOverlay(overlay);
   statusEl.textContent = `${w.you?.name ?? "?"} on ${w.serverName}`;
+  me = w.you;
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   if (w.world) enterWorld(w.world, w.tickRateHz);
 }
 
 function enterWorld(info: WorldInfo, tickRateHz: number): void {
   world.start(info);
-  solid = solidQuery(
-    info,
-    info.blocks.map((b) => b.solid),
-    (x, y, z) => world.blockAt(x, y, z),
-  );
-  building = buildWorldFor(info, (x, y, z) => world.blockAt(x, y, z));
-  const name = (id: number) => info.blocks.find((b) => b.id === id)?.name ?? "missing";
+  bounds = { radius: info.radius, height: info.height };
   hotbar.slots.splice(0, Infinity, ...hotbarBlocks(info.blocks));
   hotbar.select(0);
-  mountHotbar($("#hotbar"), hotbar, name, icons);
+  applyBlocks(info.blocks, info.textures);
   const spawn = info.spawn;
   player.place(spawn?.x ?? 0, spawn?.y ?? 0, spawn?.z ?? 0);
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
@@ -250,6 +275,40 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   $("#touch").hidden = !touch;
   chat.enabled = true;
   document.body.classList.add("in-world");
+}
+
+/** Uses a new block list everywhere blocks matter: drawing, collisions, building and the hotbar. */
+function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
+  if (!bounds) return;
+  const { atlas, table } = world.setBlocks(blocks, textures);
+  read = atlas.read;
+  const blockAt = (x: number, y: number, z: number) => world.blockAt(x, y, z);
+  const solidById: boolean[] = [];
+  for (const b of blocks) solidById[b.id] = b.solid;
+  solid = solidQuery(bounds, solidById, blockAt);
+  building = buildWorldFor({ ...bounds, blocks }, blockAt);
+  const name = (id: number) => blocks.find((b) => b.id === id)?.name ?? "missing";
+  mountHotbar($("#hotbar"), hotbar, name, blockIconPainter(atlas, table));
+  picker.set(blocks, blockIconPainter(atlas, table)); // icons can only be in one place at a time
+}
+
+/** The pixel editor for one kind of art, starting from what is there now. */
+function edit(kind: EditorMode["kind"]): void {
+  createDialog.close();
+  if (!me || !moves) return;
+  const color = me.color;
+  const mode: EditorMode =
+    kind === "skin"
+      ? { kind, color, pixels: skinPixels(me.skin, color) }
+      : kind === "texture"
+        ? { kind, names: TEXTURE_NAMES, read }
+        : { kind };
+  openPixelEditor(mode, me.admin, submitArt);
+}
+
+function submitArt(s: Submission): void {
+  conn?.send(encodeSubmitArt(s.kind, s.name, s.pixels));
+  if (me && s.kind === ArtKind.SKIN) me.skin = s.pixels; // keep editing from the latest look
 }
 
 /** The server put us back somewhere, usually after rejecting a move. */
@@ -328,13 +387,25 @@ function poseOf(p: PlayerPose | undefined): Pose {
   };
 }
 
-/** In-game admin tools: join-request toasts and an invite dialog. */
+/** In-game admin tools: join-request and art toasts, an invite dialog and repainting. */
 function mountAdminTools(): void {
   const send = (b: Parameters<Connection["send"]>[0]) => conn?.send(b);
-  const pending = new PendingList($("#toasts"), send);
+  const pending = new PendingList(toastBox(), send);
+  const art = new ArtList(toastBox(), send);
   const invite = new InvitePanel(send, location.origin);
   addHudDialog("Invite", invite.node);
-  onAdminMessage = adminRouter(pending, invite);
+  createDialog.insertBefore(createButton("🖌️ Repaint a block", "texture"), createDialog.lastChild);
+  onAdminMessage = adminRouter(pending, art, invite);
+}
+
+function toastBox(): HTMLElement {
+  const box = el("div", { class: "toast-group" });
+  $("#toasts").append(box);
+  return box;
+}
+
+function createButton(label: string, kind: EditorMode["kind"]): HTMLButtonElement {
+  return el("button", { class: "primary", onclick: () => edit(kind) }, label);
 }
 
 /** Adds a HUD button that opens `content` in a modal dialog. */

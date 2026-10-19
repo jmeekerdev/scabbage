@@ -65,15 +65,7 @@ func TestRejectedPlacementCorrectsOnlyTheSender(t *testing.T) {
 
 func TestConsoleCannotEditBlocks(t *testing.T) {
 	ts := startServer(t)
-	_ = ts.joinAdmin(t).Close(websocket.StatusNormalClosure, "")
-	waitPlayers(t, ts.hub, 0)
-
-	c := dial(t, ts.url)
-	msg := hello(secret(1), nil)
-	msg.GetHello().Console = true
-	send(t, c, msg)
-	recv(t, c) // welcome
-	recv(t, c) // pending list
+	c := ts.joinConsole(t)
 	send(t, c, editBlock(0, 0, 0, world.Air))
 	expectDisconnect(t, c, pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL)
 }

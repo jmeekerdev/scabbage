@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 7;
+  PROTOCOL_VERSION_CURRENT = 8;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -22,6 +22,8 @@ message ClientMessage {
     EditBlock edit_block = 7;
     SendChat send_chat = 8;
     SendEmote send_emote = 9;
+    SubmitArt submit_art = 10;
+    DecideArt decide_art = 11;
   }
 }
 
@@ -42,6 +44,9 @@ message ServerMessage {
     PlayerLeft player_left = 12;
     Chat chat = 13;
     EmoteShown emote_shown = 14;
+    ArtRequests art_requests = 15;
+    BlocksChanged blocks_changed = 16;
+    SkinChanged skin_changed = 17;
   }
 }
 
@@ -77,6 +82,7 @@ message WorldInfo {
   int32 height = 2; // blocks above y=0 that can hold anything
   Vec3 spawn = 3;
   repeated BlockType blocks = 4; // indexed by block ID
+  repeated Texture textures = 5; // built-in textures an admin repainted
 }
 
 message BlockType {
@@ -84,6 +90,19 @@ message BlockType {
   string name = 2;
   bool solid = 3;
   bool transparent = 4;
+  bytes pixels = 5; // custom blocks only: 16×16 RGBA, rows top-down
+}
+
+// A built-in block texture repainted by an admin, e.g. "grass_side".
+message Texture {
+  string name = 1;
+  bytes pixels = 2; // 16×16 RGBA, rows top-down
+}
+
+// The full block list and repainted textures, sent when an admin approves a block or texture.
+message BlocksChanged {
+  repeated BlockType blocks = 1;
+  repeated Texture textures = 2;
 }
 
 message Vec3 {
@@ -153,6 +172,13 @@ message OtherPlayer {
   string name = 2;
   uint32 color = 3; // 0xRRGGBB
   PlayerPose pose = 4;
+  bytes skin = 5; // 64×32 RGBA, rows top-down; empty means the default look from color
+}
+
+// Someone's new skin was approved.
+message SkinChanged {
+  uint32 entity = 1;
+  bytes skin = 2;
 }
 
 message PlayerPose {
@@ -217,6 +243,7 @@ message PlayerInfo {
   string name = 2;
   uint32 color = 3;
   bool admin = 4;
+  bytes skin = 5; // approved skin, empty for the default
 }
 
 // The join request is waiting for an admin; the connection stays open until a decision.
@@ -245,6 +272,41 @@ message DecideJoin {
 message CreateJoinCode {
   uint32 uses = 1;
   uint32 ttl_hours = 2;
+}
+
+enum ArtKind {
+  ART_KIND_UNSPECIFIED = 0;
+  ART_KIND_SKIN = 1;    // 64×32 RGBA; no pixels goes back to the default look, without approval
+  ART_KIND_BLOCK = 2;   // 16×16 RGBA; name is the new block's name
+  ART_KIND_TEXTURE = 3; // admin only: repaints the built-in texture `name`; no pixels resets it
+}
+
+// Pixel art for an admin to approve; admins' own art is approved at once. Rows run top-down.
+message SubmitArt {
+  ArtKind kind = 1;
+  string name = 2;
+  bytes pixels = 3;
+}
+
+// Sent to admins on connect and whenever the art waiting for approval changes.
+message ArtRequests {
+  repeated ArtRequest requests = 1;
+}
+
+message ArtRequest {
+  uint64 id = 1;
+  ArtKind kind = 2;
+  string name = 3;
+  string author = 4;
+  uint32 author_color = 5;
+  bytes pixels = 6;
+  double created_ms = 7;
+}
+
+// Admin only.
+message DecideArt {
+  uint64 id = 1;
+  bool approve = 2;
 }
 
 message JoinCodeCreated {

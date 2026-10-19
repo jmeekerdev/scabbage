@@ -1,27 +1,33 @@
 import {
   BoxGeometry,
   CanvasTexture,
-  Color,
+  DataTexture,
   Float32BufferAttribute,
   Group,
   Mesh,
   MeshBasicMaterial,
+  NearestFilter,
   type Scene,
   Sprite,
   SpriteMaterial,
+  SRGBColorSpace,
 } from "three";
 import type { RemoteState } from "../player/remote-players";
 import { daylight } from "./chunk-material";
 import { Gait, type Stance } from "./gait";
+import { boxUVs, defaultSkin, PARTS, SKIN_H, SKIN_W, type Part } from "./skin";
 
-const SKIN = 0xf0c8a0;
+const PX = 1.8 / 32; // world units per skin pixel: the figure is 32 pixels tall
 const TAG_HEIGHT = 0.3; // world units
 const EMOTE_SIZE = 0.7; // world units
 const EMOTE_MS = 3000;
 
-/** A box with fixed per-face shading like the chunks: bright top, darker sides and bottom. */
-function shadedBox(w: number, h: number, d: number): BoxGeometry {
-  const g = new BoxGeometry(w, h, d);
+/** A skinned box with fixed per-face shading like the chunks: bright top, darker sides and bottom. */
+function partBox(part: Part): BoxGeometry {
+  const { w, h, d } = PARTS[part];
+  const g = new BoxGeometry(w * PX, h * PX, d * PX);
+  const { position, normal } = g.attributes;
+  g.setAttribute("uv", new Float32BufferAttribute(boxUVs(part, position.array, normal.array), 2));
   const faceLight = [0.8, 0.8, 1, 0.5, 0.7, 0.7]; // +x -x +y -y +z -z, 4 vertices each
   g.setAttribute(
     "color",
@@ -33,13 +39,12 @@ function shadedBox(w: number, h: number, d: number): BoxGeometry {
   return g;
 }
 
+// Every figure shares these; only the skin texture differs.
 const shapes = {
-  leg: shadedBox(0.24, 0.75, 0.3),
-  torso: shadedBox(0.48, 0.6, 0.3),
-  arm: shadedBox(0.2, 0.6, 0.22),
-  hand: shadedBox(0.2, 0.12, 0.22),
-  head: shadedBox(0.5, 0.5, 0.5),
-  eye: shadedBox(0.08, 0.08, 0.02),
+  head: partBox("head"),
+  body: partBox("body"),
+  arm: partBox("arm"),
+  leg: partBox("leg"),
 };
 /** A flat-colored material that dims with the time of day, like the terrain. */
 function daylit(params: ConstructorParameters<typeof MeshBasicMaterial>[0]): MeshBasicMaterial {
@@ -56,55 +61,68 @@ function daylit(params: ConstructorParameters<typeof MeshBasicMaterial>[0]): Mes
   return m;
 }
 
-const skin = daylit({ color: SKIN, vertexColors: true });
-const eyes = daylit({ color: 0x202020 });
+function skinTexture(pixels: Uint8Array): DataTexture {
+  const tex = new DataTexture(pixels, SKIN_W, SKIN_H);
+  tex.colorSpace = SRGBColorSpace;
+  tex.magFilter = tex.minFilter = NearestFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
 
-/** A limb hanging from a pivot, so rotating the pivot swings it from the hip or shoulder. */
-function limb(...parts: Mesh[]): Group {
+/** Skin pixels to draw: the player's own, or the default look from their color. */
+export function skinPixels(skin: Uint8Array, color: number): Uint8Array {
+  return skin.length === SKIN_W * SKIN_H * 4 ? skin : defaultSkin(color);
+}
+
+/** A part hanging from a pivot, so rotating the pivot swings it from the hip, shoulder or neck. */
+function pivoted(mesh: Mesh, drop: number): Group {
   const pivot = new Group();
-  pivot.add(...parts);
+  pivot.add(at(mesh, 0, drop * PX, 0));
   return pivot;
 }
 
 /** One blocky player figure with a name tag; feet at the origin, facing -z. */
-class Avatar {
+export class Avatar {
   readonly root = new Group();
-  private readonly head = new Group();
+  private readonly head: Group;
   private readonly legs: [Group, Group];
   private readonly arms: [Group, Group];
   private readonly gait = new Gait();
-  private readonly tag: Sprite;
-  private readonly clothes: MeshBasicMaterial[];
+  private readonly tag?: Sprite;
+  private readonly material: MeshBasicMaterial;
   private bubble?: { sprite: Sprite; untilMs: number };
+  private shown?: Uint8Array;
 
-  constructor(name: string, color: number) {
-    const shirt = daylit({ color, vertexColors: true });
-    const trousers = daylit({
-      color: new Color(color).multiplyScalar(0.55),
-      vertexColors: true,
-    });
-    this.clothes = [shirt, trousers];
-    this.tag = nameTag(name);
-    const leg = () => limb(at(new Mesh(shapes.leg, trousers), 0, -0.375, 0));
-    const arm = () =>
-      limb(
-        at(new Mesh(shapes.arm, shirt), 0, -0.27, 0),
-        at(new Mesh(shapes.hand, skin), 0, -0.63, 0),
-      );
-    this.legs = [at(leg(), -0.12, 0.75, 0), at(leg(), 0.12, 0.75, 0)];
-    this.arms = [at(arm(), -0.34, 1.32, 0), at(arm(), 0.34, 1.32, 0)];
+  constructor(name: string | undefined, color: number, skin: Uint8Array) {
+    this.material = daylit({ vertexColors: true, alphaTest: 0.5 });
+    this.setSkin(skin, color);
+    const m = this.material;
+    const leg = () => pivoted(new Mesh(shapes.leg, m), -6);
+    const arm = () => pivoted(new Mesh(shapes.arm, m), -4);
+    this.legs = [at(leg(), -2 * PX, 12 * PX, 0), at(leg(), 2 * PX, 12 * PX, 0)];
+    this.arms = [at(arm(), -6 * PX, 22 * PX, 0), at(arm(), 6 * PX, 22 * PX, 0)];
+    this.head = at(pivoted(new Mesh(shapes.head, m), 4), 0, 24 * PX, 0);
     this.root.add(
       ...this.legs,
       ...this.arms,
-      at(new Mesh(shapes.torso, shirt), 0, 1.05, 0),
-      at(this.head, 0, 1.35, 0),
-      at(this.tag, 0, 2.05, 0),
+      at(new Mesh(shapes.body, m), 0, 18 * PX, 0),
+      this.head,
     );
-    this.head.add(
-      at(new Mesh(shapes.head, skin), 0, 0.25, 0),
-      at(new Mesh(shapes.eye, eyes), -0.11, 0.3, -0.26),
-      at(new Mesh(shapes.eye, eyes), 0.11, 0.3, -0.26),
-    );
+    if (name !== undefined) this.root.add(at((this.tag = nameTag(name)), 0, 2.05, 0));
+  }
+
+  /** Re-uploads the skin after its pixels were changed in place, e.g. by the editor. */
+  refreshSkin(): void {
+    if (this.material.map) this.material.map.needsUpdate = true;
+  }
+
+  /** Shows new skin pixels (or the default look when empty); does nothing if they're unchanged. */
+  setSkin(skin: Uint8Array, color: number): void {
+    if (skin === this.shown) return;
+    this.shown = skin;
+    this.material.map?.dispose();
+    this.material.map = skinTexture(skinPixels(skin, color));
+    this.material.needsUpdate = true;
   }
 
   pose(p: RemoteState["pose"], dtMs: number, nowMs: number): void {
@@ -145,9 +163,10 @@ class Avatar {
   }
 
   dispose(): void {
-    for (const m of this.clothes) m.dispose();
-    this.tag.material.map?.dispose();
-    this.tag.material.dispose();
+    this.material.map?.dispose();
+    this.material.dispose();
+    this.tag?.material.map?.dispose();
+    this.tag?.material.dispose();
   }
 }
 
@@ -220,10 +239,11 @@ export class Avatars {
       seen.add(p.entity);
       let a = this.shown.get(p.entity);
       if (!a) {
-        a = new Avatar(p.name, p.color);
+        a = new Avatar(p.name, p.color, p.skin);
         this.shown.set(p.entity, a);
         this.scene.add(a.root);
       }
+      a.setSkin(p.skin, p.color);
       a.expire(nowMs);
       a.pose(p.pose, dtMs, nowMs);
     }

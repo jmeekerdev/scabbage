@@ -6,7 +6,7 @@ export function mountHotbar(
   root: HTMLElement,
   hotbar: Hotbar,
   name: (block: number) => string,
-  icon: (name: string) => HTMLCanvasElement,
+  icon: (block: number) => HTMLCanvasElement,
 ): void {
   const draw = () =>
     root.replaceChildren(
@@ -18,7 +18,7 @@ export function mountHotbar(
             title: name(block),
             onpointerdown: () => hotbar.select(i),
           },
-          icon(name(block)),
+          icon(block),
           el("span", {}, String(i + 1)),
         ),
       ),
