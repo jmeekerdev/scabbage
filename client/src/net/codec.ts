@@ -89,6 +89,10 @@ export function encodeDecideArt(id: bigint, approve: boolean): Bytes {
   return encode({ case: "decideArt", value: { id, approve } });
 }
 
+export function encodeSetAdmin(playerId: bigint, admin: boolean): Bytes {
+  return encode({ case: "setAdmin", value: { playerId, admin } });
+}
+
 export function decodeServer(bytes: Uint8Array): ServerMessage {
   return fromBinary(ServerMessageSchema, bytes);
 }

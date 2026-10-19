@@ -148,6 +148,9 @@ func (ts *testServer) joinAdmin(t *testing.T) *websocket.Conn {
 	if a := recv(t, c).GetArtRequests(); a == nil {
 		t.Fatal("admin should get the art waiting for approval")
 	}
+	if p := recv(t, c).GetPlayerList(); len(p.GetPlayers()) != 1 {
+		t.Fatalf("admin should get the player list, got %v", p)
+	}
 	return c
 }
 
@@ -163,6 +166,7 @@ func (ts *testServer) joinConsole(t *testing.T) *websocket.Conn {
 	recv(t, c) // welcome
 	recv(t, c) // pending joins
 	recv(t, c) // pending art
+	recv(t, c) // players
 	return c
 }
 

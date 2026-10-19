@@ -121,6 +121,9 @@ The Go server only speaks HTTP/WS. TLS comes from Caddy (in the compose file, op
    is installed as a PWA, so we encourage installing it. Re-approving a returning player is one click.
 7. Admin-only messages (`DecideJoin`, `CreateJoinCode`) are checked server-side. The admin page
    connects in *console* mode, which does not wake the world.
+8. Admins can make other players admins, or remove their admin rights, from **Players** on
+   `/admin.html` or with `/admin NAME` and `/unadmin NAME` in chat. Admins can't change their own
+   rights, so at least one admin always remains. The player is reconnected to pick up the change.
 
 ## Repo layout (planned)
 

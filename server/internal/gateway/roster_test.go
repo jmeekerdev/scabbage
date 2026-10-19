@@ -32,16 +32,16 @@ func recvJoined(t *testing.T, c *websocket.Conn) *pb.PlayersJoined {
 	return nil
 }
 
-// adminSeesJoin reads the admin's PlayersJoined and emptied pending list, which race.
+// adminSeesJoin reads the admin's PlayersJoined, emptied pending list and new player list, which race.
 func adminSeesJoin(t *testing.T, admin *websocket.Conn) *pb.PlayersJoined {
 	t.Helper()
 	var joined *pb.PlayersJoined
-	for range 2 {
+	for range 3 {
 		msg := recv(t, admin)
 		if j := msg.GetPlayersJoined(); j != nil {
 			joined = j
-		} else if msg.GetPendingRequests() == nil {
-			t.Fatalf("got %v, want PlayersJoined or PendingRequests", msg)
+		} else if msg.GetPendingRequests() == nil && msg.GetPlayerList() == nil {
+			t.Fatalf("got %v, want PlayersJoined, PendingRequests or PlayerList", msg)
 		}
 	}
 	if joined == nil {

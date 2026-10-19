@@ -85,6 +85,7 @@ func TestConsoleCannotRequestChunks(t *testing.T) {
 	}
 	recv(t, c) // pending joins
 	recv(t, c) // pending art
+	recv(t, c) // players
 	send(t, c, requestChunks(&pb.ChunkPos{}))
 	expectDisconnect(t, c, pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL)
 }

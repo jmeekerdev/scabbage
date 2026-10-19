@@ -1,10 +1,16 @@
 import type { Bytes } from "../net/codec";
-import { encodeCreateJoinCode, encodeDecideArt, encodeDecideJoin } from "../net/codec";
+import {
+  encodeCreateJoinCode,
+  encodeDecideArt,
+  encodeDecideJoin,
+  encodeSetAdmin,
+} from "../net/codec";
 import {
   ArtKind,
   type ArtRequest,
   type JoinCodeCreated,
   type PendingRequest,
+  type PlayerInfo,
   type ServerMessage,
 } from "../pb/scabbage/v1/net_pb";
 import { formatCode, inviteLink } from "../join/invite";
@@ -86,6 +92,36 @@ function artPicture(r: ArtRequest): HTMLCanvasElement {
   return canvas;
 }
 
+/** Every player, with a button to give or take admin rights from anyone but yourself. */
+export class PlayerRoster {
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly send: Send,
+    private readonly selfId: bigint,
+  ) {}
+
+  set(players: PlayerInfo[]): void {
+    this.root.replaceChildren(...players.map((p) => this.row(p)));
+  }
+
+  private row(p: PlayerInfo): HTMLElement {
+    const toggle = () => this.send(encodeSetAdmin(p.id, !p.admin));
+    return el(
+      "div",
+      { class: "request" },
+      el("span", { class: "dot", style: `background: ${colorCss(p.color)}` }),
+      el("div", { class: "who" }, el("strong", {}, p.name), p.admin && " (admin)"),
+      p.id === this.selfId
+        ? el("small", { class: "muted" }, "you")
+        : el(
+            "button",
+            { class: p.admin ? "deny" : "approve", onclick: toggle },
+            p.admin ? "Remove admin" : "Make admin",
+          ),
+    );
+  }
+}
+
 const USE_CHOICES = [1, 5, 10];
 const TTL_CHOICES: [string, number][] = [
   ["1 hour", 1],
@@ -161,8 +197,14 @@ async function copyText(input: HTMLInputElement, button: HTMLButtonElement): Pro
 }
 
 /** Routes admin-related server messages to the widgets that show them. */
-export function adminRouter(pending: PendingList, art: ArtList, invite: InvitePanel) {
+export function adminRouter(
+  pending: PendingList,
+  art: ArtList,
+  invite: InvitePanel,
+  roster?: PlayerRoster,
+) {
   return (msg: ServerMessage) => {
+    if (msg.body.case === "playerList") roster?.set(msg.body.value.players);
     if (msg.body.case === "pendingRequests") pending.set(msg.body.value.requests);
     if (msg.body.case === "artRequests") art.set(msg.body.value.requests);
     if (msg.body.case === "joinCodeCreated") invite.show(msg.body.value);

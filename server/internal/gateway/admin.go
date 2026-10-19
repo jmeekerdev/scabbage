@@ -30,10 +30,14 @@ func (s *session) decideJoin(ctx context.Context, d *pb.DecideJoin) error {
 	if errors.Is(err, access.ErrNotFound) {
 		return s.sendPending(ctx) // someone else decided first; refresh this admin's list
 	}
-	if err == nil {
-		s.log.Info("join request decided", "request", d.RequestId, "approve", d.Approve, "by", s.player.Name)
+	if err != nil {
+		return err
 	}
-	return err
+	s.log.Info("join request decided", "request", d.RequestId, "approve", d.Approve, "by", s.player.Name)
+	if d.Approve {
+		s.gw.PlayersChanged()
+	}
+	return nil
 }
 
 func (s *session) createJoinCode(ctx context.Context, c *pb.CreateJoinCode) error {

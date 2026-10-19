@@ -257,6 +257,7 @@ function enterGame(w: Welcome): void {
   hideOverlay(overlay);
   statusEl.textContent = `${w.you?.name ?? "?"} on ${w.serverName}`;
   me = w.you;
+  if (!w.you?.admin && onAdminMessage) return location.reload(); // admin rights were removed
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   if (w.world) enterWorld(w.world, w.tickRateHz);
 }

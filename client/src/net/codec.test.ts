@@ -14,6 +14,7 @@ import {
   encodePing,
   encodeRequestChunks,
   encodeSendChat,
+  encodeSetAdmin,
   encodeSubmitArt,
 } from "./codec";
 
@@ -95,6 +96,11 @@ describe("codec", () => {
     expect(art.case === "submitArt" && [...art.value.pixels]).toEqual([1, 2]);
     const decide = decodeClient(encodeDecideArt(5n, false));
     expect(decide).toMatchObject({ case: "decideArt", value: { id: 5n, approve: false } });
+  });
+
+  it("encodes admin rights changes", () => {
+    const set = decodeClient(encodeSetAdmin(3n, true));
+    expect(set).toMatchObject({ case: "setAdmin", value: { playerId: 3n, admin: true } });
   });
 
   it("decodes a server pong", () => {

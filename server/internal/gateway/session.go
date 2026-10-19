@@ -90,6 +90,9 @@ func (s *session) run(ctx context.Context) error {
 		if err := s.sendArtPending(ctx); err != nil {
 			return err
 		}
+		if err := s.sendPlayers(ctx); err != nil {
+			return err
+		}
 	}
 	return s.serve(ctx)
 }
@@ -137,6 +140,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.submitArt(ctx, body.SubmitArt)
 	case *pb.ClientMessage_DecideArt:
 		return s.decideArt(ctx, body.DecideArt)
+	case *pb.ClientMessage_SetAdmin:
+		return s.setAdmin(ctx, body.SetAdmin)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 8;
+  PROTOCOL_VERSION_CURRENT = 9;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -24,6 +24,7 @@ message ClientMessage {
     SendEmote send_emote = 9;
     SubmitArt submit_art = 10;
     DecideArt decide_art = 11;
+    SetAdmin set_admin = 12;
   }
 }
 
@@ -47,6 +48,7 @@ message ServerMessage {
     ArtRequests art_requests = 15;
     BlocksChanged blocks_changed = 16;
     SkinChanged skin_changed = 17;
+    PlayerList player_list = 18;
   }
 }
 
@@ -266,6 +268,17 @@ message PendingRequest {
 message DecideJoin {
   uint64 request_id = 1;
   bool approve = 2;
+}
+
+// Every approved player, sent to admins on connect and whenever someone's admin rights change.
+message PlayerList {
+  repeated PlayerInfo players = 1; // skins left out
+}
+
+// Admin only; admins can't change their own rights. The player reconnects to pick up the change.
+message SetAdmin {
+  uint64 player_id = 1;
+  bool admin = 2;
 }
 
 // Admin only.

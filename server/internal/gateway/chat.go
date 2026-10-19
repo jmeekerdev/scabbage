@@ -10,7 +10,7 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 )
 
-const commandHelp = "Commands: /approve NAME, /deny NAME"
+const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME"
 
 // sendChat runs a command or shares a line with everyone in the world.
 func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
@@ -57,6 +57,10 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 		return s.decideByName(ctx, c.Arg, true)
 	case "deny":
 		return s.decideByName(ctx, c.Arg, false)
+	case "admin":
+		return s.setAdminByName(ctx, c.Arg, true)
+	case "unadmin":
+		return s.setAdminByName(ctx, c.Arg, false)
 	default:
 		return s.notice(ctx, commandHelp)
 	}

@@ -364,6 +364,8 @@ dialog::backdrop {
 }
 
 /* Standalone admin page scrolls like a normal page. */
+/* Plain scrolling pages undo the game's locks on both html and body; iOS checks every ancestor. */
+html.page,
 body.page {
   height: auto;
   min-height: 100%;
