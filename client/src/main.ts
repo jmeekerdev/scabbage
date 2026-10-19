@@ -22,7 +22,9 @@ import {
   type Edit,
 } from "./player/building";
 import { Hotbar, hotbarBlocks } from "./player/hotbar";
-import { KeyboardMouse, type BuildActions } from "./player/keyboard-mouse";
+import { GamepadControls } from "./player/gamepad";
+import { combineIntents, type BuildActions } from "./player/input";
+import { KeyboardMouse } from "./player/keyboard-mouse";
 import { MoveSync, type Pose } from "./player/move-sync";
 import type { SolidAt } from "./player/physics";
 import { Player } from "./player/player";
@@ -37,6 +39,7 @@ import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
 import { $, el } from "./ui/dom";
 import { mountHotbar } from "./ui/hotbar-view";
 import { settingsPanel } from "./ui/settings-panel";
+import { TouchControls } from "./ui/touch-controls";
 import { solidQuery } from "./world/solid";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 
@@ -44,6 +47,7 @@ const overlay = $("#overlay");
 const statusEl = $("#status");
 const pingEl = $("#ping");
 const hintEl = $("#hint");
+const crosshairEl = $("#crosshair");
 const store = browserStore();
 const clientName = navigator.userAgent.match(/\(([^;)]+)/)?.[1] ?? "unknown";
 const inviteCode = takeInviteFromUrl();
@@ -59,10 +63,13 @@ const player = new Player();
 const selection = new Selection(gameScene.scene);
 const hotbar = new Hotbar([]);
 const icons = blockIconPainter();
-const controls = new KeyboardMouse($("#game"), player, hotbar, (locked) => {
-  hintEl.hidden = locked;
-  $("#crosshair").hidden = !locked;
+let locked = false;
+const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, (l) => {
+  locked = l;
+  hintEl.hidden = l;
 });
+const gamepad = new GamepadControls(player, hotbar, () => navigator.getGamepads());
+const touchControls = touch ? new TouchControls($("#game"), $("#touch"), player) : undefined;
 const avatars = new Avatars(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
@@ -72,12 +79,17 @@ let lastFrameMs: number | undefined;
 gameScene.onFrame((timeMs) => {
   const dt = lastFrameMs === undefined ? 0 : (timeMs - lastFrameMs) / 1000;
   lastFrameMs = timeMs;
-  player.update(dt, controls.input(), solid);
+  const intent = combineIntents(
+    [keyboardMouse, gamepad, touchControls].flatMap((c) => c?.poll(timeMs) ?? []),
+  );
+  player.update(dt, intent.move, solid);
   const eye = player.eye();
   gameScene.camera.position.set(eye.x, eye.y, eye.z);
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
   world.tick(eye.x, eye.z, settings.viewDistance);
-  build(controls.actions(timeMs), [eye.x, eye.y, eye.z]);
+  build(intent.build, [eye.x, eye.y, eye.z]);
+  crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
+  if (gamepad.active) hintEl.hidden = true;
   avatars.update(others?.sample(performance.now()) ?? []);
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
@@ -189,6 +201,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
   others = new RemotePlayers(1000 / Math.max(1, tickRateHz));
   hintEl.hidden = document.pointerLockElement !== null || touch;
+  $("#touch").hidden = !touch;
 }
 
 /** The server put us back somewhere, usually after rejecting a move. */

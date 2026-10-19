@@ -13,7 +13,11 @@ export function mountHotbar(
       ...hotbar.slots.map((block, i) =>
         el(
           "div",
-          { class: i === hotbar.selected ? "slot selected" : "slot", title: name(block) },
+          {
+            class: i === hotbar.selected ? "slot selected" : "slot",
+            title: name(block),
+            onpointerdown: () => hotbar.select(i),
+          },
           icon(name(block)),
           el("span", {}, String(i + 1)),
         ),

@@ -223,7 +223,6 @@ button.primary {
   padding: 4px;
   border-radius: 8px;
   background: rgb(0 0 0 / 45%);
-  pointer-events: none;
 }
 
 #hotbar .slot {
@@ -354,4 +353,72 @@ body.page a {
 body.page .requests {
   display: grid;
   gap: 8px;
+}
+
+/* Touch controls: a floating stick where the left thumb lands, buttons on the right. */
+#touch[hidden],
+#touch .stick[hidden],
+#touch button[hidden] {
+  display: none;
+}
+
+#touch .stick {
+  position: fixed;
+  top: -56px;
+  left: -56px;
+  width: 112px;
+  height: 112px;
+  border: 2px solid rgb(255 255 255 / 50%);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 20%);
+  pointer-events: none;
+}
+
+#touch .knob {
+  position: absolute;
+  top: 32px;
+  left: 32px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 60%);
+}
+
+.touch-buttons {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(max(8px, env(safe-area-inset-bottom)) + 64px);
+  display: grid;
+  grid-template: "break place" "down jump" / 64px 64px;
+  gap: 12px;
+}
+
+.touch-buttons button {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 40%);
+  font-size: 28px;
+  touch-action: none;
+}
+
+.touch-buttons button:active {
+  background: rgb(255 255 255 / 35%);
+}
+
+.touch-buttons .break {
+  grid-area: break;
+}
+
+.touch-buttons .place {
+  grid-area: place;
+}
+
+.touch-buttons .down {
+  grid-area: down;
+}
+
+.touch-buttons .jump {
+  grid-area: jump;
 }

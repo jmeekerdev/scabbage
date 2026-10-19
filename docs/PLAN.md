@@ -177,7 +177,7 @@ Each phase ends with something the family can play. Compact the model context be
       player overlap, then broadcasts BlockChanged or corrects the sender. Crosshair, outline,
       9-slot hotbar, hold to repeat, middle click picks a block)
 - [x] Other players visible (simple blocky avatars + name tags, interpolated)
-- [ ] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API
+- [x] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API
 - [ ] Text chat + emote wheel
 - [ ] PWA manifest + service worker; landscape fullscreen on phones
 - [ ] Autosave + nightly world backup snapshot

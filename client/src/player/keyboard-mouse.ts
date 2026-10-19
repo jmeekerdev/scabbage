@@ -1,18 +1,10 @@
 import type { Hotbar } from "./hotbar";
-import { DoubleTap, HoldRepeat, moveInputFromKeys } from "./input";
-import type { MoveInput } from "./physics";
+import { DoubleTap, HoldRepeat, moveInputFromKeys, NO_INPUT, type Intent } from "./input";
 import type { Player } from "./player";
 
 const FLY_DOUBLE_TAP_MS = 300;
 const BUILD_REPEAT_MS = 250;
 
-/** Building actions due this frame. */
-export interface BuildActions {
-  breaking: boolean;
-  placing: boolean;
-  picking: boolean;
-}
-const NO_INPUT: MoveInput = { forward: 0, right: 0, jump: false, descend: false };
 // Keys the page would otherwise use to scroll.
 const CAPTURED = new Set(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
@@ -31,7 +23,9 @@ export class KeyboardMouse {
     private readonly hotbar: Hotbar,
     onLockChange: (locked: boolean) => void,
   ) {
-    canvas.addEventListener("click", () => void canvas.requestPointerLock());
+    canvas.addEventListener("click", (e) => {
+      if ((e as PointerEvent).pointerType !== "touch") void canvas.requestPointerLock();
+    });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     document.addEventListener("pointerlockchange", () => {
       this.locked = document.pointerLockElement === canvas;
@@ -49,15 +43,14 @@ export class KeyboardMouse {
     window.addEventListener("blur", () => this.releaseAll());
   }
 
-  input(): MoveInput {
-    return this.locked ? moveInputFromKeys(this.keys) : NO_INPUT;
-  }
-
-  /** What to build now; held buttons repeat. */
-  actions(nowMs: number): BuildActions {
+  /** Movement and what to build now; held buttons repeat. */
+  poll(nowMs: number): Intent {
     const picking = this.picking;
     this.picking = false;
-    return { breaking: this.breaking.due(nowMs), placing: this.placing.due(nowMs), picking };
+    return {
+      move: this.locked ? moveInputFromKeys(this.keys) : NO_INPUT,
+      build: { breaking: this.breaking.due(nowMs), placing: this.placing.due(nowMs), picking },
+    };
   }
 
   private mouseDown(e: MouseEvent): void {

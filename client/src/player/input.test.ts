@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { DoubleTap, HoldRepeat, Look, moveInputFromKeys } from "./input";
+import {
+  combineIntents,
+  DoubleTap,
+  HoldRepeat,
+  Look,
+  moveInputFromKeys,
+  NO_BUILD,
+  NO_INPUT,
+  stickAxes,
+} from "./input";
 
 describe("moveInputFromKeys", () => {
   it("maps WASD, arrows, space and shift", () => {
@@ -64,5 +73,53 @@ describe("HoldRepeat", () => {
     expect(r.due(600)).toBe(true);
     r.release();
     expect(r.due(2000)).toBe(false);
+  });
+});
+
+describe("Look.turnBy", () => {
+  it("turns by radians, with the same signs as turn", () => {
+    const l = new Look(0.01);
+    l.turnBy(0.5, -0.25);
+    expect(l.yaw).toBeCloseTo(-0.5);
+    expect(l.pitch).toBeCloseTo(0.25);
+  });
+});
+
+describe("stickAxes", () => {
+  it("ignores small drift and reaches full speed at the edge", () => {
+    expect(stickAxes(0.1, -0.05, 0.2)).toEqual([0, 0]);
+    const [x, y] = stickAxes(1, 0, 0.2);
+    expect(x).toBeCloseTo(1);
+    expect(y).toBe(0);
+  });
+
+  it("ramps up smoothly from the dead zone", () => {
+    const [x] = stickAxes(0.6, 0, 0.2);
+    expect(x).toBeCloseTo(0.5);
+  });
+
+  it("keeps diagonals within the unit circle", () => {
+    const [x, y] = stickAxes(1, 1, 0.2);
+    expect(Math.hypot(x, y)).toBeCloseTo(1);
+  });
+});
+
+describe("combineIntents", () => {
+  const still = { move: NO_INPUT, build: NO_BUILD };
+
+  it("adds movement up to full speed and ORs buttons", () => {
+    const a = { move: { ...NO_INPUT, forward: 0.75, jump: true }, build: NO_BUILD };
+    const b = {
+      move: { ...NO_INPUT, forward: 0.5, right: -0.5 },
+      build: { ...NO_BUILD, placing: true },
+    };
+    expect(combineIntents([a, b, still])).toEqual({
+      move: { forward: 1, right: -0.5, jump: true, descend: false },
+      build: { breaking: false, placing: true, picking: false },
+    });
+  });
+
+  it("is still with no sources", () => {
+    expect(combineIntents([])).toEqual(still);
   });
 });
