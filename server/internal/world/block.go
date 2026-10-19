@@ -43,7 +43,9 @@ type BlockInfo struct {
 	Solid       bool // collides with players
 	Transparent bool // neighbors' faces stay visible
 	Shape       Shape
-	Light       uint8 // how brightly it glows, up to MaxLight
+	Light       uint8  // how brightly it glows, up to MaxLight
+	MineMs      uint16 // how long survival players dig to break it
+	Drop        Block  // what breaking it gives, if not the block itself
 }
 
 var (
@@ -61,33 +63,37 @@ var blocks = palette()
 func palette() []BlockInfo {
 	out := []BlockInfo{
 		{ID: Air, Name: "air", Solid: false, Transparent: true},
-		{ID: Stone, Name: "stone", Solid: true, Transparent: false},
-		{ID: Dirt, Name: "dirt", Solid: true, Transparent: false},
-		{ID: Grass, Name: "grass", Solid: true, Transparent: false},
-		{ID: Sand, Name: "sand", Solid: true, Transparent: false},
+		{ID: Stone, Name: "stone", Solid: true, Transparent: false, MineMs: 1500, Drop: Cobblestone},
+		{ID: Dirt, Name: "dirt", Solid: true, Transparent: false, MineMs: 500},
+		{ID: Grass, Name: "grass", Solid: true, Transparent: false, MineMs: 600, Drop: Dirt},
+		{ID: Sand, Name: "sand", Solid: true, Transparent: false, MineMs: 500},
 		{ID: Water, Name: "water", Solid: false, Transparent: true},
-		{ID: Log, Name: "log", Solid: true, Transparent: false},
-		{ID: Leaves, Name: "leaves", Solid: true, Transparent: true},
-		{ID: Planks, Name: "planks", Solid: true, Transparent: false},
-		{ID: Cobblestone, Name: "cobblestone", Solid: true, Transparent: false},
-		{ID: Glass, Name: "glass", Solid: true, Transparent: true},
-		{ID: Brick, Name: "brick", Solid: true, Transparent: false},
+		{ID: Log, Name: "log", Solid: true, Transparent: false, MineMs: 1000},
+		{ID: Leaves, Name: "leaves", Solid: true, Transparent: true, MineMs: 200},
+		{ID: Planks, Name: "planks", Solid: true, Transparent: false, MineMs: 1000},
+		{ID: Cobblestone, Name: "cobblestone", Solid: true, Transparent: false, MineMs: 1500},
+		{ID: Glass, Name: "glass", Solid: true, Transparent: true, MineMs: 300},
+		{ID: Brick, Name: "brick", Solid: true, Transparent: false, MineMs: 1500},
 		{ID: Bedrock, Name: "bedrock", Solid: true},
 	}
 	for _, c := range woolColors {
-		out = append(out, BlockInfo{Name: c + "_wool", Solid: true})
+		out = append(out, BlockInfo{Name: c + "_wool", Solid: true, MineMs: 400})
 	}
 	out = append(out,
-		BlockInfo{Name: "lamp", Solid: true, Light: MaxLight},
+		BlockInfo{Name: "lamp", Solid: true, Light: MaxLight, MineMs: 300},
 		BlockInfo{Name: "torch", Transparent: true, Shape: TorchShape, Light: MaxLight - 1},
 	)
+	digs := func(name string) uint16 {
+		return out[slices.IndexFunc(out, func(b BlockInfo) bool { return b.Name == name })].MineMs
+	}
 	for _, m := range shapedMaterials {
-		out = append(out, BlockInfo{Name: m + "_slab", Solid: true, Transparent: true, Shape: Slab})
+		out = append(out, BlockInfo{Name: m + "_slab", Solid: true, Transparent: true, Shape: Slab, MineMs: digs(m)})
 	}
 	for _, m := range shapedMaterials {
 		for f, suffix := range facings {
 			out = append(out, BlockInfo{
 				Name: m + "_stairs" + suffix, Solid: true, Transparent: true, Shape: StairsNorth + Shape(f),
+				MineMs: digs(m),
 			})
 		}
 	}
@@ -106,10 +112,16 @@ var (
 	custom       atomic.Pointer[map[Block]BlockInfo] // copy-on-write, so lookups never lock
 )
 
+// customMineMs is how long painted blocks take to dig when they don't say.
+const customMineMs = 750
+
 // Register adds or replaces a custom block, e.g. one approved by an admin.
 func Register(b BlockInfo) error {
 	if b.ID < FirstCustom {
 		return ErrBuiltinID
+	}
+	if b.MineMs == 0 {
+		b.MineMs = customMineMs
 	}
 	customMu.Lock()
 	defer customMu.Unlock()
@@ -159,6 +171,22 @@ func Info(b Block) BlockInfo {
 		}
 	}
 	return blocks[Air]
+}
+
+// Item is the block as players hold it: stairs face north until placed.
+func (b Block) Item() Block {
+	if s := Info(b).Shape; s >= StairsNorth && s <= StairsWest {
+		return b - Block(s-StairsNorth)
+	}
+	return b
+}
+
+// Drops is the item breaking b gives.
+func Drops(b Block) Block {
+	if d := Info(b).Drop; d != Air {
+		return d
+	}
+	return b.Item()
 }
 
 // Valid reports whether b is a known block.

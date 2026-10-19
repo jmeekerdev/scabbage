@@ -46,3 +46,34 @@ describe("hotbarBlocks", () => {
     expect(hotbarBlocks(types)).toEqual([3, 1, 8]);
   });
 });
+
+describe("Hotbar.carry", () => {
+  const stacks = (...s: [number, number][]) => s.map(([block, count]) => ({ block, count }));
+
+  it("shows the inventory's first slots with counts, and empty slots as air", () => {
+    const h = new Hotbar([3, 4, 5]);
+    h.carry(stacks([7, 2], [0, 0], [8, 0], [9, 1]));
+    expect(h.slots).toEqual([7, 0, 0, 9]);
+    expect(h.counts).toEqual([2, 0, 0, 1]);
+    h.select(1);
+    expect(h.current()).toBe(0);
+  });
+
+  it("only selects blocks already carried when picking", () => {
+    const h = new Hotbar([3, 4, 5]);
+    h.carry(stacks([7, 2], [8, 1]));
+    h.pick(8);
+    expect(h.selected).toBe(1);
+    h.pick(99);
+    expect(h.slots).toEqual([7, 8]);
+  });
+
+  it("gets the creative blocks back afterwards", () => {
+    const h = new Hotbar([3, 4, 5]);
+    h.carry(stacks([7, 2]));
+    h.carry(stacks([7, 1]));
+    h.carry(undefined);
+    expect(h.slots).toEqual([3, 4, 5]);
+    expect(h.counts).toBeUndefined();
+  });
+});

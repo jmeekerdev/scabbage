@@ -98,3 +98,47 @@ func TestShapesCollideWithTheirBoxes(t *testing.T) {
 		t.Fatal("stone is a full cube")
 	}
 }
+
+func TestMiningTakesLongerForHarderBlocks(t *testing.T) {
+	if Info(Dirt).MineMs >= Info(Stone).MineMs || Info(Leaves).MineMs >= Info(Log).MineMs {
+		t.Fatalf("dirt %d stone %d leaves %d log %d",
+			Info(Dirt).MineMs, Info(Stone).MineMs, Info(Leaves).MineMs, Info(Log).MineMs)
+	}
+	if Info(Torch).MineMs != 0 {
+		t.Fatal("torches should pop off at once")
+	}
+	if Info(StoneStairs+2).MineMs != Info(Stone).MineMs || Info(StoneSlab).MineMs != Info(Stone).MineMs {
+		t.Fatal("shaped stone should dig like stone")
+	}
+}
+
+func TestCustomBlocksTakeTimeToMine(t *testing.T) {
+	id := FirstCustom + 30
+	if err := Register(BlockInfo{ID: id, Name: "tile", Solid: true}); err != nil {
+		t.Fatal(err)
+	}
+	if Info(id).MineMs == 0 {
+		t.Fatal("custom block breaks instantly")
+	}
+}
+
+func TestDrops(t *testing.T) {
+	cases := map[Block]Block{
+		Grass:           Dirt,
+		Stone:           Cobblestone,
+		Planks:          Planks,
+		StoneStairs + 3: StoneStairs, // every facing drops the north-facing item
+		StoneSlab + 2:   StoneSlab + 2,
+	}
+	for b, want := range cases {
+		if got := Drops(b); got != want {
+			t.Errorf("Drops(%v) = %v, want %v", b, got, want)
+		}
+	}
+}
+
+func TestItem(t *testing.T) {
+	if StoneStairs.Item() != StoneStairs || (StoneStairs+5).Item() != StoneStairs+4 || Glass.Item() != Glass {
+		t.Fatal("Item should turn stairs to face north and leave other blocks alone")
+	}
+}

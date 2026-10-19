@@ -1,3 +1,7 @@
+import type { Stack } from "./inventory";
+
+export const HOTBAR_SLOTS = 9;
+
 const STARTER_BLOCKS = [
   "grass",
   "dirt",
@@ -19,8 +23,22 @@ export function hotbarBlocks(types: readonly { id: number; name: string }[]): nu
 export class Hotbar {
   selected = 0;
   onChange = () => {};
+  counts: number[] | undefined; // survival: how many of each slot's block are carried
+  private creative?: number[]; // put aside while carrying an inventory
 
-  constructor(readonly slots: number[]) {}
+  constructor(public slots: number[]) {}
+
+  /** Shows a survival inventory's first slots, or the creative blocks again when undefined. */
+  carry(stacks: readonly Stack[] | undefined): void {
+    if (stacks) {
+      this.creative ??= this.slots;
+      this.slots = stacks.slice(0, HOTBAR_SLOTS).map((s) => (s.count > 0 ? s.block : 0));
+      this.counts = stacks.slice(0, HOTBAR_SLOTS).map((s) => s.count);
+    } else if (this.creative) {
+      [this.slots, this.creative, this.counts] = [this.creative, undefined, undefined];
+    }
+    this.select(Math.min(this.selected, this.slots.length - 1));
+  }
 
   current(): number {
     return this.slots[this.selected] ?? 0; // air: nothing to place
@@ -37,9 +55,10 @@ export class Hotbar {
     this.select((((this.selected + steps) % n) + n) % n);
   }
 
-  /** Selects the slot holding `block`, or swaps it into the selected slot. */
+  /** Selects the slot holding `block`, or in creative swaps it into the selected slot. */
   pick(block: number): void {
     const i = this.slots.indexOf(block);
+    if (i < 0 && this.counts) return;
     if (i < 0) this.slots[this.selected] = block;
     this.select(i < 0 ? this.selected : i);
   }

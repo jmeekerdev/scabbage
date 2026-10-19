@@ -63,3 +63,18 @@ func (s *Service) SetMode(id int64, m Mode) (Player, error) {
 	}
 	return p, err
 }
+
+// Inventory returns what a player carries, as inventory.Encode stored it.
+func (s *Service) Inventory(id int64) ([]byte, error) {
+	var data []byte
+	err := s.db.QueryRow(`SELECT inventory FROM players WHERE id = ?`, id).Scan(&data)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNoPlayer
+	}
+	return data, err
+}
+
+func (s *Service) SaveInventory(id int64, data []byte) error {
+	_, err := s.db.Exec(`UPDATE players SET inventory = ? WHERE id = ?`, data, id)
+	return err
+}

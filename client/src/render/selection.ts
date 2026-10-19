@@ -1,19 +1,36 @@
-import { BoxGeometry, EdgesGeometry, LineBasicMaterial, LineSegments, type Scene } from "three";
+import {
+  BoxGeometry,
+  EdgesGeometry,
+  LineBasicMaterial,
+  LineSegments,
+  Mesh,
+  MeshBasicMaterial,
+  type Scene,
+} from "three";
 
-/** A thin outline around the block under the crosshair. */
+/** A thin outline around the block under the crosshair, darkening as it is dug. */
 export class Selection {
   private readonly box = new LineSegments(
     new EdgesGeometry(new BoxGeometry(1.004, 1.004, 1.004)),
     new LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.6 }),
   );
+  private readonly shade = new MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    depthWrite: false,
+  });
 
   constructor(scene: Scene) {
     this.box.visible = false;
+    this.box.add(new Mesh(new BoxGeometry(1.002, 1.002, 1.002), this.shade));
     scene.add(this.box);
   }
 
-  show(block: { x: number; y: number; z: number } | undefined): void {
+  /** `dug` runs from 0 to 1 while a survival player mines the block. */
+  show(block: { x: number; y: number; z: number } | undefined, dug = 0): void {
     this.box.visible = block !== undefined;
     if (block) this.box.position.set(block.x + 0.5, block.y + 0.5, block.z + 0.5);
+    this.shade.opacity = dug * 0.6;
+    this.shade.visible = dug > 0;
   }
 }

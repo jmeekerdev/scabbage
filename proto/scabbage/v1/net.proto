@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 11;
+  PROTOCOL_VERSION_CURRENT = 12;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -26,6 +26,7 @@ message ClientMessage {
     DecideArt decide_art = 11;
     SetAdmin set_admin = 12;
     SetGameMode set_game_mode = 13;
+    MoveItem move_item = 14;
   }
 }
 
@@ -51,6 +52,8 @@ message ServerMessage {
     SkinChanged skin_changed = 17;
     PlayerList player_list = 18;
     Vitals vitals = 19;
+    Inventory inventory = 20;
+    ItemsChanged items_changed = 21;
   }
 }
 
@@ -80,6 +83,7 @@ message Welcome {
   // Unset for admin console connections, which never enter the world.
   WorldInfo world = 5;
   Vitals vitals = 6; // unset for admin console connections
+  Inventory inventory = 7; // unset for admin console connections
 }
 
 message WorldInfo {
@@ -98,6 +102,7 @@ message BlockType {
   bytes pixels = 5; // custom blocks only: 16×16 RGBA, rows top-down
   Shape shape = 6;
   uint32 light = 7; // how brightly it glows, 0 to 12
+  uint32 mine_ms = 8; // how long survival players dig to break it; 0 is instant
 }
 
 // Block geometry; stairs' tall half faces the named direction (north is -z).
@@ -177,6 +182,7 @@ message BlockPos {
 message EditBlock {
   BlockPos pos = 1;
   uint32 block = 2;
+  uint32 slot = 3; // survival placements: the inventory slot the block comes from
 }
 
 message BlockChanged {
@@ -288,6 +294,35 @@ message Vitals {
 message SetGameMode {
   uint64 player_id = 1;
   GameMode mode = 2;
+}
+
+message ItemStack {
+  uint32 block = 1; // air for an empty slot
+  uint32 count = 2;
+}
+
+// Your whole inventory, hotbar slots first; in Welcome, then sent whenever it changes.
+message Inventory {
+  repeated ItemStack slots = 1;
+}
+
+// Moves a stack onto another slot, merging matching blocks and swapping the rest.
+message MoveItem {
+  uint32 from = 1;
+  uint32 to = 2;
+}
+
+// An item lying in the world, waiting to be picked up.
+message ItemDrop {
+  uint64 id = 1;
+  uint32 block = 2;
+  Vec3 pos = 3; // where it rests
+}
+
+// Items that appeared or moved, and the ids of ones taken or gone; all of them on join.
+message ItemsChanged {
+  repeated ItemDrop drops = 1;
+  repeated uint64 gone = 2;
 }
 
 // The join request is waiting for an admin; the connection stays open until a decision.

@@ -8,6 +8,7 @@ import {
   encodeEditBlock,
   encodeEmote,
   encodeMove,
+  encodeMoveItem,
   encodeRequestChunks,
   encodeSendChat,
   encodeSubmitArt,
@@ -40,6 +41,8 @@ import {
   type Edit,
 } from "./player/building";
 import { Hotbar, hotbarBlocks } from "./player/hotbar";
+import { Inventory } from "./player/inventory";
+import { Miner } from "./player/mining";
 import { GamepadControls } from "./player/gamepad";
 import { combineIntents, type BuildActions } from "./player/input";
 import { KeyboardMouse } from "./player/keyboard-mouse";
@@ -48,6 +51,7 @@ import type { BoxesAt } from "./player/physics";
 import { Player } from "./player/player";
 import { RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
+import { Drops } from "./render/drops";
 import { blockIconPainter } from "./render/icons";
 import { TEXTURE_NAMES } from "./render/textures";
 import { startScene } from "./render/scene";
@@ -64,6 +68,7 @@ import { ChatView } from "./ui/chat-view";
 import { $, el } from "./ui/dom";
 import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
+import { InventoryView } from "./ui/inventory-view";
 import { openPixelEditor, type EditorMode, type Submission } from "./ui/pixel-editor";
 import {
   canGoFullscreen,
@@ -74,6 +79,7 @@ import {
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
 import { collisionBoxes, FULL_BLOCK, heldBlock, type Box } from "./world/shapes";
+import type { RayHit } from "./world/raycast";
 import { solidQuery } from "./world/solid";
 import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
@@ -103,6 +109,14 @@ const picker = new BlockPicker((block) => {
   hotbar.pick(block);
   picker.node.closest("dialog")?.close();
 });
+const inventory = new Inventory();
+const backpack = new InventoryView(inventory, (from, to) => conn?.send(encodeMoveItem(from, to)));
+const miner = new Miner();
+let survival = false;
+inventory.onChange = () => {
+  if (survival) hotbar.carry(inventory.slots);
+  backpack.draw();
+};
 let locked = false;
 const chat = new ChatView(
   $("#chat"),
@@ -125,6 +139,7 @@ const avatars = new Avatars(gameScene.scene);
 const audio = new GameAudio(settings.sound, settings.music);
 const footsteps = new Footsteps();
 const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
+const drops = new Drops(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
 let solid: BoxesAt = () => FULL_BLOCK;
@@ -145,7 +160,8 @@ gameScene.onFrame((timeMs) => {
   gameScene.camera.position.set(eye.x, eye.y, eye.z);
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
   world.tick(eye.x, eye.z, settings.viewDistance);
-  build(intent.build, [eye.x, eye.y, eye.z]);
+  build(intent.build, [eye.x, eye.y, eye.z], dt);
+  drops.update(timeMs);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
   avatars.update(others?.sample(performance.now()) ?? [], performance.now());
@@ -159,7 +175,7 @@ gameScene.onFrame((timeMs) => {
 });
 const settingsView = settingsPanel(settings, changeSettings);
 addHudDialog("Settings", settingsView.node);
-addHudDialog("Blocks", picker.node);
+addHudDialog("Blocks", el("div", {}, picker.node, backpack.node));
 addHudButton("🎨", "Create", () => createDialog.showModal());
 addHudButton("💬", "Chat", () => chat.open());
 addHudButton("😀", "Emotes", () => emotes.open());
@@ -214,6 +230,10 @@ function connect(join?: JoinInit): void {
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "vitals") applyVitals(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
+        else if (msg.body.case === "inventory") {
+          if (inventory.set(msg.body.value.slots)) audio.play("pop", 0.5);
+        } else if (msg.body.case === "itemsChanged")
+          drops.change(msg.body.value.drops, msg.body.value.gone);
         else if (msg.body.case === "chat") {
           chat.add(msg.body.value);
           audio.play("pop", 0.6);
@@ -269,18 +289,24 @@ function enterGame(w: Welcome): void {
   if (!w.you?.admin && onAdminMessage) return location.reload(); // admin rights were removed
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   if (w.world) enterWorld(w.world, w.tickRateHz);
+  if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
 }
 
-/** Our own health and game mode: hearts and no flying in survival. */
+/** Our own health and game mode: survival walks, carries its blocks and shows hearts. */
 function applyVitals(v: Vitals): void {
-  player.allowFlying(v.mode !== GameMode.SURVIVAL);
+  survival = v.mode === GameMode.SURVIVAL;
+  player.allowFlying(!survival);
+  hotbar.carry(survival ? inventory.slots : undefined);
+  picker.node.hidden = survival;
+  backpack.node.hidden = !survival;
   health.show(v);
   if (v.hurt !== Harm.UNSPECIFIED) audio.play("hurt");
 }
 
 function enterWorld(info: WorldInfo, tickRateHz: number): void {
   world.start(info);
+  drops.clear(); // the server lists every item again on joining
   bounds = { radius: info.radius, height: info.height };
   hotbar.slots.splice(0, Infinity, ...hotbarBlocks(info.blocks));
   hotbar.select(0);
@@ -306,8 +332,11 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   solid = solidQuery(bounds, boxesById, blockAt);
   building = buildWorldFor({ ...bounds, blocks }, blockAt);
   const name = (id: number) => blocks.find((b) => b.id === id)?.name ?? "missing";
-  mountHotbar($("#hotbar"), hotbar, name, blockIconPainter(atlas, table));
-  picker.set(blocks, blockIconPainter(atlas, table)); // icons can only be in one place at a time
+  const icon = blockIconPainter(atlas, table);
+  mountHotbar($("#hotbar"), hotbar, name, icon);
+  picker.set(blocks, icon);
+  backpack.setBlocks(icon, name);
+  drops.setIcons(icon);
 }
 
 /** The pixel editor for one kind of art, starting from what is there now. */
@@ -336,15 +365,17 @@ function teleport(t: Teleport): void {
 }
 
 /** Outlines the block in reach and carries out this frame's building actions. */
-function build(act: BuildActions, eye: [number, number, number]): void {
+function build(act: BuildActions, eye: [number, number, number], dt: number): void {
   const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
-  selection.show(hit);
+  const dug = survival ? dig(act.digging, hit, dt) : 0;
+  selection.show(hit, dug);
   if (!hit || !building) return;
   if (act.picking) {
     const block = building.blockAt(hit.x, hit.y, hit.z) ?? 0;
     hotbar.pick(heldBlock(block, building.shape[block] ?? 0));
   }
-  const edit = act.breaking
+  const breaking = survival ? dug === 1 : act.breaking;
+  const edit = breaking
     ? breakEdit(hit, building)
     : act.placing
       ? placeEdit(hit, hotbar.current(), player.body, player.look.yaw, building)
@@ -352,12 +383,23 @@ function build(act: BuildActions, eye: [number, number, number]): void {
   if (edit) sendEdit(edit);
 }
 
+/** Survival mining: how far the held block is dug, from 0 to 1 when it breaks. */
+function dig(held: boolean, hit: RayHit | undefined, dt: number): number {
+  const block = hit && building?.blockAt(hit.x, hit.y, hit.z);
+  if (!held || !hit || !building || block === undefined || building.unbreakable.has(block)) {
+    miner.stop();
+    return 0;
+  }
+  return miner.dig(dt, hit, building.mineMs[block] ?? 0);
+}
+
 /** Shows the edit straight away; the server confirms it or sends back what is really there. */
 function sendEdit(edit: Edit): void {
   if (!conn || !moves) return;
   const pose = moves.flush(player.pose()); // the server checks reach from our latest position
   if (pose) conn.send(encodeMove(pose, moves.teleport));
-  conn.send(encodeEditBlock(edit));
+  conn.send(encodeEditBlock(edit, hotbar.selected));
+  if (survival && edit.block !== 0) inventory.spend(hotbar.selected);
   world.setBlock(edit.x, edit.y, edit.z, edit.block);
   audio.play(edit.block === 0 ? "break" : "place");
 }

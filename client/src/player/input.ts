@@ -5,6 +5,7 @@ export interface BuildActions {
   breaking: boolean;
   placing: boolean;
   picking: boolean;
+  digging: boolean; // the break button is held, for survival's mining time
 }
 
 /** What one input device asks for this frame. */
@@ -14,7 +15,12 @@ export interface Intent {
 }
 
 export const NO_INPUT: MoveInput = { forward: 0, right: 0, jump: false, descend: false };
-export const NO_BUILD: BuildActions = { breaking: false, placing: false, picking: false };
+export const NO_BUILD: BuildActions = {
+  breaking: false,
+  placing: false,
+  picking: false,
+  digging: false,
+};
 
 /** Merges devices used together, e.g. a pad and a keyboard, capping movement at full speed. */
 export function combineIntents(intents: readonly Intent[]): Intent {
@@ -38,6 +44,7 @@ export function combineIntents(intents: readonly Intent[]): Intent {
       breaking: any((i) => i.build.breaking),
       placing: any((i) => i.build.placing),
       picking: any((i) => i.build.picking),
+      digging: any((i) => i.build.digging),
     },
   };
 }
@@ -88,6 +95,10 @@ export class HoldRepeat {
 
   release(): void {
     this.nextMs = undefined;
+  }
+
+  get held(): boolean {
+    return this.nextMs !== undefined;
   }
 
   due(nowMs: number): boolean {

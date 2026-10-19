@@ -3,6 +3,8 @@ package gateway
 import (
 	"time"
 
+	"scabbage/internal/edit"
+	"scabbage/internal/inventory"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/vitals"
@@ -16,6 +18,9 @@ type avatar struct {
 	moved      bool // since the last tick
 	mode       pb.GameMode
 	vitals     *vitals.State
+	inv        inventory.Inventory
+	invDirty   bool // changed since it was last saved
+	digger     edit.Digger
 }
 
 func (a *avatar) pose() *pb.PlayerPose {
@@ -36,7 +41,9 @@ func (g *Gateway) addPlayer(s *session) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.entity++
-	a := &avatar{entity: g.entity, pos: s.body.Pos(), mode: g.modeOf(s.player), vitals: vitals.New(time.Now())}
+	a := &avatar{
+		entity: g.entity, pos: s.body.Pos(), mode: g.modeOf(s.player), vitals: vitals.New(time.Now()), inv: s.carried,
+	}
 	arrived := playersJoined(s.other(a))
 	present := playersJoined()
 	for o, oa := range g.players {
@@ -45,6 +52,9 @@ func (g *Gateway) addPlayer(s *session) {
 	}
 	if len(g.players) > 0 {
 		s.push(present)
+	}
+	if msg := g.itemsLyingAroundLocked(); msg != nil {
+		s.push(msg)
 	}
 	g.players[s] = a
 }
@@ -58,24 +68,39 @@ func (g *Gateway) movePlayer(s *session, at motion.Vec, yaw, pitch float32) {
 }
 
 func (g *Gateway) removePlayer(s *session) {
+	if p, ok := g.dropPlayer(s); ok {
+		g.save([]pendingSave{p})
+	}
+}
+
+// dropPlayer takes a session out of the world, returning its inventory if that needs saving.
+func (g *Gateway) dropPlayer(s *session) (pendingSave, bool) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	a := g.players[s]
 	if a == nil {
-		return
+		return pendingSave{}, false
 	}
 	delete(g.players, s)
 	left := &pb.ServerMessage{Body: &pb.ServerMessage_PlayerLeft{PlayerLeft: &pb.PlayerLeft{Entity: a.entity}}}
 	for o := range g.players {
 		o.push(left)
 	}
+	return a.unsaved(s.player.ID)
 }
 
-// Tick heals players and sends each the others that moved since the last tick; call it from the sim loop.
+// Tick runs the world's players for one step; call it from the sim loop.
 func (g *Gateway) Tick() {
+	g.save(g.step(time.Now()))
+}
+
+// step heals players, hands out items and sends each the others that moved since the last tick.
+func (g *Gateway) step(now time.Time) []pendingSave {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	g.healLocked(time.Now())
+	g.healLocked(now)
+	g.collectLocked(now)
+	saves := g.unsavedLocked(now)
 	var moved []*avatar
 	for _, a := range g.players {
 		if a.moved {
@@ -83,14 +108,14 @@ func (g *Gateway) Tick() {
 			a.moved = false
 		}
 	}
-	if len(moved) == 0 {
-		return
-	}
-	for s, own := range g.players {
-		if msg := playersMoved(moved, own); msg != nil {
-			s.push(msg)
+	if len(moved) > 0 {
+		for s, own := range g.players {
+			if msg := playersMoved(moved, own); msg != nil {
+				s.push(msg)
+			}
 		}
 	}
+	return saves
 }
 
 // playersMoved lists every moved avatar except the recipient's own, or nil if none are left.
@@ -126,6 +151,10 @@ func (g *Gateway) bodies() []motion.Vec {
 func (g *Gateway) broadcast(msg *pb.ServerMessage) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	g.broadcastLocked(msg)
+}
+
+func (g *Gateway) broadcastLocked(msg *pb.ServerMessage) {
 	for s := range g.players {
 		s.push(msg)
 	}

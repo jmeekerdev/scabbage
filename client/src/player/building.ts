@@ -13,6 +13,7 @@ export interface BuildWorld {
   targetable: readonly boolean[]; // solid blocks and torches
   shape: readonly number[];
   unbreakable: ReadonlySet<number>; // also never placeable
+  mineMs: readonly number[]; // how long survival players dig each block
   inside(x: number, y: number, z: number): boolean;
 }
 
@@ -28,22 +29,29 @@ export function buildWorldFor(
   info: {
     radius: number;
     height: number;
-    blocks: readonly { id: number; name: string; solid: boolean; shape: number }[];
+    blocks: readonly { id: number; name: string; solid: boolean; shape: number; mineMs: number }[];
   },
   blockAt: BuildWorld["blockAt"],
 ): BuildWorld {
   const { radius: r, height } = info;
-  const [solid, targetable, shape]: [boolean[], boolean[], number[]] = [[], [], []];
+  const [solid, targetable, shape, mineMs]: [boolean[], boolean[], number[], number[]] = [
+    [],
+    [],
+    [],
+    [],
+  ];
   for (const b of info.blocks) {
     solid[b.id] = b.solid;
     targetable[b.id] = b.solid || b.shape === Shape.TORCH;
     shape[b.id] = b.shape;
+    mineMs[b.id] = b.mineMs;
   }
   return {
     blockAt,
     solid,
     targetable,
     shape,
+    mineMs,
     unbreakable: new Set(info.blocks.filter((b) => b.name === "bedrock").map((b) => b.id)),
     inside: (x, y, z) => y >= 0 && y < height && (r < 0 || (x >= -r && x < r && z >= -r && z < r)),
   };

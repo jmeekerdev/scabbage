@@ -17,6 +17,7 @@ import {
   encodeEditBlock,
   encodeEmote,
   encodeMove,
+  encodeMoveItem,
   encodePing,
   encodeRequestChunks,
   encodeSendChat,
@@ -45,6 +46,16 @@ describe("codec", () => {
     if (body.case !== "editBlock") return;
     const { pos, block } = body.value;
     expect([pos?.x, pos?.y, pos?.z, block]).toEqual([-4, 20, 9, 8]);
+  });
+
+  it("encodes the inventory slot a survival placement comes from", () => {
+    const body = decodeClient(encodeEditBlock({ x: 0, y: 1, z: 2, block: 8 }, 4));
+    expect(body.case === "editBlock" && body.value.slot).toBe(4);
+  });
+
+  it("encodes moving an item", () => {
+    const body = decodeClient(encodeMoveItem(3, 30));
+    expect(body.case === "moveItem" && [body.value.from, body.value.to]).toEqual([3, 30]);
   });
 
   it("encodes a move with pose and teleport id", () => {

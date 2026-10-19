@@ -71,8 +71,14 @@ describe("GamepadControls", () => {
     expect(controls.poll(0).build.breaking).toBe(true);
     expect(controls.poll(100).build.breaking).toBe(false);
     expect(controls.poll(300).build.breaking).toBe(true);
+    expect(controls.poll(310).build.digging).toBe(true);
     state.current = pad(undefined, ["lt", "x"]);
-    expect(controls.poll(400).build).toEqual({ breaking: false, placing: true, picking: true });
+    expect(controls.poll(400).build).toEqual({
+      breaking: false,
+      digging: false,
+      placing: true,
+      picking: true,
+    });
     expect(controls.poll(450).build.picking).toBe(false);
   });
 

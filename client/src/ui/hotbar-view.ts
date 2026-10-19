@@ -18,8 +18,9 @@ export function mountHotbar(
             title: name(block),
             onpointerdown: () => hotbar.select(i),
           },
-          icon(block),
+          block ? icon(block) : undefined,
           el("span", {}, String(i + 1)),
+          hotbar.counts?.[i] ? el("b", { class: "count" }, String(hotbar.counts[i])) : undefined,
         ),
       ),
     );

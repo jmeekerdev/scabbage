@@ -12,6 +12,7 @@ import (
 
 	"scabbage/internal/access"
 	"scabbage/internal/art"
+	"scabbage/internal/drops"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
 )
@@ -38,6 +39,8 @@ type Gateway struct {
 	entity  uint32               // last entity id handed out
 	editMu  sync.Mutex           // makes each edit's check, change and broadcast atomic
 	art     artCache             // guarded by mu
+	drops   drops.Field          // guarded by mu
+	savedAt time.Time            // when changed inventories were last saved; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.

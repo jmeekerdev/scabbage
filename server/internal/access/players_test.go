@@ -92,3 +92,20 @@ func TestSetModeRejectsUnknownModes(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNoPlayer", err)
 	}
 }
+
+func TestInventoryIsRemembered(t *testing.T) {
+	f := newFixture(t)
+	p := f.approved(t, secret(1), "Amy")
+	if got, err := f.svc.Inventory(p.ID); err != nil || len(got) != 0 {
+		t.Fatalf("new player carries %v, %v", got, err)
+	}
+	if err := f.svc.SaveInventory(p.ID, []byte{1, 2, 3}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := f.svc.Inventory(p.ID); string(got) != "\x01\x02\x03" {
+		t.Fatalf("got %v", got)
+	}
+	if _, err := f.svc.Inventory(99); !errors.Is(err, ErrNoPlayer) {
+		t.Fatalf("err = %v, want ErrNoPlayer", err)
+	}
+}

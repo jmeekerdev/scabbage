@@ -3,7 +3,7 @@ import { isStairs, Shape } from "../world/shapes";
 import { flipRows, type Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 
-/** Block icons from their side textures, each drawn once; an icon can be shown in one place. */
+/** Block icons from their side textures, each painted once and handed out as fresh copies. */
 export function blockIconPainter(
   atlas: Atlas,
   table: RenderTable,
@@ -15,8 +15,16 @@ export function blockIconPainter(
       icon = paintIcon(atlas, table.layers[block * 6] ?? -1, table.shape[block] ?? Shape.CUBE);
       icons.set(block, icon);
     }
-    return icon;
+    return copyCanvas(icon);
   };
+}
+
+function copyCanvas(from: HTMLCanvasElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = from.width;
+  canvas.height = from.height;
+  canvas.getContext("2d")?.drawImage(from, 0, 0);
+  return canvas;
 }
 
 /** One layer cut to the shape's side view; texture rows run bottom-up, canvas rows top-down. */

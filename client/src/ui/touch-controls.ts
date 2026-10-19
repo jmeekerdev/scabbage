@@ -50,6 +50,7 @@ export class TouchControls {
       move: { ...this.sticks.walk(), jump: this.jumping, descend: this.descending },
       build: {
         breaking: this.breaking.due(nowMs),
+        digging: this.breaking.held,
         placing: this.placing.due(nowMs),
         picking: false,
       },

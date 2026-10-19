@@ -52,6 +52,7 @@ export class GamepadControls {
       move: { forward: -my, right: mx, jump: held[BTN.a] ?? false, descend: held[BTN.b] ?? false },
       build: {
         breaking: this.breaking.due(nowMs),
+        digging: this.breaking.held,
         placing: this.placing.due(nowMs),
         picking: pressed(BTN.x),
       },

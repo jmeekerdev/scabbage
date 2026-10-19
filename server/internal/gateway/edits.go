@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"scabbage/internal/edit"
-	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/world"
 )
@@ -19,7 +18,7 @@ func (s *session) editBlock(ctx context.Context, m *pb.EditBlock) error {
 	p := m.GetPos()
 	r := edit.Request{X: p.GetX(), Y: p.GetY(), Z: p.GetZ(), Block: world.Block(min(m.Block, math.MaxUint16))}
 	if s.edits.Take(time.Now()) {
-		if applied, err := s.gw.edit(s.body.Pos(), r); err != nil || applied {
+		if applied, err := s.gw.edit(s, r, m.Slot); err != nil || applied {
 			return err
 		}
 	}
@@ -28,17 +27,21 @@ func (s *session) editBlock(ctx context.Context, m *pb.EditBlock) error {
 }
 
 // edit changes the block if allowed and broadcasts the change, all under editMu.
-func (g *Gateway) edit(feet motion.Vec, r edit.Request) (bool, error) {
+func (g *Gateway) edit(s *session, r edit.Request, slot uint32) (bool, error) {
 	g.editMu.Lock()
 	defer g.editMu.Unlock()
+	now := time.Now()
 	current, err := g.cfg.World.Block(r.X, r.Y, r.Z)
-	if err != nil || !edit.Allowed(feet, r, current, g.bodies()) {
+	if err != nil || !edit.Allowed(s.body.Pos(), r, current, g.bodies()) || !g.spend(s, r, current, slot, now) {
 		return false, nil
 	}
 	if err := g.cfg.World.SetBlock(r.X, r.Y, r.Z, r.Block); err != nil {
 		return false, err
 	}
 	g.broadcast(blockChanged(r.X, r.Y, r.Z, r.Block))
+	if r.Block == world.Air {
+		g.broke(s, r, current, now)
+	}
 	return true, nil
 }
 

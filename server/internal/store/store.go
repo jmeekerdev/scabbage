@@ -66,6 +66,7 @@ var migrations = []string{
 		created_ms INTEGER NOT NULL
 	);`,
 	`ALTER TABLE players ADD COLUMN mode TEXT NOT NULL DEFAULT '' CHECK (mode IN ('', 'creative', 'survival'));`,
+	`ALTER TABLE players ADD COLUMN inventory BLOB NOT NULL DEFAULT x'';`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

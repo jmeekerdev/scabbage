@@ -63,6 +63,15 @@ describe("Look", () => {
 });
 
 describe("HoldRepeat", () => {
+  it("knows while it is held", () => {
+    const r = new HoldRepeat(250);
+    expect(r.held).toBe(false);
+    r.press(0);
+    expect(r.held).toBe(true);
+    r.release();
+    expect(r.held).toBe(false);
+  });
+
   it("fires on press, then every interval while held, and stops on release", () => {
     const r = new HoldRepeat(250);
     expect(r.due(0)).toBe(false);
@@ -115,7 +124,7 @@ describe("combineIntents", () => {
     };
     expect(combineIntents([a, b, still])).toEqual({
       move: { forward: 1, right: -0.5, jump: true, descend: false },
-      build: { breaking: false, placing: true, picking: false },
+      build: { breaking: false, placing: true, picking: false, digging: false },
     });
   });
 

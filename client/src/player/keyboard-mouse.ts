@@ -60,7 +60,12 @@ export class KeyboardMouse {
     this.picking = false;
     return {
       move: this.locked ? moveInputFromKeys(this.keys) : NO_INPUT,
-      build: { breaking: this.breaking.due(nowMs), placing: this.placing.due(nowMs), picking },
+      build: {
+        breaking: this.breaking.due(nowMs),
+        digging: this.breaking.held,
+        placing: this.placing.due(nowMs),
+        picking,
+      },
     };
   }
 

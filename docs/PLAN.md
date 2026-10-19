@@ -211,7 +211,11 @@ Each phase ends with something the family can play. Compact the model context be
       (server-side fall damage, water breaks falls, slow healing, faint → back to spawn;
       modes per player via admin page or `/survival NAME`, server default `-mode`;
       per-area modes come with protected zones)
-- [ ] Inventory, hotbar, item drops, mining time per block
+- [x] Inventory, hotbar, item drops, mining time per block
+      (survival only: 36 saved slots with the hotbar first, blocks take 0.2–1.5 s to dig and drop
+      an item (stone → cobblestone, grass → dirt) that is picked up by walking near it and expires
+      after 5 minutes; placing uses up the selected slot; the server times digs and checks slots;
+      creative keeps its unlimited hotbar and instant breaking)
 - [ ] Crafting recipes (data-driven)
 - [ ] Mobs: passive animals + night monsters with simple server-side AI
 - [ ] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode

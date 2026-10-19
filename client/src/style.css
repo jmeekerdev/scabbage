@@ -288,6 +288,15 @@ button.primary {
   text-shadow: 0 0 2px #000;
 }
 
+#hotbar .count {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 0 2px #000;
+}
+
 #health {
   position: fixed;
   bottom: calc(max(8px, env(safe-area-inset-bottom)) + 60px);
@@ -682,6 +691,29 @@ body.page .requests {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.inventory .grid {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.inventory .slot {
+  min-height: 52px;
+  padding: 4px 2px;
+}
+
+.inventory .slot canvas {
+  width: 28px;
+  height: 28px;
+}
+
+.inventory .slot.hotbar {
+  background: rgb(255 255 255 / 12%);
+}
+
+.inventory .slot.held {
+  outline: 3px solid #ffd54a;
 }
 
 /* Only while open: a display rule on a closed dialog would show it. */

@@ -60,6 +60,10 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 	if !s.console {
 		welcome.World = s.gw.worldInfo()
 		welcome.Vitals = &pb.Vitals{Mode: s.gw.modeOf(s.player), Health: vitals.Max}
+		if err := s.loadInventory(); err != nil {
+			return err
+		}
+		welcome.Inventory = inventoryProto(&s.carried)
 		s.startMotion()
 		s.talk = rate.New(time.Now(), chat.PerSecond, chat.Burst)
 	}

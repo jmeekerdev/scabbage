@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aim, breakEdit, placeEdit, type BuildWorld } from "./building";
+import { aim, breakEdit, buildWorldFor, placeEdit, type BuildWorld } from "./building";
 import { newBody } from "./physics";
 import { Shape } from "../world/shapes";
 
@@ -15,6 +15,7 @@ function world(): BuildWorld {
     targetable,
     shape,
     unbreakable: new Set([BEDROCK]),
+    mineMs: [],
     inside: (_x, y) => y >= 0 && y < 64,
     blockAt: (x, y, z) => {
       if (x > 20) return undefined;
@@ -27,6 +28,17 @@ function world(): BuildWorld {
 }
 
 const down = -Math.PI / 2 + 0.01;
+
+describe("buildWorldFor", () => {
+  it("keeps each block's mining time", () => {
+    const blocks = [
+      { id: 0, name: "air", solid: false, shape: 0, mineMs: 0 },
+      { id: 1, name: "stone", solid: true, shape: 0, mineMs: 1500 },
+    ];
+    const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
+    expect(w.mineMs[STONE]).toBe(1500);
+  });
+});
 
 describe("aim", () => {
   it("targets the solid block in view within reach", () => {
