@@ -1,8 +1,11 @@
 package gateway
 
 import (
+	"time"
+
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/vitals"
 )
 
 // avatar is how other players see an in-world session.
@@ -11,6 +14,8 @@ type avatar struct {
 	pos        motion.Vec // last accepted feet position
 	yaw, pitch float32
 	moved      bool // since the last tick
+	mode       pb.GameMode
+	vitals     *vitals.State
 }
 
 func (a *avatar) pose() *pb.PlayerPose {
@@ -31,7 +36,7 @@ func (g *Gateway) addPlayer(s *session) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.entity++
-	a := &avatar{entity: g.entity, pos: s.body.Pos()}
+	a := &avatar{entity: g.entity, pos: s.body.Pos(), mode: g.modeOf(s.player), vitals: vitals.New(time.Now())}
 	arrived := playersJoined(s.other(a))
 	present := playersJoined()
 	for o, oa := range g.players {
@@ -66,10 +71,11 @@ func (g *Gateway) removePlayer(s *session) {
 	}
 }
 
-// Tick sends each player the others that moved since the last tick; call it from the sim loop.
+// Tick heals players and sends each the others that moved since the last tick; call it from the sim loop.
 func (g *Gateway) Tick() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	g.healLocked(time.Now())
 	var moved []*avatar
 	for _, a := range g.players {
 		if a.moved {

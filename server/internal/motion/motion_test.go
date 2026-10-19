@@ -149,3 +149,21 @@ func TestStandsOnSlabs(t *testing.T) {
 		t.Fatal("stepping up onto the slab should be allowed")
 	}
 }
+
+func TestStandingNeedsSomethingUnderfoot(t *testing.T) {
+	cases := []struct {
+		at   Vec
+		want bool
+	}{
+		{Vec{0.5, 10, 0.5}, true},
+		{Vec{0.5, 10.3, 0.5}, false},
+		{Vec{5.5, 10.5, 0.5}, true},    // on a slab
+		{Vec{5.85, 10, 0.5}, true},     // toes touching the slab's side still count as the floor
+		{Vec{-0.25, 10.5, 0.5}, false}, // beside the slab, not over it
+	}
+	for _, c := range cases {
+		if got := Standing(c.at, slabX); got != c.want {
+			t.Errorf("Standing(%v) = %v, want %v", c.at, got, c.want)
+		}
+	}
+}

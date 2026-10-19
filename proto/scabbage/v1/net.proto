@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 10;
+  PROTOCOL_VERSION_CURRENT = 11;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -25,6 +25,7 @@ message ClientMessage {
     SubmitArt submit_art = 10;
     DecideArt decide_art = 11;
     SetAdmin set_admin = 12;
+    SetGameMode set_game_mode = 13;
   }
 }
 
@@ -49,6 +50,7 @@ message ServerMessage {
     BlocksChanged blocks_changed = 16;
     SkinChanged skin_changed = 17;
     PlayerList player_list = 18;
+    Vitals vitals = 19;
   }
 }
 
@@ -77,6 +79,7 @@ message Welcome {
   PlayerInfo you = 4;
   // Unset for admin console connections, which never enter the world.
   WorldInfo world = 5;
+  Vitals vitals = 6; // unset for admin console connections
 }
 
 message WorldInfo {
@@ -259,6 +262,32 @@ message PlayerInfo {
   uint32 color = 3;
   bool admin = 4;
   bytes skin = 5; // approved skin, empty for the default
+  GameMode mode = 6;
+}
+
+enum GameMode {
+  GAME_MODE_UNSPECIFIED = 0;
+  GAME_MODE_CREATIVE = 1; // can fly and never gets hurt
+  GAME_MODE_SURVIVAL = 2; // walks, can get hurt and faint
+}
+
+enum Harm {
+  HARM_UNSPECIFIED = 0;
+  HARM_FALL = 1;
+}
+
+// Your own health (0 to 20) and game mode; in Welcome, then sent whenever either changes.
+// At 0 you fainted: a Teleport back to spawn and full health follow.
+message Vitals {
+  GameMode mode = 1;
+  uint32 health = 2;
+  Harm hurt = 3; // set when health just dropped
+}
+
+// Admin only; takes effect at once.
+message SetGameMode {
+  uint64 player_id = 1;
+  GameMode mode = 2;
 }
 
 // The join request is waiting for an admin; the connection stays open until a decision.

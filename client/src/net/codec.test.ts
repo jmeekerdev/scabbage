@@ -1,6 +1,12 @@
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
-import { ArtKind, ClientMessageSchema, Emote, ServerMessageSchema } from "../pb/scabbage/v1/net_pb";
+import {
+  ArtKind,
+  ClientMessageSchema,
+  Emote,
+  GameMode,
+  ServerMessageSchema,
+} from "../pb/scabbage/v1/net_pb";
 import {
   PROTOCOL_VERSION,
   decodeServer,
@@ -15,6 +21,7 @@ import {
   encodeRequestChunks,
   encodeSendChat,
   encodeSetAdmin,
+  encodeSetGameMode,
   encodeSubmitArt,
 } from "./codec";
 
@@ -101,6 +108,14 @@ describe("codec", () => {
   it("encodes admin rights changes", () => {
     const set = decodeClient(encodeSetAdmin(3n, true));
     expect(set).toMatchObject({ case: "setAdmin", value: { playerId: 3n, admin: true } });
+  });
+
+  it("encodes game mode changes", () => {
+    const set = decodeClient(encodeSetGameMode(3n, GameMode.SURVIVAL));
+    expect(set).toMatchObject({
+      case: "setGameMode",
+      value: { playerId: 3n, mode: GameMode.SURVIVAL },
+    });
   });
 
   it("decodes a server pong", () => {

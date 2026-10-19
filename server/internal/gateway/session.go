@@ -142,6 +142,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.decideArt(ctx, body.DecideArt)
 	case *pb.ClientMessage_SetAdmin:
 		return s.setAdmin(ctx, body.SetAdmin)
+	case *pb.ClientMessage_SetGameMode:
+		return s.setGameMode(ctx, body.SetGameMode)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

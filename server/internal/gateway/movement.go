@@ -30,6 +30,9 @@ func (s *session) move(ctx context.Context, m *pb.Move) error {
 	to := motion.Vec{X: float64(p.GetX()), Y: float64(p.GetY()), Z: float64(p.GetZ())}
 	if s.body.Move(to, time.Now(), s.gw.cfg.World.Boxes) {
 		s.gw.movePlayer(s, to, m.Yaw, m.Pitch)
+		if s.gw.land(s, to.Y, s.gw.footing(to)) {
+			s.respawn()
+		}
 		return nil
 	}
 	s.teleport++

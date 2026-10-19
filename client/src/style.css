@@ -288,6 +288,68 @@ button.primary {
   text-shadow: 0 0 2px #000;
 }
 
+#health {
+  position: fixed;
+  bottom: calc(max(8px, env(safe-area-inset-bottom)) + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 2px #000;
+  pointer-events: none;
+}
+
+#health .full {
+  color: #e33;
+}
+
+#health .empty {
+  color: #444;
+}
+
+#health .half {
+  background: linear-gradient(90deg, #e33 50%, #444 50%);
+  background-clip: text;
+  color: transparent;
+}
+
+#hurt {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(transparent 40%, rgb(220 0 0 / 55%));
+  opacity: 0;
+}
+
+#hurt.on {
+  animation: hurt 0.5s ease-out;
+}
+
+@keyframes hurt {
+  from {
+    opacity: 1;
+  }
+}
+
+#faint {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+  font-size: 20px;
+  text-align: center;
+  pointer-events: none;
+}
+
+#health[hidden],
+#faint[hidden] {
+  display: none;
+}
+
 #toasts {
   position: fixed;
   top: max(8px, env(safe-area-inset-top));

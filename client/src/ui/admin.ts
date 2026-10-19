@@ -4,9 +4,11 @@ import {
   encodeDecideArt,
   encodeDecideJoin,
   encodeSetAdmin,
+  encodeSetGameMode,
 } from "../net/codec";
 import {
   ArtKind,
+  GameMode,
   type ArtRequest,
   type JoinCodeCreated,
   type PendingRequest,
@@ -106,11 +108,22 @@ export class PlayerRoster {
 
   private row(p: PlayerInfo): HTMLElement {
     const toggle = () => this.send(encodeSetAdmin(p.id, !p.admin));
+    const survival = p.mode === GameMode.SURVIVAL;
+    const switchMode = () =>
+      this.send(encodeSetGameMode(p.id, survival ? GameMode.CREATIVE : GameMode.SURVIVAL));
     return el(
       "div",
       { class: "request" },
       el("span", { class: "dot", style: `background: ${colorCss(p.color)}` }),
-      el("div", { class: "who" }, el("strong", {}, p.name), p.admin && " (admin)"),
+      el(
+        "div",
+        { class: "who" },
+        el("strong", {}, p.name),
+        p.admin && " (admin)",
+        el("br"),
+        el("small", { class: "muted" }, survival ? "survival" : "creative"),
+      ),
+      el("button", { onclick: switchMode }, survival ? "Make creative" : "Make survival"),
       p.id === this.selfId
         ? el("small", { class: "muted" }, "you")
         : el(

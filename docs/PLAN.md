@@ -207,11 +207,14 @@ Each phase ends with something the family can play. Compact the model context be
       frames stay under 70% of target, until the player picks settings themselves)
 
 ### Phase 3 — Survival
-- [ ] Health, damage, respawn; survival vs. creative game modes per area or player
+- [x] Health, damage, respawn; survival vs. creative game modes per area or player
+      (server-side fall damage, water breaks falls, slow healing, faint → back to spawn;
+      modes per player via admin page or `/survival NAME`, server default `-mode`;
+      per-area modes come with protected zones)
 - [ ] Inventory, hotbar, item drops, mining time per block
 - [ ] Crafting recipes (data-driven)
 - [ ] Mobs: passive animals + night monsters with simple server-side AI
-- [ ] Protected zones (spawn, people's houses) so nobody gets griefed
+- [ ] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode
 
 ### Phase 4 — Logic Blocks
 - [ ] Signal-propagation system (server tick): wire, switch, button, pressure plate, lamp

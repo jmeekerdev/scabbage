@@ -146,3 +146,11 @@ func finite(v Vec) bool {
 	}
 	return true
 }
+
+// footTolerance is how far below the feet something still counts as holding them up.
+const footTolerance = 0.05
+
+// Standing reports whether a body with its feet at p rests on something.
+func Standing(p Vec, solid BoxesFunc) bool {
+	return Blocked(Vec{p.X, p.Y - footTolerance, p.Z}, solid)
+}

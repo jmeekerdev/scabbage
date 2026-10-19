@@ -79,6 +79,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Art:            pieces,
 		World:          w,
 		ServerName:     cfg.ServerName,
+		Mode:           access.Mode(cfg.Mode),
 		OriginPatterns: cfg.Origins,
 		Logger:         logger,
 	})

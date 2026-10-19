@@ -10,6 +10,7 @@ import (
 	"scabbage/internal/chat"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/rate"
+	"scabbage/internal/vitals"
 )
 
 const protocolVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
@@ -54,10 +55,11 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 		ProtocolVersion: protocolVersion,
 		ServerName:      s.gw.cfg.ServerName,
 		TickRateHz:      uint32(s.gw.cfg.Hub.TickRate()),
-		You:             playerInfo(s.player, s.skin),
+		You:             s.gw.playerInfo(s.player, s.skin),
 	}
 	if !s.console {
 		welcome.World = s.gw.worldInfo()
+		welcome.Vitals = &pb.Vitals{Mode: s.gw.modeOf(s.player), Health: vitals.Max}
 		s.startMotion()
 		s.talk = rate.New(time.Now(), chat.PerSecond, chat.Burst)
 	}

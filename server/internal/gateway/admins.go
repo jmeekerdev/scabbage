@@ -34,16 +34,33 @@ func (s *session) setAdmin(ctx context.Context, m *pb.SetAdmin) error {
 	return s.notice(ctx, p.Name+" is no longer an admin.")
 }
 
-// setAdminByName runs /admin and /unadmin, matching the name ignoring case.
+// setAdminByName runs /admin and /unadmin.
 func (s *session) setAdminByName(ctx context.Context, name string, admin bool) error {
-	players, err := s.gw.cfg.Access.Players()
+	p, found, err := s.gw.playerNamed(name)
+	if err != nil || !found {
+		return s.noOneCalled(ctx, name, err)
+	}
+	return s.setAdmin(ctx, &pb.SetAdmin{PlayerId: uint64(p.ID), Admin: admin})
+}
+
+// playerNamed finds an approved player, ignoring case.
+func (g *Gateway) playerNamed(name string) (access.Player, bool, error) {
+	players, err := g.cfg.Access.Players()
 	if err != nil {
-		return err
+		return access.Player{}, false, err
 	}
 	for _, p := range players {
 		if strings.EqualFold(p.Name, name) {
-			return s.setAdmin(ctx, &pb.SetAdmin{PlayerId: uint64(p.ID), Admin: admin})
+			return p, true, nil
 		}
+	}
+	return access.Player{}, false, nil
+}
+
+// noOneCalled reports a failed name lookup, passing on any error behind it.
+func (s *session) noOneCalled(ctx context.Context, name string, err error) error {
+	if err != nil {
+		return err
 	}
 	return s.notice(ctx, fmt.Sprintf("No one is called %q.", name))
 }
@@ -93,7 +110,7 @@ func (g *Gateway) playersMessage() (*pb.ServerMessage, error) {
 	}
 	list := &pb.PlayerList{Players: make([]*pb.PlayerInfo, 0, len(players))}
 	for _, p := range players {
-		list.Players = append(list.Players, playerInfo(p, nil))
+		list.Players = append(list.Players, g.playerInfo(p, nil))
 	}
 	return &pb.ServerMessage{Body: &pb.ServerMessage_PlayerList{PlayerList: list}}, nil
 }

@@ -45,4 +45,17 @@ describe("Player", () => {
     expect(p.eye()).toEqual({ x: 3, y: 30 + EYE_HEIGHT, z: 3 });
     expect(p.body.vy).toBe(0);
   });
+
+  it("only flies when allowed", () => {
+    const p = new Player();
+    p.toggleFly();
+    expect(p.body.flying).toBe(true);
+    p.allowFlying(false);
+    expect(p.body.flying).toBe(false);
+    p.toggleFly();
+    expect(p.body.flying).toBe(false);
+    p.allowFlying(true);
+    p.toggleFly();
+    expect(p.body.flying).toBe(true);
+  });
 });

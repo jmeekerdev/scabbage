@@ -17,6 +17,8 @@ import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
 import {
   ArtKind,
+  GameMode,
+  Harm,
   type BlockChanged,
   type BlockType,
   type Emote,
@@ -25,6 +27,7 @@ import {
   type ServerMessage,
   type Teleport,
   type Texture,
+  type Vitals,
   type Welcome,
   type WorldInfo,
 } from "./pb/scabbage/v1/net_pb";
@@ -54,6 +57,7 @@ import { AutoQuality } from "./settings/auto-quality";
 import { deviceTier, readDevice } from "./settings/device";
 import { defaultSettings, loadSettings, saveSettings, type Settings } from "./settings/settings";
 import { emojiFor } from "./social/emotes";
+import { HealthView } from "./ui/health-view";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { BlockPicker } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
@@ -120,6 +124,7 @@ const touchControls = touch ? new TouchControls($("#game"), $("#touch"), player)
 const avatars = new Avatars(gameScene.scene);
 const audio = new GameAudio(settings.sound, settings.music);
 const footsteps = new Footsteps();
+const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
 let solid: BoxesAt = () => FULL_BLOCK;
@@ -207,6 +212,7 @@ function connect(join?: JoinInit): void {
       onMessage: (msg) => {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
+        else if (msg.body.case === "vitals") applyVitals(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
         else if (msg.body.case === "chat") {
           chat.add(msg.body.value);
@@ -263,6 +269,14 @@ function enterGame(w: Welcome): void {
   if (!w.you?.admin && onAdminMessage) return location.reload(); // admin rights were removed
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   if (w.world) enterWorld(w.world, w.tickRateHz);
+  if (w.vitals) applyVitals(w.vitals);
+}
+
+/** Our own health and game mode: hearts and no flying in survival. */
+function applyVitals(v: Vitals): void {
+  player.allowFlying(v.mode !== GameMode.SURVIVAL);
+  health.show(v);
+  if (v.hurt !== Harm.UNSPECIFIED) audio.play("hurt");
 }
 
 function enterWorld(info: WorldInfo, tickRateHz: number): void {

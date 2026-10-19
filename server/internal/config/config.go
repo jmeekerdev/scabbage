@@ -17,6 +17,7 @@ type Config struct {
 	TickRate   int
 	Backups    int      // nightly copies to keep; 0 turns backups off
 	BackupHour int      // local hour of day the backup runs
+	Mode       string   // game mode for players without their own: creative or survival
 	Origins    []string // extra allowed WebSocket Origin hosts
 }
 
@@ -49,6 +50,7 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	fs.IntVar(&c.TickRate, "tick-rate", ints["SCABBAGE_TICK_RATE"], "simulation ticks per second")
 	fs.IntVar(&c.Backups, "backups", ints["SCABBAGE_BACKUPS"], "nightly database copies to keep (0 = off)")
 	fs.IntVar(&c.BackupHour, "backup-hour", ints["SCABBAGE_BACKUP_HOUR"], "local hour (0-23) to back up")
+	fs.StringVar(&c.Mode, "mode", or("SCABBAGE_MODE", "creative"), "game mode for new players: creative or survival")
 	fs.StringVar(&origins, "origins", or("SCABBAGE_ORIGINS", ""), "comma-separated extra allowed WebSocket origins")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
@@ -58,6 +60,9 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	}
 	if c.Backups < 0 || c.BackupHour < 0 || c.BackupHour > 23 {
 		return Config{}, errors.New("backups must be 0 or more and backup hour 0 to 23")
+	}
+	if c.Mode != "creative" && c.Mode != "survival" {
+		return Config{}, errors.New("mode must be creative or survival")
 	}
 	c.Origins = splitList(origins)
 	return c, nil

@@ -13,6 +13,7 @@ export class Player {
   readonly look = new Look(LOOK_RADIANS_PER_PIXEL);
   private prev = { x: 0, y: 0, z: 0 };
   private spare = 0;
+  private canFly = true;
 
   place(x: number, y: number, z: number): void {
     Object.assign(this.body, { x, y, z, vy: 0 });
@@ -21,8 +22,15 @@ export class Player {
   }
 
   toggleFly(): void {
+    if (!this.canFly) return;
     this.body.flying = !this.body.flying;
     this.body.vy = 0;
+  }
+
+  /** Survival players walk; turning flying off drops anyone in the air. */
+  allowFlying(on: boolean): void {
+    this.canFly = on;
+    if (!on) this.body.flying = false;
   }
 
   update(dt: number, input: MoveInput, solid: BoxesAt): void {

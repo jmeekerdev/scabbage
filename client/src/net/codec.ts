@@ -3,6 +3,7 @@ import {
   type ArtKind,
   ClientMessageSchema,
   type Emote,
+  type GameMode,
   ProtocolVersion,
   ServerMessageSchema,
   type JoinRequestSchema,
@@ -91,6 +92,10 @@ export function encodeDecideArt(id: bigint, approve: boolean): Bytes {
 
 export function encodeSetAdmin(playerId: bigint, admin: boolean): Bytes {
   return encode({ case: "setAdmin", value: { playerId, admin } });
+}
+
+export function encodeSetGameMode(playerId: bigint, mode: GameMode): Bytes {
+  return encode({ case: "setGameMode", value: { playerId, mode } });
 }
 
 export function decodeServer(bytes: Uint8Array): ServerMessage {

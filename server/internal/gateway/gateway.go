@@ -23,6 +23,7 @@ type Config struct {
 	Art            *art.Service
 	World          *world.World
 	ServerName     string
+	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
 	OriginPatterns []string // extra allowed Origin hosts, e.g. the Vite dev server
 	Logger         *slog.Logger

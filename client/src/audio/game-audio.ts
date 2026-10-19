@@ -2,7 +2,7 @@ import { BAR_BEATS, chordAt, midiHz } from "./chords";
 import { melody } from "./melody";
 import { noise, noiseBuffer, tone } from "./synth";
 
-export type Cue = "step" | "break" | "place" | "pop";
+export type Cue = "step" | "break" | "place" | "pop" | "hurt";
 
 const BEAT = 0.45; // seconds
 const PHRASE_BEATS = 24; // the three-chord progression, twice
@@ -25,6 +25,8 @@ const CUES: Record<Cue, Recipe> = {
   },
   pop: (ctx, out, _buf, t, g) =>
     tone(ctx, out, { freq: 660, endFreq: 990, start: t, dur: 0.12, gain: 0.25 * g }),
+  hurt: (ctx, out, _buf, t, g) =>
+    tone(ctx, out, { freq: 260, endFreq: 140, start: t, dur: 0.2, gain: 0.45 * g }),
 };
 
 /** Synthesized sound effects and gentle music; audio only starts after the first tap or key. */

@@ -54,3 +54,41 @@ func TestSetAdminOnUnknownPlayer(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNoPlayer", err)
 	}
 }
+
+func TestNewPlayersFollowTheServerMode(t *testing.T) {
+	f := newFixture(t)
+	if p := f.approved(t, secret(1), "Amy"); p.Mode != ModeDefault {
+		t.Fatalf("mode = %q, want the server default", p.Mode)
+	}
+}
+
+func TestSetModeIsRemembered(t *testing.T) {
+	f := newFixture(t)
+	p := f.approved(t, secret(1), "Amy")
+	for _, m := range []Mode{ModeSurvival, ModeCreative, ModeDefault} {
+		got, err := f.svc.SetMode(p.ID, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Mode != m || got.Name != "Amy" {
+			t.Fatalf("SetMode(%q) = %+v", m, got)
+		}
+		if r, _ := f.svc.Check(secret(1)); r.Player.Mode != m {
+			t.Fatalf("device sees mode %q, want %q", r.Player.Mode, m)
+		}
+		if ps, _ := f.svc.Players(); ps[0].Mode != m {
+			t.Fatalf("list shows mode %q, want %q", ps[0].Mode, m)
+		}
+	}
+}
+
+func TestSetModeRejectsUnknownModes(t *testing.T) {
+	f := newFixture(t)
+	p := f.approved(t, secret(1), "Amy")
+	if _, err := f.svc.SetMode(p.ID, "flying"); err == nil {
+		t.Fatal("unknown mode was stored")
+	}
+	if _, err := f.svc.SetMode(99, ModeSurvival); !errors.Is(err, ErrNoPlayer) {
+		t.Fatalf("err = %v, want ErrNoPlayer", err)
+	}
+}

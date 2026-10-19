@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file scabbage/v1/net.proto.
  */
 export const file_scabbage_v1_net: GenFile = /*@__PURE__*/
-  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIrEECg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAEjQKDnJlcXVlc3RfY2h1bmtzGAUgASgLMhouc2NhYmJhZ2UudjEuUmVxdWVzdENodW5rc0gAEiEKBG1vdmUYBiABKAsyES5zY2FiYmFnZS52MS5Nb3ZlSAASLAoKZWRpdF9ibG9jaxgHIAEoCzIWLnNjYWJiYWdlLnYxLkVkaXRCbG9ja0gAEioKCXNlbmRfY2hhdBgIIAEoCzIVLnNjYWJiYWdlLnYxLlNlbmRDaGF0SAASLAoKc2VuZF9lbW90ZRgJIAEoCzIWLnNjYWJiYWdlLnYxLlNlbmRFbW90ZUgAEiwKCnN1Ym1pdF9hcnQYCiABKAsyFi5zY2FiYmFnZS52MS5TdWJtaXRBcnRIABIsCgpkZWNpZGVfYXJ0GAsgASgLMhYuc2NhYmJhZ2UudjEuRGVjaWRlQXJ0SAASKgoJc2V0X2FkbWluGAwgASgLMhUuc2NhYmJhZ2UudjEuU2V0QWRtaW5IAEIGCgRib2R5Iv8GCg1TZXJ2ZXJNZXNzYWdlEicKB3dlbGNvbWUYASABKAsyFC5zY2FiYmFnZS52MS5XZWxjb21lSAASIQoEcG9uZxgCIAEoCzIRLnNjYWJiYWdlLnYxLlBvbmdIABItCgpkaXNjb25uZWN0GAMgASgLMhcuc2NhYmJhZ2UudjEuRGlzY29ubmVjdEgAEjAKDGpvaW5fcGVuZGluZxgEIAEoCzIYLnNjYWJiYWdlLnYxLkpvaW5QZW5kaW5nSAASOAoQcGVuZGluZ19yZXF1ZXN0cxgFIAEoCzIcLnNjYWJiYWdlLnYxLlBlbmRpbmdSZXF1ZXN0c0gAEjkKEWpvaW5fY29kZV9jcmVhdGVkGAYgASgLMhwuc2NhYmJhZ2UudjEuSm9pbkNvZGVDcmVhdGVkSAASLgoLY2h1bmtfYmF0Y2gYByABKAsyFy5zY2FiYmFnZS52MS5DaHVua0JhdGNoSAASKQoIdGVsZXBvcnQYCCABKAsyFS5zY2FiYmFnZS52MS5UZWxlcG9ydEgAEjIKDWJsb2NrX2NoYW5nZWQYCSABKAsyGS5zY2FiYmFnZS52MS5CbG9ja0NoYW5nZWRIABI0Cg5wbGF5ZXJzX2pvaW5lZBgKIAEoCzIaLnNjYWJiYWdlLnYxLlBsYXllcnNKb2luZWRIABIyCg1wbGF5ZXJzX21vdmVkGAsgASgLMhkuc2NhYmJhZ2UudjEuUGxheWVyc01vdmVkSAASLgoLcGxheWVyX2xlZnQYDCABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJMZWZ0SAASIQoEY2hhdBgNIAEoCzIRLnNjYWJiYWdlLnYxLkNoYXRIABIuCgtlbW90ZV9zaG93bhgOIAEoCzIXLnNjYWJiYWdlLnYxLkVtb3RlU2hvd25IABIwCgxhcnRfcmVxdWVzdHMYDyABKAsyGC5zY2FiYmFnZS52MS5BcnRSZXF1ZXN0c0gAEjQKDmJsb2Nrc19jaGFuZ2VkGBAgASgLMhouc2NhYmJhZ2UudjEuQmxvY2tzQ2hhbmdlZEgAEjAKDHNraW5fY2hhbmdlZBgRIAEoCzIYLnNjYWJiYWdlLnYxLlNraW5DaGFuZ2VkSAASLgoLcGxheWVyX2xpc3QYEiABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJMaXN0SABCBgoEYm9keSKGAQoFSGVsbG8SGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRITCgtjbGllbnRfbmFtZRgCIAEoCRIVCg1kZXZpY2Vfc2VjcmV0GAMgASgMEiYKBGpvaW4YBCABKAsyGC5zY2FiYmFnZS52MS5Kb2luUmVxdWVzdBIPCgdjb25zb2xlGAUgASgIIjgKC0pvaW5SZXF1ZXN0EgwKBGNvZGUYASABKAkSDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDSKbAQoHV2VsY29tZRIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC3NlcnZlcl9uYW1lGAIgASgJEhQKDHRpY2tfcmF0ZV9oehgDIAEoDRIkCgN5b3UYBCABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJJbmZvEiUKBXdvcmxkGAUgASgLMhYuc2NhYmJhZ2UudjEuV29ybGRJbmZvIp0BCglXb3JsZEluZm8SDgoGcmFkaXVzGAEgASgFEg4KBmhlaWdodBgCIAEoBRIgCgVzcGF3bhgDIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMSJgoGYmxvY2tzGAQgAygLMhYuc2NhYmJhZ2UudjEuQmxvY2tUeXBlEiYKCHRleHR1cmVzGAUgAygLMhQuc2NhYmJhZ2UudjEuVGV4dHVyZSKLAQoJQmxvY2tUeXBlEgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkSDQoFc29saWQYAyABKAgSEwoLdHJhbnNwYXJlbnQYBCABKAgSDgoGcGl4ZWxzGAUgASgMEiEKBXNoYXBlGAYgASgOMhIuc2NhYmJhZ2UudjEuU2hhcGUSDQoFbGlnaHQYByABKA0iJwoHVGV4dHVyZRIMCgRuYW1lGAEgASgJEg4KBnBpeGVscxgCIAEoDCJfCg1CbG9ja3NDaGFuZ2VkEiYKBmJsb2NrcxgBIAMoCzIWLnNjYWJiYWdlLnYxLkJsb2NrVHlwZRImCgh0ZXh0dXJlcxgCIAMoCzIULnNjYWJiYWdlLnYxLlRleHR1cmUiJwoEVmVjMxIJCgF4GAEgASgCEgkKAXkYAiABKAISCQoBehgDIAEoAiIrCghDaHVua1BvcxIJCgF4GAEgASgREgkKAXkYAiABKBESCQoBehgDIAEoESI2Cg1SZXF1ZXN0Q2h1bmtzEiUKBmNodW5rcxgBIAMoCzIVLnNjYWJiYWdlLnYxLkNodW5rUG9zIjQKCkNodW5rQmF0Y2gSJgoGY2h1bmtzGAEgAygLMhYuc2NhYmJhZ2UudjEuQ2h1bmtEYXRhIj0KCUNodW5rRGF0YRIiCgNwb3MYASABKAsyFS5zY2FiYmFnZS52MS5DaHVua1BvcxIMCgRkYXRhGAIgASgMIlQKBE1vdmUSHgoDcG9zGAEgASgLMhEuc2NhYmJhZ2UudjEuVmVjMxILCgN5YXcYAiABKAISDQoFcGl0Y2gYAyABKAISEAoIdGVsZXBvcnQYBCABKA0iNgoIVGVsZXBvcnQSCgoCaWQYASABKA0SHgoDcG9zGAIgASgLMhEuc2NhYmJhZ2UudjEuVmVjMyIrCghCbG9ja1BvcxIJCgF4GAEgASgREgkKAXkYAiABKBESCQoBehgDIAEoESI+CglFZGl0QmxvY2sSIgoDcG9zGAEgASgLMhUuc2NhYmJhZ2UudjEuQmxvY2tQb3MSDQoFYmxvY2sYAiABKA0iQQoMQmxvY2tDaGFuZ2VkEiIKA3BvcxgBIAEoCzIVLnNjYWJiYWdlLnYxLkJsb2NrUG9zEg0KBWJsb2NrGAIgASgNIm8KC090aGVyUGxheWVyEg4KBmVudGl0eRgBIAEoDRIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNEiUKBHBvc2UYBCABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJQb3NlEgwKBHNraW4YBSABKAwiKwoLU2tpbkNoYW5nZWQSDgoGZW50aXR5GAEgASgNEgwKBHNraW4YAiABKAwiWAoKUGxheWVyUG9zZRIOCgZlbnRpdHkYASABKA0SHgoDcG9zGAIgASgLMhEuc2NhYmJhZ2UudjEuVmVjMxILCgN5YXcYAyABKAISDQoFcGl0Y2gYBCABKAIiOgoNUGxheWVyc0pvaW5lZBIpCgdwbGF5ZXJzGAEgAygLMhguc2NhYmJhZ2UudjEuT3RoZXJQbGF5ZXIiNgoMUGxheWVyc01vdmVkEiYKBXBvc2VzGAEgAygLMhcuc2NhYmJhZ2UudjEuUGxheWVyUG9zZSIcCgpQbGF5ZXJMZWZ0Eg4KBmVudGl0eRgBIAEoDSIYCghTZW5kQ2hhdBIMCgR0ZXh0GAEgASgJIkEKBENoYXQSDAoEbmFtZRgBIAEoCRINCgVjb2xvchgCIAEoDRIMCgR0ZXh0GAMgASgJEg4KBm5vdGljZRgEIAEoCCIuCglTZW5kRW1vdGUSIQoFZW1vdGUYASABKA4yEi5zY2FiYmFnZS52MS5FbW90ZSI/CgpFbW90ZVNob3duEg4KBmVudGl0eRgBIAEoDRIhCgVlbW90ZRgCIAEoDjISLnNjYWJiYWdlLnYxLkVtb3RlIlIKClBsYXllckluZm8SCgoCaWQYASABKAQSDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDRINCgVhZG1pbhgEIAEoCBIMCgRza2luGAUgASgMIg0KC0pvaW5QZW5kaW5nIkAKD1BlbmRpbmdSZXF1ZXN0cxItCghyZXF1ZXN0cxgBIAMoCzIbLnNjYWJiYWdlLnYxLlBlbmRpbmdSZXF1ZXN0ImAKDlBlbmRpbmdSZXF1ZXN0EgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SEQoJcmV0dXJuaW5nGAQgASgIEhIKCmNyZWF0ZWRfbXMYBSABKAEiMQoKRGVjaWRlSm9pbhISCgpyZXF1ZXN0X2lkGAEgASgEEg8KB2FwcHJvdmUYAiABKAgiNgoKUGxheWVyTGlzdBIoCgdwbGF5ZXJzGAEgAygLMhcuc2NhYmJhZ2UudjEuUGxheWVySW5mbyIsCghTZXRBZG1pbhIRCglwbGF5ZXJfaWQYASABKAQSDQoFYWRtaW4YAiABKAgiMQoOQ3JlYXRlSm9pbkNvZGUSDAoEdXNlcxgBIAEoDRIRCgl0dGxfaG91cnMYAiABKA0iTQoJU3VibWl0QXJ0EiIKBGtpbmQYASABKA4yFC5zY2FiYmFnZS52MS5BcnRLaW5kEgwKBG5hbWUYAiABKAkSDgoGcGl4ZWxzGAMgASgMIjgKC0FydFJlcXVlc3RzEikKCHJlcXVlc3RzGAEgAygLMhcuc2NhYmJhZ2UudjEuQXJ0UmVxdWVzdCKUAQoKQXJ0UmVxdWVzdBIKCgJpZBgBIAEoBBIiCgRraW5kGAIgASgOMhQuc2NhYmJhZ2UudjEuQXJ0S2luZBIMCgRuYW1lGAMgASgJEg4KBmF1dGhvchgEIAEoCRIUCgxhdXRob3JfY29sb3IYBSABKA0SDgoGcGl4ZWxzGAYgASgMEhIKCmNyZWF0ZWRfbXMYByABKAEiKAoJRGVjaWRlQXJ0EgoKAmlkGAEgASgEEg8KB2FwcHJvdmUYAiABKAgiQQoPSm9pbkNvZGVDcmVhdGVkEgwKBGNvZGUYASABKAkSDAoEdXNlcxgCIAEoDRISCgpleHBpcmVzX21zGAMgASgBIh4KBFBpbmcSFgoOY2xpZW50X3RpbWVfbXMYASABKAEiNgoEUG9uZxIWCg5jbGllbnRfdGltZV9tcxgBIAEoARIWCg5zZXJ2ZXJfdGltZV9tcxgCIAEoASJHCgpEaXNjb25uZWN0Eg4KBnJlYXNvbhgBIAEoCRIpCgRjb2RlGAIgASgOMhsuc2NhYmJhZ2UudjEuRGlzY29ubmVjdENvZGUqUQoPUHJvdG9jb2xWZXJzaW9uEiAKHFBST1RPQ09MX1ZFUlNJT05fVU5TUEVDSUZJRUQQABIcChhQUk9UT0NPTF9WRVJTSU9OX0NVUlJFTlQQCiqdAQoFU2hhcGUSFQoRU0hBUEVfVU5TUEVDSUZJRUQQABIOCgpTSEFQRV9TTEFCEAESFgoSU0hBUEVfU1RBSVJTX05PUlRIEAISFQoRU0hBUEVfU1RBSVJTX0VBU1QQAxIWChJTSEFQRV9TVEFJUlNfU09VVEgQBBIVChFTSEFQRV9TVEFJUlNfV0VTVBAFEg8KC1NIQVBFX1RPUkNIEAYqpAEKBUVtb3RlEhUKEUVNT1RFX1VOU1BFQ0lGSUVEEAASDgoKRU1PVEVfV0FWRRABEg8KC0VNT1RFX0hBUFBZEAISDwoLRU1PVEVfTEFVR0gQAxIOCgpFTU9URV9MT1ZFEAQSEwoPRU1PVEVfVEhVTUJTX1VQEAUSDQoJRU1PVEVfV09XEAYSDQoJRU1PVEVfU0FEEAcSDwoLRU1PVEVfUEFSVFkQCCpgCgdBcnRLaW5kEhgKFEFSVF9LSU5EX1VOU1BFQ0lGSUVEEAASEQoNQVJUX0tJTkRfU0tJThABEhIKDkFSVF9LSU5EX0JMT0NLEAISFAoQQVJUX0tJTkRfVEVYVFVSRRADKpECCg5EaXNjb25uZWN0Q29kZRIfChtESVNDT05ORUNUX0NPREVfVU5TUEVDSUZJRUQQABIcChhESVNDT05ORUNUX0NPREVfUFJPVE9DT0wQARIiCh5ESVNDT05ORUNUX0NPREVfTkVFRF9KT0lOX0NPREUQAhIhCh1ESVNDT05ORUNUX0NPREVfQkFEX0pPSU5fQ09ERRADEhwKGERJU0NPTk5FQ1RfQ09ERV9CQURfTkFNRRAEEhoKFkRJU0NPTk5FQ1RfQ09ERV9ERU5JRUQQBRIgChxESVNDT05ORUNUX0NPREVfUkFURV9MSU1JVEVEEAYSHQoZRElTQ09OTkVDVF9DT0RFX05PVF9BRE1JThAHQi1aK3NjYWJiYWdlL2ludGVybmFsL3BiL3NjYWJiYWdlL3YxO3NjYWJiYWdldjFiBnByb3RvMw");
+  fileDesc("ChVzY2FiYmFnZS92MS9uZXQucHJvdG8SC3NjYWJiYWdlLnYxIuQECg1DbGllbnRNZXNzYWdlEiMKBWhlbGxvGAEgASgLMhIuc2NhYmJhZ2UudjEuSGVsbG9IABIhCgRwaW5nGAIgASgLMhEuc2NhYmJhZ2UudjEuUGluZ0gAEi4KC2RlY2lkZV9qb2luGAMgASgLMhcuc2NhYmJhZ2UudjEuRGVjaWRlSm9pbkgAEjcKEGNyZWF0ZV9qb2luX2NvZGUYBCABKAsyGy5zY2FiYmFnZS52MS5DcmVhdGVKb2luQ29kZUgAEjQKDnJlcXVlc3RfY2h1bmtzGAUgASgLMhouc2NhYmJhZ2UudjEuUmVxdWVzdENodW5rc0gAEiEKBG1vdmUYBiABKAsyES5zY2FiYmFnZS52MS5Nb3ZlSAASLAoKZWRpdF9ibG9jaxgHIAEoCzIWLnNjYWJiYWdlLnYxLkVkaXRCbG9ja0gAEioKCXNlbmRfY2hhdBgIIAEoCzIVLnNjYWJiYWdlLnYxLlNlbmRDaGF0SAASLAoKc2VuZF9lbW90ZRgJIAEoCzIWLnNjYWJiYWdlLnYxLlNlbmRFbW90ZUgAEiwKCnN1Ym1pdF9hcnQYCiABKAsyFi5zY2FiYmFnZS52MS5TdWJtaXRBcnRIABIsCgpkZWNpZGVfYXJ0GAsgASgLMhYuc2NhYmJhZ2UudjEuRGVjaWRlQXJ0SAASKgoJc2V0X2FkbWluGAwgASgLMhUuc2NhYmJhZ2UudjEuU2V0QWRtaW5IABIxCg1zZXRfZ2FtZV9tb2RlGA0gASgLMhguc2NhYmJhZ2UudjEuU2V0R2FtZU1vZGVIAEIGCgRib2R5IqYHCg1TZXJ2ZXJNZXNzYWdlEicKB3dlbGNvbWUYASABKAsyFC5zY2FiYmFnZS52MS5XZWxjb21lSAASIQoEcG9uZxgCIAEoCzIRLnNjYWJiYWdlLnYxLlBvbmdIABItCgpkaXNjb25uZWN0GAMgASgLMhcuc2NhYmJhZ2UudjEuRGlzY29ubmVjdEgAEjAKDGpvaW5fcGVuZGluZxgEIAEoCzIYLnNjYWJiYWdlLnYxLkpvaW5QZW5kaW5nSAASOAoQcGVuZGluZ19yZXF1ZXN0cxgFIAEoCzIcLnNjYWJiYWdlLnYxLlBlbmRpbmdSZXF1ZXN0c0gAEjkKEWpvaW5fY29kZV9jcmVhdGVkGAYgASgLMhwuc2NhYmJhZ2UudjEuSm9pbkNvZGVDcmVhdGVkSAASLgoLY2h1bmtfYmF0Y2gYByABKAsyFy5zY2FiYmFnZS52MS5DaHVua0JhdGNoSAASKQoIdGVsZXBvcnQYCCABKAsyFS5zY2FiYmFnZS52MS5UZWxlcG9ydEgAEjIKDWJsb2NrX2NoYW5nZWQYCSABKAsyGS5zY2FiYmFnZS52MS5CbG9ja0NoYW5nZWRIABI0Cg5wbGF5ZXJzX2pvaW5lZBgKIAEoCzIaLnNjYWJiYWdlLnYxLlBsYXllcnNKb2luZWRIABIyCg1wbGF5ZXJzX21vdmVkGAsgASgLMhkuc2NhYmJhZ2UudjEuUGxheWVyc01vdmVkSAASLgoLcGxheWVyX2xlZnQYDCABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJMZWZ0SAASIQoEY2hhdBgNIAEoCzIRLnNjYWJiYWdlLnYxLkNoYXRIABIuCgtlbW90ZV9zaG93bhgOIAEoCzIXLnNjYWJiYWdlLnYxLkVtb3RlU2hvd25IABIwCgxhcnRfcmVxdWVzdHMYDyABKAsyGC5zY2FiYmFnZS52MS5BcnRSZXF1ZXN0c0gAEjQKDmJsb2Nrc19jaGFuZ2VkGBAgASgLMhouc2NhYmJhZ2UudjEuQmxvY2tzQ2hhbmdlZEgAEjAKDHNraW5fY2hhbmdlZBgRIAEoCzIYLnNjYWJiYWdlLnYxLlNraW5DaGFuZ2VkSAASLgoLcGxheWVyX2xpc3QYEiABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJMaXN0SAASJQoGdml0YWxzGBMgASgLMhMuc2NhYmJhZ2UudjEuVml0YWxzSABCBgoEYm9keSKGAQoFSGVsbG8SGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRITCgtjbGllbnRfbmFtZRgCIAEoCRIVCg1kZXZpY2Vfc2VjcmV0GAMgASgMEiYKBGpvaW4YBCABKAsyGC5zY2FiYmFnZS52MS5Kb2luUmVxdWVzdBIPCgdjb25zb2xlGAUgASgIIjgKC0pvaW5SZXF1ZXN0EgwKBGNvZGUYASABKAkSDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDSLAAQoHV2VsY29tZRIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhMKC3NlcnZlcl9uYW1lGAIgASgJEhQKDHRpY2tfcmF0ZV9oehgDIAEoDRIkCgN5b3UYBCABKAsyFy5zY2FiYmFnZS52MS5QbGF5ZXJJbmZvEiUKBXdvcmxkGAUgASgLMhYuc2NhYmJhZ2UudjEuV29ybGRJbmZvEiMKBnZpdGFscxgGIAEoCzITLnNjYWJiYWdlLnYxLlZpdGFscyKdAQoJV29ybGRJbmZvEg4KBnJhZGl1cxgBIAEoBRIOCgZoZWlnaHQYAiABKAUSIAoFc3Bhd24YAyABKAsyES5zY2FiYmFnZS52MS5WZWMzEiYKBmJsb2NrcxgEIAMoCzIWLnNjYWJiYWdlLnYxLkJsb2NrVHlwZRImCgh0ZXh0dXJlcxgFIAMoCzIULnNjYWJiYWdlLnYxLlRleHR1cmUiiwEKCUJsb2NrVHlwZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEg0KBXNvbGlkGAMgASgIEhMKC3RyYW5zcGFyZW50GAQgASgIEg4KBnBpeGVscxgFIAEoDBIhCgVzaGFwZRgGIAEoDjISLnNjYWJiYWdlLnYxLlNoYXBlEg0KBWxpZ2h0GAcgASgNIicKB1RleHR1cmUSDAoEbmFtZRgBIAEoCRIOCgZwaXhlbHMYAiABKAwiXwoNQmxvY2tzQ2hhbmdlZBImCgZibG9ja3MYASADKAsyFi5zY2FiYmFnZS52MS5CbG9ja1R5cGUSJgoIdGV4dHVyZXMYAiADKAsyFC5zY2FiYmFnZS52MS5UZXh0dXJlIicKBFZlYzMSCQoBeBgBIAEoAhIJCgF5GAIgASgCEgkKAXoYAyABKAIiKwoIQ2h1bmtQb3MSCQoBeBgBIAEoERIJCgF5GAIgASgREgkKAXoYAyABKBEiNgoNUmVxdWVzdENodW5rcxIlCgZjaHVua3MYASADKAsyFS5zY2FiYmFnZS52MS5DaHVua1BvcyI0CgpDaHVua0JhdGNoEiYKBmNodW5rcxgBIAMoCzIWLnNjYWJiYWdlLnYxLkNodW5rRGF0YSI9CglDaHVua0RhdGESIgoDcG9zGAEgASgLMhUuc2NhYmJhZ2UudjEuQ2h1bmtQb3MSDAoEZGF0YRgCIAEoDCJUCgRNb3ZlEh4KA3BvcxgBIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMSCwoDeWF3GAIgASgCEg0KBXBpdGNoGAMgASgCEhAKCHRlbGVwb3J0GAQgASgNIjYKCFRlbGVwb3J0EgoKAmlkGAEgASgNEh4KA3BvcxgCIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMiKwoIQmxvY2tQb3MSCQoBeBgBIAEoERIJCgF5GAIgASgREgkKAXoYAyABKBEiPgoJRWRpdEJsb2NrEiIKA3BvcxgBIAEoCzIVLnNjYWJiYWdlLnYxLkJsb2NrUG9zEg0KBWJsb2NrGAIgASgNIkEKDEJsb2NrQ2hhbmdlZBIiCgNwb3MYASABKAsyFS5zY2FiYmFnZS52MS5CbG9ja1BvcxINCgVibG9jaxgCIAEoDSJvCgtPdGhlclBsYXllchIOCgZlbnRpdHkYASABKA0SDAoEbmFtZRgCIAEoCRINCgVjb2xvchgDIAEoDRIlCgRwb3NlGAQgASgLMhcuc2NhYmJhZ2UudjEuUGxheWVyUG9zZRIMCgRza2luGAUgASgMIisKC1NraW5DaGFuZ2VkEg4KBmVudGl0eRgBIAEoDRIMCgRza2luGAIgASgMIlgKClBsYXllclBvc2USDgoGZW50aXR5GAEgASgNEh4KA3BvcxgCIAEoCzIRLnNjYWJiYWdlLnYxLlZlYzMSCwoDeWF3GAMgASgCEg0KBXBpdGNoGAQgASgCIjoKDVBsYXllcnNKb2luZWQSKQoHcGxheWVycxgBIAMoCzIYLnNjYWJiYWdlLnYxLk90aGVyUGxheWVyIjYKDFBsYXllcnNNb3ZlZBImCgVwb3NlcxgBIAMoCzIXLnNjYWJiYWdlLnYxLlBsYXllclBvc2UiHAoKUGxheWVyTGVmdBIOCgZlbnRpdHkYASABKA0iGAoIU2VuZENoYXQSDAoEdGV4dBgBIAEoCSJBCgRDaGF0EgwKBG5hbWUYASABKAkSDQoFY29sb3IYAiABKA0SDAoEdGV4dBgDIAEoCRIOCgZub3RpY2UYBCABKAgiLgoJU2VuZEVtb3RlEiEKBWVtb3RlGAEgASgOMhIuc2NhYmJhZ2UudjEuRW1vdGUiPwoKRW1vdGVTaG93bhIOCgZlbnRpdHkYASABKA0SIQoFZW1vdGUYAiABKA4yEi5zY2FiYmFnZS52MS5FbW90ZSJ3CgpQbGF5ZXJJbmZvEgoKAmlkGAEgASgEEgwKBG5hbWUYAiABKAkSDQoFY29sb3IYAyABKA0SDQoFYWRtaW4YBCABKAgSDAoEc2tpbhgFIAEoDBIjCgRtb2RlGAYgASgOMhUuc2NhYmJhZ2UudjEuR2FtZU1vZGUiXgoGVml0YWxzEiMKBG1vZGUYASABKA4yFS5zY2FiYmFnZS52MS5HYW1lTW9kZRIOCgZoZWFsdGgYAiABKA0SHwoEaHVydBgDIAEoDjIRLnNjYWJiYWdlLnYxLkhhcm0iRQoLU2V0R2FtZU1vZGUSEQoJcGxheWVyX2lkGAEgASgEEiMKBG1vZGUYAiABKA4yFS5zY2FiYmFnZS52MS5HYW1lTW9kZSINCgtKb2luUGVuZGluZyJACg9QZW5kaW5nUmVxdWVzdHMSLQoIcmVxdWVzdHMYASADKAsyGy5zY2FiYmFnZS52MS5QZW5kaW5nUmVxdWVzdCJgCg5QZW5kaW5nUmVxdWVzdBIKCgJpZBgBIAEoBBIMCgRuYW1lGAIgASgJEg0KBWNvbG9yGAMgASgNEhEKCXJldHVybmluZxgEIAEoCBISCgpjcmVhdGVkX21zGAUgASgBIjEKCkRlY2lkZUpvaW4SEgoKcmVxdWVzdF9pZBgBIAEoBBIPCgdhcHByb3ZlGAIgASgIIjYKClBsYXllckxpc3QSKAoHcGxheWVycxgBIAMoCzIXLnNjYWJiYWdlLnYxLlBsYXllckluZm8iLAoIU2V0QWRtaW4SEQoJcGxheWVyX2lkGAEgASgEEg0KBWFkbWluGAIgASgIIjEKDkNyZWF0ZUpvaW5Db2RlEgwKBHVzZXMYASABKA0SEQoJdHRsX2hvdXJzGAIgASgNIk0KCVN1Ym1pdEFydBIiCgRraW5kGAEgASgOMhQuc2NhYmJhZ2UudjEuQXJ0S2luZBIMCgRuYW1lGAIgASgJEg4KBnBpeGVscxgDIAEoDCI4CgtBcnRSZXF1ZXN0cxIpCghyZXF1ZXN0cxgBIAMoCzIXLnNjYWJiYWdlLnYxLkFydFJlcXVlc3QilAEKCkFydFJlcXVlc3QSCgoCaWQYASABKAQSIgoEa2luZBgCIAEoDjIULnNjYWJiYWdlLnYxLkFydEtpbmQSDAoEbmFtZRgDIAEoCRIOCgZhdXRob3IYBCABKAkSFAoMYXV0aG9yX2NvbG9yGAUgASgNEg4KBnBpeGVscxgGIAEoDBISCgpjcmVhdGVkX21zGAcgASgBIigKCURlY2lkZUFydBIKCgJpZBgBIAEoBBIPCgdhcHByb3ZlGAIgASgIIkEKD0pvaW5Db2RlQ3JlYXRlZBIMCgRjb2RlGAEgASgJEgwKBHVzZXMYAiABKA0SEgoKZXhwaXJlc19tcxgDIAEoASIeCgRQaW5nEhYKDmNsaWVudF90aW1lX21zGAEgASgBIjYKBFBvbmcSFgoOY2xpZW50X3RpbWVfbXMYASABKAESFgoOc2VydmVyX3RpbWVfbXMYAiABKAEiRwoKRGlzY29ubmVjdBIOCgZyZWFzb24YASABKAkSKQoEY29kZRgCIAEoDjIbLnNjYWJiYWdlLnYxLkRpc2Nvbm5lY3RDb2RlKlEKD1Byb3RvY29sVmVyc2lvbhIgChxQUk9UT0NPTF9WRVJTSU9OX1VOU1BFQ0lGSUVEEAASHAoYUFJPVE9DT0xfVkVSU0lPTl9DVVJSRU5UEAsqnQEKBVNoYXBlEhUKEVNIQVBFX1VOU1BFQ0lGSUVEEAASDgoKU0hBUEVfU0xBQhABEhYKElNIQVBFX1NUQUlSU19OT1JUSBACEhUKEVNIQVBFX1NUQUlSU19FQVNUEAMSFgoSU0hBUEVfU1RBSVJTX1NPVVRIEAQSFQoRU0hBUEVfU1RBSVJTX1dFU1QQBRIPCgtTSEFQRV9UT1JDSBAGKqQBCgVFbW90ZRIVChFFTU9URV9VTlNQRUNJRklFRBAAEg4KCkVNT1RFX1dBVkUQARIPCgtFTU9URV9IQVBQWRACEg8KC0VNT1RFX0xBVUdIEAMSDgoKRU1PVEVfTE9WRRAEEhMKD0VNT1RFX1RIVU1CU19VUBAFEg0KCUVNT1RFX1dPVxAGEg0KCUVNT1RFX1NBRBAHEg8KC0VNT1RFX1BBUlRZEAgqVQoIR2FtZU1vZGUSGQoVR0FNRV9NT0RFX1VOU1BFQ0lGSUVEEAASFgoSR0FNRV9NT0RFX0NSRUFUSVZFEAESFgoSR0FNRV9NT0RFX1NVUlZJVkFMEAIqKwoESGFybRIUChBIQVJNX1VOU1BFQ0lGSUVEEAASDQoJSEFSTV9GQUxMEAEqYAoHQXJ0S2luZBIYChRBUlRfS0lORF9VTlNQRUNJRklFRBAAEhEKDUFSVF9LSU5EX1NLSU4QARISCg5BUlRfS0lORF9CTE9DSxACEhQKEEFSVF9LSU5EX1RFWFRVUkUQAyqRAgoORGlzY29ubmVjdENvZGUSHwobRElTQ09OTkVDVF9DT0RFX1VOU1BFQ0lGSUVEEAASHAoYRElTQ09OTkVDVF9DT0RFX1BST1RPQ09MEAESIgoeRElTQ09OTkVDVF9DT0RFX05FRURfSk9JTl9DT0RFEAISIQodRElTQ09OTkVDVF9DT0RFX0JBRF9KT0lOX0NPREUQAxIcChhESVNDT05ORUNUX0NPREVfQkFEX05BTUUQBBIaChZESVNDT05ORUNUX0NPREVfREVOSUVEEAUSIAocRElTQ09OTkVDVF9DT0RFX1JBVEVfTElNSVRFRBAGEh0KGURJU0NPTk5FQ1RfQ09ERV9OT1RfQURNSU4QB0ItWitzY2FiYmFnZS9pbnRlcm5hbC9wYi9zY2FiYmFnZS92MTtzY2FiYmFnZXYxYgZwcm90bzM");
 
 /**
  * Every WebSocket binary frame from a client is one ClientMessage.
@@ -93,6 +93,12 @@ export type ClientMessage = Message<"scabbage.v1.ClientMessage"> & {
      */
     value: SetAdmin;
     case: "setAdmin";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.SetGameMode set_game_mode = 13;
+     */
+    value: SetGameMode;
+    case: "setGameMode";
   } | { case: undefined; value?: undefined };
 };
 
@@ -220,6 +226,12 @@ export type ServerMessage = Message<"scabbage.v1.ServerMessage"> & {
      */
     value: PlayerList;
     case: "playerList";
+  } | {
+    /**
+     * @generated from field: scabbage.v1.Vitals vitals = 19;
+     */
+    value: Vitals;
+    case: "vitals";
   } | { case: undefined; value?: undefined };
 };
 
@@ -334,6 +346,13 @@ export type Welcome = Message<"scabbage.v1.Welcome"> & {
    * @generated from field: scabbage.v1.WorldInfo world = 5;
    */
   world?: WorldInfo | undefined;
+
+  /**
+   * unset for admin console connections
+   *
+   * @generated from field: scabbage.v1.Vitals vitals = 6;
+   */
+  vitals?: Vitals | undefined;
 };
 
 /**
@@ -1021,6 +1040,11 @@ export type PlayerInfo = Message<"scabbage.v1.PlayerInfo"> & {
    * @generated from field: bytes skin = 5;
    */
   skin: Uint8Array;
+
+  /**
+   * @generated from field: scabbage.v1.GameMode mode = 6;
+   */
+  mode: GameMode;
 };
 
 /**
@@ -1029,6 +1053,62 @@ export type PlayerInfo = Message<"scabbage.v1.PlayerInfo"> & {
  */
 export const PlayerInfoSchema: GenMessage<PlayerInfo> = /*@__PURE__*/
   messageDesc(file_scabbage_v1_net, 29);
+
+/**
+ * Your own health (0 to 20) and game mode; in Welcome, then sent whenever either changes.
+ * At 0 you fainted: a Teleport back to spawn and full health follow.
+ *
+ * @generated from message scabbage.v1.Vitals
+ */
+export type Vitals = Message<"scabbage.v1.Vitals"> & {
+  /**
+   * @generated from field: scabbage.v1.GameMode mode = 1;
+   */
+  mode: GameMode;
+
+  /**
+   * @generated from field: uint32 health = 2;
+   */
+  health: number;
+
+  /**
+   * set when health just dropped
+   *
+   * @generated from field: scabbage.v1.Harm hurt = 3;
+   */
+  hurt: Harm;
+};
+
+/**
+ * Describes the message scabbage.v1.Vitals.
+ * Use `create(VitalsSchema)` to create a new message.
+ */
+export const VitalsSchema: GenMessage<Vitals> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 30);
+
+/**
+ * Admin only; takes effect at once.
+ *
+ * @generated from message scabbage.v1.SetGameMode
+ */
+export type SetGameMode = Message<"scabbage.v1.SetGameMode"> & {
+  /**
+   * @generated from field: uint64 player_id = 1;
+   */
+  playerId: bigint;
+
+  /**
+   * @generated from field: scabbage.v1.GameMode mode = 2;
+   */
+  mode: GameMode;
+};
+
+/**
+ * Describes the message scabbage.v1.SetGameMode.
+ * Use `create(SetGameModeSchema)` to create a new message.
+ */
+export const SetGameModeSchema: GenMessage<SetGameMode> = /*@__PURE__*/
+  messageDesc(file_scabbage_v1_net, 31);
 
 /**
  * The join request is waiting for an admin; the connection stays open until a decision.
@@ -1043,7 +1123,7 @@ export type JoinPending = Message<"scabbage.v1.JoinPending"> & {
  * Use `create(JoinPendingSchema)` to create a new message.
  */
 export const JoinPendingSchema: GenMessage<JoinPending> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 30);
+  messageDesc(file_scabbage_v1_net, 32);
 
 /**
  * Sent to admins on connect and whenever the pending list changes.
@@ -1062,7 +1142,7 @@ export type PendingRequests = Message<"scabbage.v1.PendingRequests"> & {
  * Use `create(PendingRequestsSchema)` to create a new message.
  */
 export const PendingRequestsSchema: GenMessage<PendingRequests> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 31);
+  messageDesc(file_scabbage_v1_net, 33);
 
 /**
  * @generated from message scabbage.v1.PendingRequest
@@ -1101,7 +1181,7 @@ export type PendingRequest = Message<"scabbage.v1.PendingRequest"> & {
  * Use `create(PendingRequestSchema)` to create a new message.
  */
 export const PendingRequestSchema: GenMessage<PendingRequest> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 32);
+  messageDesc(file_scabbage_v1_net, 34);
 
 /**
  * Admin only.
@@ -1125,7 +1205,7 @@ export type DecideJoin = Message<"scabbage.v1.DecideJoin"> & {
  * Use `create(DecideJoinSchema)` to create a new message.
  */
 export const DecideJoinSchema: GenMessage<DecideJoin> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 33);
+  messageDesc(file_scabbage_v1_net, 35);
 
 /**
  * Every approved player, sent to admins on connect and whenever someone's admin rights change.
@@ -1146,7 +1226,7 @@ export type PlayerList = Message<"scabbage.v1.PlayerList"> & {
  * Use `create(PlayerListSchema)` to create a new message.
  */
 export const PlayerListSchema: GenMessage<PlayerList> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 34);
+  messageDesc(file_scabbage_v1_net, 36);
 
 /**
  * Admin only; admins can't change their own rights. The player reconnects to pick up the change.
@@ -1170,7 +1250,7 @@ export type SetAdmin = Message<"scabbage.v1.SetAdmin"> & {
  * Use `create(SetAdminSchema)` to create a new message.
  */
 export const SetAdminSchema: GenMessage<SetAdmin> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 35);
+  messageDesc(file_scabbage_v1_net, 37);
 
 /**
  * Admin only.
@@ -1194,7 +1274,7 @@ export type CreateJoinCode = Message<"scabbage.v1.CreateJoinCode"> & {
  * Use `create(CreateJoinCodeSchema)` to create a new message.
  */
 export const CreateJoinCodeSchema: GenMessage<CreateJoinCode> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 36);
+  messageDesc(file_scabbage_v1_net, 38);
 
 /**
  * Pixel art for an admin to approve; admins' own art is approved at once. Rows run top-down.
@@ -1223,7 +1303,7 @@ export type SubmitArt = Message<"scabbage.v1.SubmitArt"> & {
  * Use `create(SubmitArtSchema)` to create a new message.
  */
 export const SubmitArtSchema: GenMessage<SubmitArt> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 37);
+  messageDesc(file_scabbage_v1_net, 39);
 
 /**
  * Sent to admins on connect and whenever the art waiting for approval changes.
@@ -1242,7 +1322,7 @@ export type ArtRequests = Message<"scabbage.v1.ArtRequests"> & {
  * Use `create(ArtRequestsSchema)` to create a new message.
  */
 export const ArtRequestsSchema: GenMessage<ArtRequests> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 38);
+  messageDesc(file_scabbage_v1_net, 40);
 
 /**
  * @generated from message scabbage.v1.ArtRequest
@@ -1289,7 +1369,7 @@ export type ArtRequest = Message<"scabbage.v1.ArtRequest"> & {
  * Use `create(ArtRequestSchema)` to create a new message.
  */
 export const ArtRequestSchema: GenMessage<ArtRequest> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 39);
+  messageDesc(file_scabbage_v1_net, 41);
 
 /**
  * Admin only.
@@ -1313,7 +1393,7 @@ export type DecideArt = Message<"scabbage.v1.DecideArt"> & {
  * Use `create(DecideArtSchema)` to create a new message.
  */
 export const DecideArtSchema: GenMessage<DecideArt> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 40);
+  messageDesc(file_scabbage_v1_net, 42);
 
 /**
  * @generated from message scabbage.v1.JoinCodeCreated
@@ -1340,7 +1420,7 @@ export type JoinCodeCreated = Message<"scabbage.v1.JoinCodeCreated"> & {
  * Use `create(JoinCodeCreatedSchema)` to create a new message.
  */
 export const JoinCodeCreatedSchema: GenMessage<JoinCodeCreated> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 41);
+  messageDesc(file_scabbage_v1_net, 43);
 
 /**
  * @generated from message scabbage.v1.Ping
@@ -1357,7 +1437,7 @@ export type Ping = Message<"scabbage.v1.Ping"> & {
  * Use `create(PingSchema)` to create a new message.
  */
 export const PingSchema: GenMessage<Ping> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 42);
+  messageDesc(file_scabbage_v1_net, 44);
 
 /**
  * @generated from message scabbage.v1.Pong
@@ -1379,7 +1459,7 @@ export type Pong = Message<"scabbage.v1.Pong"> & {
  * Use `create(PongSchema)` to create a new message.
  */
 export const PongSchema: GenMessage<Pong> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 43);
+  messageDesc(file_scabbage_v1_net, 45);
 
 /**
  * @generated from message scabbage.v1.Disconnect
@@ -1401,7 +1481,7 @@ export type Disconnect = Message<"scabbage.v1.Disconnect"> & {
  * Use `create(DisconnectSchema)` to create a new message.
  */
 export const DisconnectSchema: GenMessage<Disconnect> = /*@__PURE__*/
-  messageDesc(file_scabbage_v1_net, 44);
+  messageDesc(file_scabbage_v1_net, 46);
 
 /**
  * Bump CURRENT on any incompatible protocol change.
@@ -1415,9 +1495,9 @@ export enum ProtocolVersion {
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 10;
+   * @generated from enum value: PROTOCOL_VERSION_CURRENT = 11;
    */
-  CURRENT = 10,
+  CURRENT = 11,
 }
 
 /**
@@ -1533,6 +1613,57 @@ export const EmoteSchema: GenEnum<Emote> = /*@__PURE__*/
   enumDesc(file_scabbage_v1_net, 2);
 
 /**
+ * @generated from enum scabbage.v1.GameMode
+ */
+export enum GameMode {
+  /**
+   * @generated from enum value: GAME_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * can fly and never gets hurt
+   *
+   * @generated from enum value: GAME_MODE_CREATIVE = 1;
+   */
+  CREATIVE = 1,
+
+  /**
+   * walks, can get hurt and faint
+   *
+   * @generated from enum value: GAME_MODE_SURVIVAL = 2;
+   */
+  SURVIVAL = 2,
+}
+
+/**
+ * Describes the enum scabbage.v1.GameMode.
+ */
+export const GameModeSchema: GenEnum<GameMode> = /*@__PURE__*/
+  enumDesc(file_scabbage_v1_net, 3);
+
+/**
+ * @generated from enum scabbage.v1.Harm
+ */
+export enum Harm {
+  /**
+   * @generated from enum value: HARM_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: HARM_FALL = 1;
+   */
+  FALL = 1,
+}
+
+/**
+ * Describes the enum scabbage.v1.Harm.
+ */
+export const HarmSchema: GenEnum<Harm> = /*@__PURE__*/
+  enumDesc(file_scabbage_v1_net, 4);
+
+/**
  * @generated from enum scabbage.v1.ArtKind
  */
 export enum ArtKind {
@@ -1567,7 +1698,7 @@ export enum ArtKind {
  * Describes the enum scabbage.v1.ArtKind.
  */
 export const ArtKindSchema: GenEnum<ArtKind> = /*@__PURE__*/
-  enumDesc(file_scabbage_v1_net, 3);
+  enumDesc(file_scabbage_v1_net, 5);
 
 /**
  * @generated from enum scabbage.v1.DisconnectCode
@@ -1618,5 +1749,5 @@ export enum DisconnectCode {
  * Describes the enum scabbage.v1.DisconnectCode.
  */
 export const DisconnectCodeSchema: GenEnum<DisconnectCode> = /*@__PURE__*/
-  enumDesc(file_scabbage_v1_net, 4);
+  enumDesc(file_scabbage_v1_net, 6);
 

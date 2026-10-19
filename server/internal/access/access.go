@@ -31,6 +31,7 @@ type Player struct {
 	Name  string
 	Color uint32
 	Admin bool
+	Mode  Mode
 }
 
 // Request is a pending join request shown to admins.
@@ -120,9 +121,9 @@ func (s *Service) Check(secret []byte) (Result, error) {
 
 func (s *Service) deviceOwner(hash []byte) (Player, error) {
 	var p Player
-	err := s.db.QueryRow(`SELECT p.id, p.name, p.color, p.admin FROM devices d
+	err := s.db.QueryRow(`SELECT p.id, p.name, p.color, p.admin, p.mode FROM devices d
 		JOIN players p ON p.id = d.player_id WHERE d.secret_hash = ?`, hash).
-		Scan(&p.ID, &p.Name, &p.Color, &p.Admin)
+		Scan(&p.ID, &p.Name, &p.Color, &p.Admin, &p.Mode)
 	return p, err
 }
 
@@ -276,8 +277,8 @@ func (s *Service) decide(id int64, approve bool) error {
 // playerForName returns the player with name (any case), creating them if new.
 func (s *Service) playerForName(tx *sql.Tx, name string, color uint32) (Player, error) {
 	var p Player
-	err := tx.QueryRow(`SELECT id, name, color, admin FROM players WHERE name = ?`, name).
-		Scan(&p.ID, &p.Name, &p.Color, &p.Admin)
+	err := tx.QueryRow(`SELECT id, name, color, admin, mode FROM players WHERE name = ?`, name).
+		Scan(&p.ID, &p.Name, &p.Color, &p.Admin, &p.Mode)
 	if !errors.Is(err, sql.ErrNoRows) {
 		return p, err
 	}
