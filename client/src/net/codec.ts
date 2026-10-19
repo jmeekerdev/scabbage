@@ -67,6 +67,10 @@ export function encodeMove(
   });
 }
 
+export function encodeEditBlock(e: { x: number; y: number; z: number; block: number }): Bytes {
+  return encode({ case: "editBlock", value: { pos: { x: e.x, y: e.y, z: e.z }, block: e.block } });
+}
+
 export function decodeServer(bytes: Uint8Array): ServerMessage {
   return fromBinary(ServerMessageSchema, bytes);
 }

@@ -2,19 +2,31 @@ import "./style.css";
 import { browserStore, loadSecret, resetSecret } from "./join/identity";
 import { parseInvite } from "./join/invite";
 import { screenForRejection, type Action, type Screen } from "./join/outcome";
-import { encodeMove, encodeRequestChunks, type JoinInit } from "./net/codec";
+import { encodeEditBlock, encodeMove, encodeRequestChunks, type JoinInit } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
 import { socketUrl } from "./net/url";
-import type { Teleport, Welcome, WorldInfo } from "./pb/scabbage/v1/net_pb";
-import { KeyboardMouse } from "./player/keyboard-mouse";
+import type { BlockChanged, Teleport, Welcome, WorldInfo } from "./pb/scabbage/v1/net_pb";
+import {
+  aim,
+  breakEdit,
+  buildWorldFor,
+  placeEdit,
+  type BuildWorld,
+  type Edit,
+} from "./player/building";
+import { Hotbar, hotbarBlocks } from "./player/hotbar";
+import { KeyboardMouse, type BuildActions } from "./player/keyboard-mouse";
 import { MoveSync } from "./player/move-sync";
 import type { SolidAt } from "./player/physics";
 import { Player } from "./player/player";
+import { blockIconPainter } from "./render/icons";
 import { startScene } from "./render/scene";
+import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
 import { defaultSettings, loadSettings, saveSettings } from "./settings/settings";
 import { adminRouter, InvitePanel, PendingList } from "./ui/admin";
 import { $, el } from "./ui/dom";
+import { mountHotbar } from "./ui/hotbar-view";
 import { settingsPanel } from "./ui/settings-panel";
 import { solidQuery } from "./world/solid";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
@@ -35,9 +47,16 @@ let settings = loadSettings(store, defaultSettings(touch));
 const gameScene = startScene($("#game"), settings);
 const world = createWorldRenderer(gameScene, (chunks) => conn?.send(encodeRequestChunks(chunks)));
 const player = new Player();
-const controls = new KeyboardMouse($("#game"), player, (locked) => (hintEl.hidden = locked));
+const selection = new Selection(gameScene.scene);
+const hotbar = new Hotbar([]);
+const icons = blockIconPainter();
+const controls = new KeyboardMouse($("#game"), player, hotbar, (locked) => {
+  hintEl.hidden = locked;
+  $("#crosshair").hidden = !locked;
+});
 let moves: MoveSync | undefined; // set while in the world
 let solid: SolidAt = () => true;
+let building: BuildWorld | undefined;
 let lastFrameMs: number | undefined;
 gameScene.onFrame((timeMs) => {
   const dt = lastFrameMs === undefined ? 0 : (timeMs - lastFrameMs) / 1000;
@@ -47,6 +66,7 @@ gameScene.onFrame((timeMs) => {
   gameScene.camera.position.set(eye.x, eye.y, eye.z);
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
   world.tick(eye.x, eye.z, settings.viewDistance);
+  build(controls.actions(timeMs), [eye.x, eye.y, eye.z]);
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
@@ -90,6 +110,7 @@ function connect(join?: JoinInit): void {
       onMessage: (msg) => {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
+        else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
         else onAdminMessage?.(msg);
       },
     },
@@ -143,6 +164,11 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
     info.blocks.map((b) => b.solid),
     (x, y, z) => world.blockAt(x, y, z),
   );
+  building = buildWorldFor(info, (x, y, z) => world.blockAt(x, y, z));
+  const name = (id: number) => info.blocks.find((b) => b.id === id)?.name ?? "missing";
+  hotbar.slots.splice(0, Infinity, ...hotbarBlocks(info.blocks));
+  hotbar.select(0);
+  mountHotbar($("#hotbar"), hotbar, name, icons);
   const spawn = info.spawn;
   player.place(spawn?.x ?? 0, spawn?.y ?? 0, spawn?.z ?? 0);
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
@@ -153,6 +179,33 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
 function teleport(t: Teleport): void {
   player.place(t.pos?.x ?? 0, t.pos?.y ?? 0, t.pos?.z ?? 0);
   moves?.teleported(t.id);
+}
+
+/** Outlines the block in reach and carries out this frame's building actions. */
+function build(act: BuildActions, eye: [number, number, number]): void {
+  const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
+  selection.show(hit);
+  if (!hit || !building) return;
+  if (act.picking) hotbar.pick(building.blockAt(hit.x, hit.y, hit.z) ?? 0);
+  const edit = act.breaking
+    ? breakEdit(hit, building)
+    : act.placing
+      ? placeEdit(hit, hotbar.current(), player.body, building)
+      : undefined;
+  if (edit) sendEdit(edit);
+}
+
+/** Shows the edit straight away; the server confirms it or sends back what is really there. */
+function sendEdit(edit: Edit): void {
+  if (!conn || !moves) return;
+  const pose = moves.flush(player.pose()); // the server checks reach from our latest position
+  if (pose) conn.send(encodeMove(pose, moves.teleport));
+  conn.send(encodeEditBlock(edit));
+  world.setBlock(edit.x, edit.y, edit.z, edit.block);
+}
+
+function blockChanged(c: BlockChanged): void {
+  if (c.pos) world.setBlock(c.pos.x, c.pos.y, c.pos.z, c.block);
 }
 
 /** In-game admin tools: join-request toasts and an invite dialog. */

@@ -1,0 +1,49 @@
+package gateway
+
+import (
+	"context"
+	"math"
+	"time"
+
+	"scabbage/internal/edit"
+	"scabbage/internal/motion"
+	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/world"
+)
+
+// editBlock applies an allowed edit for everyone, or tells the sender what is really there.
+func (s *session) editBlock(ctx context.Context, m *pb.EditBlock) error {
+	if s.console {
+		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "the console has no hands")
+	}
+	p := m.GetPos()
+	r := edit.Request{X: p.GetX(), Y: p.GetY(), Z: p.GetZ(), Block: world.Block(min(m.Block, math.MaxUint16))}
+	if s.edits.Take(time.Now()) {
+		if applied, err := s.gw.edit(s.body.Pos(), r); err != nil || applied {
+			return err
+		}
+	}
+	current, _ := s.gw.cfg.World.Block(r.X, r.Y, r.Z) // air outside the world
+	return s.write(ctx, blockChanged(r.X, r.Y, r.Z, current))
+}
+
+// edit changes the block if allowed and broadcasts the change, all under editMu.
+func (g *Gateway) edit(feet motion.Vec, r edit.Request) (bool, error) {
+	g.editMu.Lock()
+	defer g.editMu.Unlock()
+	current, err := g.cfg.World.Block(r.X, r.Y, r.Z)
+	if err != nil || !edit.Allowed(feet, r, current, g.bodies()) {
+		return false, nil
+	}
+	if err := g.cfg.World.SetBlock(r.X, r.Y, r.Z, r.Block); err != nil {
+		return false, err
+	}
+	g.broadcast(blockChanged(r.X, r.Y, r.Z, r.Block))
+	return true, nil
+}
+
+func blockChanged(x, y, z int32, b world.Block) *pb.ServerMessage {
+	return &pb.ServerMessage{Body: &pb.ServerMessage_BlockChanged{BlockChanged: &pb.BlockChanged{
+		Pos: &pb.BlockPos{X: x, Y: y, Z: z}, Block: uint32(b),
+	}}}
+}

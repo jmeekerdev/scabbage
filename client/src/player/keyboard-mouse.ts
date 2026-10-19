@@ -1,39 +1,79 @@
-import { DoubleTap, moveInputFromKeys } from "./input";
+import type { Hotbar } from "./hotbar";
+import { DoubleTap, HoldRepeat, moveInputFromKeys } from "./input";
 import type { MoveInput } from "./physics";
 import type { Player } from "./player";
 
 const FLY_DOUBLE_TAP_MS = 300;
+const BUILD_REPEAT_MS = 250;
+
+/** Building actions due this frame. */
+export interface BuildActions {
+  breaking: boolean;
+  placing: boolean;
+  picking: boolean;
+}
 const NO_INPUT: MoveInput = { forward: 0, right: 0, jump: false, descend: false };
 // Keys the page would otherwise use to scroll.
 const CAPTURED = new Set(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-/** Pointer-lock mouse look and keyboard movement; inactive until the canvas is clicked. */
+/** Pointer-lock mouse look, building and keyboard movement; inactive until the canvas is clicked. */
 export class KeyboardMouse {
   private readonly keys = new Set<string>();
   private readonly flyTap = new DoubleTap(FLY_DOUBLE_TAP_MS);
+  private readonly breaking = new HoldRepeat(BUILD_REPEAT_MS);
+  private readonly placing = new HoldRepeat(BUILD_REPEAT_MS);
+  private picking = false;
   private locked = false;
 
   constructor(
     canvas: HTMLCanvasElement,
     private readonly player: Player,
+    private readonly hotbar: Hotbar,
     onLockChange: (locked: boolean) => void,
   ) {
     canvas.addEventListener("click", () => void canvas.requestPointerLock());
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     document.addEventListener("pointerlockchange", () => {
       this.locked = document.pointerLockElement === canvas;
-      if (!this.locked) this.keys.clear();
+      if (!this.locked) this.releaseAll();
       onLockChange(this.locked);
     });
+    document.addEventListener("mousedown", (e) => this.mouseDown(e));
+    document.addEventListener("mouseup", (e) => this.buttonFor(e)?.release());
+    document.addEventListener("wheel", (e) => this.locked && hotbar.scroll(Math.sign(e.deltaY)));
     document.addEventListener("mousemove", (e) => {
       if (this.locked) player.look.turn(e.movementX, e.movementY);
     });
     document.addEventListener("keydown", (e) => this.keyDown(e));
     document.addEventListener("keyup", (e) => this.keys.delete(e.code));
-    window.addEventListener("blur", () => this.keys.clear());
+    window.addEventListener("blur", () => this.releaseAll());
   }
 
   input(): MoveInput {
     return this.locked ? moveInputFromKeys(this.keys) : NO_INPUT;
+  }
+
+  /** What to build now; held buttons repeat. */
+  actions(nowMs: number): BuildActions {
+    const picking = this.picking;
+    this.picking = false;
+    return { breaking: this.breaking.due(nowMs), placing: this.placing.due(nowMs), picking };
+  }
+
+  private mouseDown(e: MouseEvent): void {
+    if (!this.locked) return;
+    if (e.button === 1) this.picking = true;
+    this.buttonFor(e)?.press(e.timeStamp);
+  }
+
+  private buttonFor(e: MouseEvent): HoldRepeat | undefined {
+    return e.button === 0 ? this.breaking : e.button === 2 ? this.placing : undefined;
+  }
+
+  private releaseAll(): void {
+    this.keys.clear();
+    this.breaking.release();
+    this.placing.release();
   }
 
   private keyDown(e: KeyboardEvent): void {
@@ -41,6 +81,7 @@ export class KeyboardMouse {
     if (CAPTURED.has(e.code)) e.preventDefault();
     this.keys.add(e.code);
     if (e.repeat) return;
+    if (/^Digit[1-9]$/.test(e.code)) this.hotbar.select(Number(e.code.slice(5)) - 1);
     const flyTap = e.code === "Space" && this.flyTap.press(e.timeStamp);
     if (flyTap || e.code === "KeyF") this.player.toggleFly();
   }

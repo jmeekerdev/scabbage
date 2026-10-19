@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"scabbage/internal/edit"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 )
@@ -11,7 +12,9 @@ import (
 // startMotion tracks the player from the world spawn.
 func (s *session) startMotion() {
 	x, y, z := s.gw.cfg.World.Spawn()
-	s.body = motion.NewTracker(motion.DefaultLimits, motion.Vec{X: x, Y: y, Z: z}, time.Now())
+	now := time.Now()
+	s.body = motion.NewTracker(motion.DefaultLimits, motion.Vec{X: x, Y: y, Z: z}, now)
+	s.edits = edit.NewRate(now)
 }
 
 // move accepts a plausible move, or sends the player back to their last accepted position.
@@ -25,6 +28,7 @@ func (s *session) move(ctx context.Context, m *pb.Move) error {
 	p := m.GetPos()
 	to := motion.Vec{X: float64(p.GetX()), Y: float64(p.GetY()), Z: float64(p.GetZ())}
 	if s.body.Move(to, time.Now(), s.gw.cfg.World.Solid) {
+		s.gw.setPlayer(s, to)
 		return nil
 	}
 	s.teleport++

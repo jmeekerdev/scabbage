@@ -13,6 +13,8 @@ export interface WorldRenderer {
   receive(batch: ChunkBatch): void;
   /** The block at world position x,y,z, or undefined if it isn't loaded. */
   blockAt(x: number, y: number, z: number): number | undefined;
+  /** Changes a loaded block, e.g. from a server update or a predicted edit. */
+  setBlock(x: number, y: number, z: number, block: number): void;
   /** Keeps chunks around block position x,z loaded and drawn; call once per frame. */
   tick(x: number, z: number, viewDistance: number): void;
 }
@@ -39,6 +41,7 @@ export function createWorldRenderer(
       world.receive(batch.chunks.flatMap((c) => (c.pos ? [{ pos: c.pos, data: c.data }] : [])));
     },
     blockAt: (x, y, z) => world.blockAt(x, y, z),
+    setBlock: (x, y, z, block) => world.setBlock(x, y, z, block),
     tick(x, z, viewDistance) {
       if (started) world.tick(x, z, viewDistance);
     },

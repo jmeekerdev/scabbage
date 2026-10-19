@@ -26,6 +26,13 @@ export class MoveSync {
     return this.sent;
   }
 
+  /** The pose to send right now regardless of the interval, if it changed. */
+  flush(pose: Pose): Pose | undefined {
+    if (this.sent && same(this.sent, pose)) return undefined;
+    this.sent = { ...pose };
+    return this.sent;
+  }
+
   /** Records a server teleport; the next pose is sent even if unchanged, to acknowledge it. */
   teleported(id: number): void {
     this.teleport = id;

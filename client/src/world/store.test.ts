@@ -62,4 +62,13 @@ describe("ChunkStore", () => {
     expect(s.blockAt(-2, 18, 0)).toBe(0);
     expect(s.blockAt(0, 18, 0)).toBeUndefined(); // not loaded
   });
+
+  it("sets blocks in loaded chunks only, expanding uniform chunks", () => {
+    const s = new ChunkStore(bounds);
+    s.set({ x: 0, y: 0, z: 0 }, uniform(1));
+    expect(s.setBlock(3, 4, 5, 7)).toBe(true);
+    expect(s.blockAt(3, 4, 5)).toBe(7);
+    expect(s.blockAt(3, 4, 6)).toBe(1);
+    expect(s.setBlock(-1, 0, 0, 7)).toBe(false);
+  });
 });

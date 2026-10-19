@@ -33,15 +33,14 @@ export class WorldClient {
   private store = new ChunkStore({ radius: 0, height: 0 });
   private streamer = new ChunkStreamer({ radius: 0, height: 0 });
   private readonly toMesh = new Set<ChunkKey>();
-  private readonly meshed = new Set<ChunkKey>();
-  private epoch = 0;
+  private readonly meshed = new Map<ChunkKey, number>(); // key → id of its latest mesh job
+  private jobs = 0;
   private center = { cx: 0, cz: 0, vd: 0 };
 
   constructor(private readonly deps: WorldClientDeps) {}
 
   /** Begins a fresh world, e.g. after (re)connecting; results from before are discarded. */
   start(bounds: WorldBounds): void {
-    this.epoch++;
     this.store = new ChunkStore(bounds);
     this.streamer = new ChunkStreamer(bounds);
     this.toMesh.clear();
@@ -62,6 +61,19 @@ export class WorldClient {
   /** The block at world position x,y,z, or undefined if it isn't loaded. */
   blockAt(x: number, y: number, z: number): number | undefined {
     return this.store.blockAt(x, y, z);
+  }
+
+  /** Changes a loaded block and re-meshes every chunk whose mesh shows it. */
+  setBlock(x: number, y: number, z: number, block: number): void {
+    if (!this.store.setBlock(x, y, z, block)) return;
+    const S = CHUNK_SIZE;
+    const [cx, cy, cz] = [x, y, z].map((v) => Math.floor(v / S));
+    const [lx, ly, lz] = [x - cx * S, y - cy * S, z - cz * S];
+    this.remesh(cx, cy, cz);
+    for (const [dx, dy, dz] of FACE_NORMALS) {
+      const edge = (l: number, d: number) => (d < 0 && l === 0) || (d > 0 && l === S - 1);
+      if (edge(lx, dx) || edge(ly, dy) || edge(lz, dz)) this.remesh(cx + dx, cy + dy, cz + dz);
+    }
   }
 
   /** Call every frame with the player's block position; does little unless something is due. */
@@ -90,6 +102,11 @@ export class WorldClient {
     }
   }
 
+  private remesh(x: number, y: number, z: number): void {
+    const key = chunkKey(x, y, z);
+    if (this.meshed.delete(key)) this.toMesh.add(key);
+  }
+
   private inView(x: number, z: number): boolean {
     const { cx, cz, vd } = this.center;
     return (x - cx) ** 2 + (z - cz) ** 2 <= vd * vd;
@@ -102,10 +119,10 @@ export class WorldClient {
       this.toMesh.delete(key);
       const p = parseKey(key);
       if (!this.store.ready(p.x, p.y, p.z)) continue;
-      this.meshed.add(key);
-      const epoch = this.epoch;
+      const job = ++this.jobs; // ids never repeat, so results from before start() never match
+      this.meshed.set(key, job);
       mesher.mesh(this.store.padded(p.x, p.y, p.z), (mesh) => {
-        if (epoch === this.epoch && this.meshed.has(key)) view.show(key, p, mesh);
+        if (this.meshed.get(key) === job) view.show(key, p, mesh);
       });
     }
   }

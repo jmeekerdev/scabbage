@@ -24,9 +24,9 @@ class FakeMesher implements Mesher {
 }
 
 class FakeView implements ChunkView {
-  shown = new Map<string, ChunkPos>();
-  show(key: string, pos: ChunkPos) {
-    this.shown.set(key, pos);
+  shown = new Map<string, ChunkMesh>();
+  show(key: string, _pos: ChunkPos, mesh: ChunkMesh) {
+    this.shown.set(key, mesh);
   }
   remove(key: string) {
     this.shown.delete(key);
@@ -110,4 +110,46 @@ describe("WorldClient", () => {
     world.tick(16 * 20, 0, 1);
     expect(view.shown.has(chunkKey(0, 0, 0))).toBe(false);
   });
+
+  it("re-meshes a changed chunk, and its neighbor when the block is on their shared face", () => {
+    const { sent, mesher, view, world } = loaded();
+    world.setBlock(0, 15, 5, 0); // top layer of chunk 0,0,0
+    expect(world.blockAt(0, 15, 5)).toBe(0);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(3); // itself, the -x neighbor and the chunk above
+    expect(sent.length).toBe(0);
+    expect(view.shown.size).toBe(10);
+  });
+
+  it("ignores changes to chunks that aren't loaded", () => {
+    const { mesher, world } = loaded();
+    world.setBlock(500, 5, 5, 1);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(0);
+  });
+
+  it("never lets an older mesh replace a newer one", () => {
+    const { mesher, view, world } = loaded();
+    world.setBlock(5, 5, 5, 0);
+    world.tick(0, 0, 1);
+    const older = mesher.jobs.splice(0);
+    world.setBlock(6, 5, 5, 0);
+    world.tick(0, 0, 1);
+    mesher.finishAll();
+    const newer = view.shown.get(chunkKey(0, 0, 0));
+    for (const j of older) j.done({ tag: "old" } as unknown as ChunkMesh);
+    expect(view.shown.get(chunkKey(0, 0, 0))).toBe(newer);
+  });
 });
+
+/** A world at view distance 1 with every chunk loaded, meshed and shown. */
+function loaded() {
+  const env = setup();
+  env.world.tick(0, 0, 1);
+  while (env.sent.length) {
+    answer(env.world, env.sent);
+    env.world.tick(0, 0, 1);
+  }
+  env.mesher.finishAll();
+  return env;
+}

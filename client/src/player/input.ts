@@ -26,6 +26,27 @@ export class DoubleTap {
   }
 }
 
+/** Fires once on press, then every intervalMs while held, e.g. building with a held button. */
+export class HoldRepeat {
+  private nextMs?: number;
+
+  constructor(private readonly intervalMs: number) {}
+
+  press(nowMs: number): void {
+    this.nextMs = nowMs;
+  }
+
+  release(): void {
+    this.nextMs = undefined;
+  }
+
+  due(nowMs: number): boolean {
+    if (this.nextMs === undefined || nowMs < this.nextMs) return false;
+    this.nextMs = Math.max(this.nextMs + this.intervalMs, nowMs - this.intervalMs / 2);
+    return true;
+  }
+}
+
 const MAX_PITCH = Math.PI / 2 - 0.01;
 
 /** View direction in radians; yaw 0 faces -z, positive pitch looks up. */

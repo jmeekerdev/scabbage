@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 4;
+  PROTOCOL_VERSION_CURRENT = 5;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -19,6 +19,7 @@ message ClientMessage {
     CreateJoinCode create_join_code = 4;
     RequestChunks request_chunks = 5;
     Move move = 6;
+    EditBlock edit_block = 7;
   }
 }
 
@@ -33,6 +34,7 @@ message ServerMessage {
     JoinCodeCreated join_code_created = 6;
     ChunkBatch chunk_batch = 7;
     Teleport teleport = 8;
+    BlockChanged block_changed = 9;
   }
 }
 
@@ -118,6 +120,24 @@ message Move {
 message Teleport {
   uint32 id = 1;
   Vec3 pos = 2;
+}
+
+message BlockPos {
+  sint32 x = 1;
+  sint32 y = 2;
+  sint32 z = 3;
+}
+
+// Breaks (block 0, air) or places a block. The server answers with BlockChanged: to everyone if
+// the edit was allowed, otherwise to the sender with the block that is really there.
+message EditBlock {
+  BlockPos pos = 1;
+  uint32 block = 2;
+}
+
+message BlockChanged {
+  BlockPos pos = 1;
+  uint32 block = 2;
 }
 
 message PlayerInfo {

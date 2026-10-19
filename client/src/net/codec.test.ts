@@ -7,6 +7,7 @@ import {
   encodeCreateJoinCode,
   encodeDecideJoin,
   encodeHello,
+  encodeEditBlock,
   encodeMove,
   encodePing,
   encodeRequestChunks,
@@ -15,6 +16,14 @@ import {
 const decodeClient = (b: Uint8Array) => fromBinary(ClientMessageSchema, b).body;
 
 describe("codec", () => {
+  it("encodes a block edit", () => {
+    const body = decodeClient(encodeEditBlock({ x: -4, y: 20, z: 9, block: 8 }));
+    expect(body.case).toBe("editBlock");
+    if (body.case !== "editBlock") return;
+    const { pos, block } = body.value;
+    expect([pos?.x, pos?.y, pos?.z, block]).toEqual([-4, 20, 9, 8]);
+  });
+
   it("encodes a move with pose and teleport id", () => {
     const body = decodeClient(encodeMove({ x: 1.5, y: 64, z: -2.25, yaw: 0.5, pitch: -0.25 }, 3));
     expect(body.case).toBe("move");

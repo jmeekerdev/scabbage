@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DoubleTap, Look, moveInputFromKeys } from "./input";
+import { DoubleTap, HoldRepeat, Look, moveInputFromKeys } from "./input";
 
 describe("moveInputFromKeys", () => {
   it("maps WASD, arrows, space and shift", () => {
@@ -50,5 +50,19 @@ describe("Look", () => {
     expect(l.pitch).toBeGreaterThan(1.5);
     l.turn(0, 20000);
     expect(l.pitch).toBeGreaterThan(-Math.PI / 2);
+  });
+});
+
+describe("HoldRepeat", () => {
+  it("fires on press, then every interval while held, and stops on release", () => {
+    const r = new HoldRepeat(250);
+    expect(r.due(0)).toBe(false);
+    r.press(100);
+    expect(r.due(100)).toBe(true);
+    expect(r.due(200)).toBe(false);
+    expect(r.due(360)).toBe(true);
+    expect(r.due(600)).toBe(true);
+    r.release();
+    expect(r.due(2000)).toBe(false);
   });
 });

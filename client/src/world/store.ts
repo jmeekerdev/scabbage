@@ -1,4 +1,4 @@
-import { blockAt, type Chunk } from "./chunk";
+import { blockAt, chunkIndex, CHUNK_VOLUME, type Chunk } from "./chunk";
 import { CHUNK_SIZE as S } from "./constants";
 import { chunkKey, type ChunkKey, type ChunkPos } from "./coords";
 import { FACE_NORMALS, PADDED_VOLUME, paddedIndex } from "./mesher";
@@ -25,6 +25,16 @@ export class ChunkStore {
   blockAt(x: number, y: number, z: number): number | undefined {
     const c = this.get(Math.floor(x / S), Math.floor(y / S), Math.floor(z / S));
     return c && blockAt(c, mod(x), mod(y), mod(z));
+  }
+
+  /** Changes one block; returns false if its chunk isn't loaded. */
+  setBlock(x: number, y: number, z: number, block: number): boolean {
+    const c = this.get(Math.floor(x / S), Math.floor(y / S), Math.floor(z / S));
+    if (!c) return false;
+    if (!c.blocks && c.fill === block) return true;
+    c.blocks ??= new Uint16Array(CHUNK_VOLUME).fill(c.fill);
+    c.blocks[chunkIndex(mod(x), mod(y), mod(z))] = block;
+    return true;
   }
 
   delete(key: ChunkKey): void {

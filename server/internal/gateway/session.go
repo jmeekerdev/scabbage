@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
+	"scabbage/internal/edit"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 )
@@ -33,6 +34,9 @@ type session struct {
 
 	body     *motion.Tracker // the player's server-side position; nil for the console
 	teleport uint32          // id of the last Teleport sent
+	edits    *edit.Rate
+
+	cancel context.CancelFunc // ends the session, e.g. when it can't keep up
 }
 
 type inbound struct {
@@ -50,8 +54,8 @@ func (e rejectError) Error() string { return e.reason }
 
 func reject(code pb.DisconnectCode, reason string) rejectError { return rejectError{code, reason} }
 
-func newSession(g *Gateway, c *websocket.Conn, ip string, log *slog.Logger) *session {
-	return &session{gw: g, conn: c, ip: ip, log: log, in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
+func newSession(g *Gateway, c *websocket.Conn, ip string, log *slog.Logger, cancel context.CancelFunc) *session {
+	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
 }
 
 func (s *session) run(ctx context.Context) error {
@@ -67,8 +71,10 @@ func (s *session) run(ctx context.Context) error {
 	if !s.console {
 		hub := s.gw.cfg.Hub
 		hub.Join()
+		s.gw.setPlayer(s, s.body.Pos())
 		s.log.Info("player joined", "name", s.player.Name, "players", hub.Players())
 		defer func() {
+			s.gw.removePlayer(s)
 			hub.Leave()
 			s.log.Info("player left", "name", s.player.Name, "players", hub.Players(), "idle", !hub.Running())
 		}()
@@ -116,6 +122,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.sendChunks(ctx, body.RequestChunks)
 	case *pb.ClientMessage_Move:
 		return s.move(ctx, body.Move)
+	case *pb.ClientMessage_EditBlock:
+		return s.editBlock(ctx, body.EditBlock)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:
@@ -130,12 +138,14 @@ func (s *session) pong(ctx context.Context, p *pb.Ping) error {
 	}}})
 }
 
-// push queues a message from another goroutine, dropping it if the client is too far behind.
+// push queues a message from another goroutine. A client too far behind is disconnected rather
+// than silently missing world changes; it resyncs when it reconnects.
 func (s *session) push(msg *pb.ServerMessage) {
 	select {
 	case s.out <- msg:
 	default:
-		s.log.Warn("dropping message for slow client")
+		s.log.Warn("disconnecting slow client")
+		s.cancel()
 	}
 }
 

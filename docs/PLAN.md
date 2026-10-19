@@ -172,7 +172,10 @@ Each phase ends with something the family can play. Compact the model context be
       (client simulates at 60 Hz and reports its pose; the server checks speed budgets and
       collision along the path, and sends a Teleport back on a bad move. Chunk requests are
       limited to the player's surroundings. Basic KB/M controls for now)
-- [ ] Block break/place with server validation and a broadcast to everyone
+- [x] Block break/place with server validation and a broadcast to everyone
+      (client shows its edit at once; the server checks reach, rate, replaceable target and
+      player overlap, then broadcasts BlockChanged or corrects the sender. Crosshair, outline,
+      9-slot hotbar, hold to repeat, middle click picks a block)
 - [ ] Other players visible (simple blocky avatars + name tags, interpolated)
 - [ ] Input: pointer-lock KB/M; touch joystick + look-drag + buttons; Gamepad API
 - [ ] Text chat + emote wheel

@@ -32,4 +32,12 @@ describe("MoveSync", () => {
     expect(s.teleport).toBe(3);
     expect(s.due(100, pose(1))).toEqual(pose(1));
   });
+
+  it("flushes a changed pose right away, e.g. just before a block edit", () => {
+    const sync = new MoveSync(50);
+    sync.due(0, pose(0));
+    expect(sync.flush(pose(1))).toEqual(pose(1));
+    expect(sync.flush(pose(1))).toBeUndefined();
+    expect(sync.due(60, pose(1))).toBeUndefined();
+  });
 });
