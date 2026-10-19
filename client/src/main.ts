@@ -49,6 +49,12 @@ import { ChatView } from "./ui/chat-view";
 import { $, el } from "./ui/dom";
 import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
+import {
+  canGoFullscreen,
+  registerServiceWorker,
+  toggleLandscape,
+  unlockOnFullscreenExit,
+} from "./ui/pwa";
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
 import { solidQuery } from "./world/solid";
@@ -126,6 +132,11 @@ addHudDialog(
 );
 addHudButton("💬", "Chat", () => chat.open());
 addHudButton("😀", "Emotes", () => emotes.open());
+if (touch && canGoFullscreen()) {
+  addHudButton("⛶", "Fullscreen", () => void toggleLandscape().catch(() => undefined));
+  unlockOnFullscreenExit();
+}
+registerServiceWorker();
 connect();
 
 /** Reads `#join=CODE` and removes it from the address bar so it isn't re-shared by accident. */
@@ -230,6 +241,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   hintEl.hidden = document.pointerLockElement !== null || touch;
   $("#touch").hidden = !touch;
   chat.enabled = true;
+  document.body.classList.add("in-world");
 }
 
 /** The server put us back somewhere, usually after rejecting a move. */

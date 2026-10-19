@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#87ceeb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Scabbage</title>
   </head>
   <body>
@@ -23,6 +28,7 @@
       · Right click place · 1–9 or wheel choose block · Middle click copy block · T chat · Hold E
       emote · Esc for mouse · Gamepads work too
     </div>
+    <div id="rotate">Turn your phone sideways to play</div>
     <div id="toasts" aria-live="polite"></div>
     <div id="overlay" hidden></div>
     <script type="module" src="/src/main.ts"></script>

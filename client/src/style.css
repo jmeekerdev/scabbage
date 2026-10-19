@@ -193,6 +193,28 @@ button.primary {
   pointer-events: none;
 }
 
+/* Asks phone players to turn sideways; it never blocks a tap. */
+#rotate {
+  display: none;
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+  pointer-events: none;
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  /* Fades after a few seconds; turning upright again shows it anew. */
+  body.in-world #rotate {
+    display: block;
+    animation: fade-out 1s 4s forwards;
+  }
+}
+
 /* A plus sign that stays visible on any background. */
 #crosshair {
   position: fixed;

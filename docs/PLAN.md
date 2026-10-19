@@ -181,7 +181,9 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] Text chat + emote wheel
       (T, Enter or / to type; lines fade; `/approve NAME` and `/deny NAME` for admins; hold E and
       point, tap 😀, or use the D-pad to emote; emojis float over avatars)
-- [ ] PWA manifest + service worker; landscape fullscreen on phones
+- [x] PWA manifest + service worker; landscape fullscreen on phones
+      (installable over HTTPS; ⛶ toggles fullscreen sideways on Android;
+      iPhones get a turn-sideways hint, or install to the home screen; hashed assets cached for good)
 - [ ] Autosave + nightly world backup snapshot
 - **Done when:** all family devices are in one world at once, building together, and the
   world is still there after a server restart.

@@ -18,6 +18,7 @@ import (
 	"scabbage/internal/gateway"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
+	"scabbage/internal/web"
 	"scabbage/internal/world"
 )
 
@@ -73,7 +74,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	mux := http.NewServeMux()
 	mux.Handle("/ws", gw)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok\n")) })
-	mux.Handle("/", http.FileServer(http.Dir(cfg.WebDir)))
+	mux.Handle("/", web.Static(cfg.WebDir))
 
 	srv := &http.Server{Addr: cfg.Addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

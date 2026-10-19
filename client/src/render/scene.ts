@@ -30,7 +30,8 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   };
-  window.addEventListener("resize", resize);
+  // iOS fires window resize before layout settles on rotation; the observer sees the final size.
+  new ResizeObserver(resize).observe(canvas);
 
   const apply = (s: Settings) => {
     renderer.setPixelRatio(pixelRatioFor(s.preset, window.devicePixelRatio));

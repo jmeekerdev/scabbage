@@ -38,7 +38,7 @@ export class TouchControls {
       ),
     );
     this.listen(canvas);
-    addEventListener("resize", () => (this.sticks.width = innerWidth));
+    new ResizeObserver(() => (this.sticks.width = canvas.clientWidth)).observe(canvas);
   }
 
   poll(nowMs: number): Intent {
