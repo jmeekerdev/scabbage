@@ -138,4 +138,47 @@ describe("meshChunk", () => {
       }
     }
   });
+
+  it("leaves a lone block fully lit", () => {
+    const m = meshChunk(volume([[5, 5, 5, STONE]]), table()).opaque;
+    expect([...m.ao].every((a) => a === 3)).toBe(true);
+  });
+
+  it("darkens floor corners tucked against walls", () => {
+    const m = meshChunk(volume([...floor(), [4, 1, 5, STONE], [5, 1, 4, STONE]]), table()).opaque;
+    const at = (x: number, z: number) => topVertices(m, x, z).map((i) => m.ao[i]);
+    expect(at(5, 5)).toEqual([0, 0]); // walls on two sides
+    expect(at(4, 5).every((a) => a < 3)).toBe(true); // touches one wall
+    expect(at(10, 10).every((a) => a === 3)).toBe(true);
+  });
+
+  it("splits shaded quads along their brighter diagonal", () => {
+    const m = meshChunk(volume([...floor(), [4, 1, 5, STONE], [5, 1, 4, STONE]]), table()).opaque;
+    for (let q = 0; q < quads(m); q++) {
+      const tri = (t: number) => [0, 1, 2].map((k) => m.indices[q * 6 + t * 3 + k]);
+      const diagonal = tri(0).filter((i) => tri(1).includes(i));
+      const others = tri(0)
+        .concat(tri(1))
+        .filter((i) => !diagonal.includes(i));
+      const sum = (ids: number[]) => ids.reduce((s, i) => s + m.ao[i], 0);
+      expect(sum(diagonal)).toBeGreaterThanOrEqual(sum(others));
+    }
+  });
 });
+
+/** A stone floor across the whole chunk at y = 0. */
+function floor(): [number, number, number, number][] {
+  const out: [number, number, number, number][] = [];
+  for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) out.push([x, 0, z, STONE]);
+  return out;
+}
+
+/** Vertices of upward faces sitting at corner (x, 1, z). */
+function topVertices(m: MeshData, x: number, z: number): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < m.faces.length; i++) {
+    const [vx, vy, vz] = vertex(m, i);
+    if (m.faces[i] === 2 && vx === x && vy === 1 && vz === z) out.push(i);
+  }
+  return out;
+}

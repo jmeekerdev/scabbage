@@ -192,7 +192,7 @@ Each phase ends with something the family can play. Compact the model context be
 ### Phase 2 — Look & Feel + Personalization
 - [x] Better avatars (rigged blocky characters, animations), sounds, music toggle
       (synthesized in the browser, no audio files; music starts off)
-- [ ] Ambient occlusion + simple sky/day–night cycle
+- [x] Ambient occlusion + simple sky/day–night cycle (20-minute day from the wall clock, so every device agrees; nights stay playable)
 - [ ] In-browser pixel editor: avatar skins and custom block textures (admin-approved)
 - [ ] Larger block palette: glass, light sources, stairs/slabs, colored wool
 - [ ] Graphics quality presets (auto-detect weaker phones)

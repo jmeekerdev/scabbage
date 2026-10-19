@@ -59,6 +59,7 @@ function toMesh(data: MeshData, material: Material, pos: ChunkPos): Mesh | undef
   g.setAttribute("uv", new BufferAttribute(data.uvs, 2));
   g.setAttribute("face", new BufferAttribute(data.faces, 1));
   g.setAttribute("layer", new BufferAttribute(data.layers, 1));
+  g.setAttribute("ao", new BufferAttribute(data.ao, 1));
   g.setIndex(new BufferAttribute(data.indices, 1));
   g.boundingSphere = BOUNDS;
   const mesh = new Mesh(g, material);

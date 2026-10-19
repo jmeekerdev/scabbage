@@ -1,14 +1,17 @@
-import { Color, Fog, PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import { Fog, PerspectiveCamera, Scene, WebGLRenderer } from "three";
 import { FrameLimiter, pixelRatioFor, qualityFor, type Settings } from "../settings/settings";
 import { CHUNK_SIZE } from "../world/constants";
-
-const SKY = 0x87ceeb;
+import { daylight } from "./chunk-material";
+import { skyAt } from "./sky";
+import { SkyView } from "./sky-view";
 
 export interface GameScene {
   readonly scene: Scene;
   readonly camera: PerspectiveCamera;
   /** Applies new settings live; antialiasing only changes on reload. */
   apply(s: Settings): void;
+  /** How lit the world is right now, from MIN_LIGHT at night to 1 by day. */
+  daylight(): number;
   /** Runs fn before each drawn frame. */
   onFrame(fn: (timeMs: number) => void): void;
 }
@@ -18,8 +21,8 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   // WebGL fixes antialiasing when the context is created, so it comes from the startup preset.
   const renderer = new WebGLRenderer({ canvas, antialias: qualityFor(initial.preset).antialias });
   const scene = new Scene();
-  scene.background = new Color(SKY);
-  scene.fog = new Fog(SKY);
+  scene.fog = new Fog(0);
+  const sky = new SkyView(scene);
   const camera = new PerspectiveCamera(70, 1, 0.1);
   const limiter = new FrameLimiter(initial.fpsCap);
   const frameHooks: ((timeMs: number) => void)[] = [];
@@ -45,9 +48,18 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   renderer.setAnimationLoop((timeMs) => {
     if (!limiter.ready(timeMs)) return;
     for (const fn of frameHooks) fn(timeMs);
+    const now = skyAt(Date.now());
+    daylight.value = now.daylight;
+    sky.update(now, camera, camera.far * 0.8);
     renderer.render(scene, camera);
   });
-  return { scene, camera, apply, onFrame: (fn) => frameHooks.push(fn) };
+  return {
+    scene,
+    camera,
+    apply,
+    daylight: () => daylight.value,
+    onFrame: (fn) => frameHooks.push(fn),
+  };
 }
 
 /** Fades terrain into the sky before the far plane so chunk edges never pop into view. */

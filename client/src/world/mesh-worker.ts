@@ -24,5 +24,7 @@ self.onmessage = (ev: MessageEvent<MeshRequest>) => {
 };
 
 function buffers(m: MeshData): ArrayBuffer[] {
-  return [m.positions, m.uvs, m.faces, m.layers, m.indices].map((a) => a.buffer as ArrayBuffer);
+  return [m.positions, m.uvs, m.faces, m.layers, m.ao, m.indices].map(
+    (a) => a.buffer as ArrayBuffer,
+  );
 }

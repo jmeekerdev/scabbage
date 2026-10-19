@@ -11,6 +11,7 @@ import {
   SpriteMaterial,
 } from "three";
 import type { RemoteState } from "../player/remote-players";
+import { daylight } from "./chunk-material";
 import { Gait, type Stance } from "./gait";
 
 const SKIN = 0xf0c8a0;
@@ -40,8 +41,23 @@ const shapes = {
   head: shadedBox(0.5, 0.5, 0.5),
   eye: shadedBox(0.08, 0.08, 0.02),
 };
-const skin = new MeshBasicMaterial({ color: SKIN, vertexColors: true });
-const eyes = new MeshBasicMaterial({ color: 0x202020 });
+/** A flat-colored material that dims with the time of day, like the terrain. */
+function daylit(params: ConstructorParameters<typeof MeshBasicMaterial>[0]): MeshBasicMaterial {
+  const m = new MeshBasicMaterial(params);
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.daylight = daylight;
+    shader.fragmentShader =
+      "uniform float daylight;\n" +
+      shader.fragmentShader.replace(
+        "#include <opaque_fragment>",
+        "outgoingLight *= daylight;\n#include <opaque_fragment>",
+      );
+  };
+  return m;
+}
+
+const skin = daylit({ color: SKIN, vertexColors: true });
+const eyes = daylit({ color: 0x202020 });
 
 /** A limb hanging from a pivot, so rotating the pivot swings it from the hip or shoulder. */
 function limb(...parts: Mesh[]): Group {
@@ -62,8 +78,8 @@ class Avatar {
   private bubble?: { sprite: Sprite; untilMs: number };
 
   constructor(name: string, color: number) {
-    const shirt = new MeshBasicMaterial({ color, vertexColors: true });
-    const trousers = new MeshBasicMaterial({
+    const shirt = daylit({ color, vertexColors: true });
+    const trousers = daylit({
       color: new Color(color).multiplyScalar(0.55),
       vertexColors: true,
     });

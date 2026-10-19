@@ -31,6 +31,7 @@ export interface MeshData {
   uvs: Uint8Array; // in blocks, so textures repeat once per block
   faces: Uint8Array;
   layers: Uint16Array;
+  ao: Uint8Array; // 0 (tucked in a corner) to 3 (open), per vertex
   indices: Uint16Array | Uint32Array;
 }
 
@@ -47,9 +48,10 @@ export function meshChunk(volume: Uint16Array, table: RenderTable): ChunkMesh {
   for (let face = 0; face < 6; face++) {
     for (let slice = 0; slice < S; slice++) {
       fillMask(mask, volume, table, face, slice);
-      greedy(mask, (block, i, j, w, h) => {
+      greedy(mask, (key, i, j, w, h) => {
+        const block = key & 0xffff;
         const out = table.translucent[block] ? translucent : opaque;
-        out.quad(face, slice, i, j, w, h, table.layers[block * 6 + face]);
+        out.quad(face, slice, i, j, w, h, table.layers[block * 6 + face], key >>> 16);
       });
     }
   }
@@ -62,7 +64,15 @@ function axes(face: number): [d: number, u: number, v: number] {
   return [d, (d + 1) % 3, (d + 2) % 3];
 }
 
-/** Marks each cell in one slice with the block whose face shows there, or 0. */
+/** Corner directions along (u, v), in the order quads list their corners. */
+const CORNERS = [
+  [-1, -1],
+  [1, -1],
+  [1, 1],
+  [-1, 1],
+] as const;
+
+/** Marks each visible face cell with its block and corner shading (block | ao << 16), or 0. */
 function fillMask(
   mask: Int32Array,
   vol: Uint16Array,
@@ -80,9 +90,35 @@ function fillMask(
       p[v] = j;
       const block = vol[paddedIndex(p[0], p[1], p[2])];
       const next = vol[paddedIndex(p[0] + n[0], p[1] + n[1], p[2] + n[2])];
-      mask[i + j * S] = faceVisible(block, next, table) ? block : 0;
+      const visible = faceVisible(block, next, table);
+      mask[i + j * S] = visible ? block | (cornerShades(vol, table, p, n, u, v) << 16) : 0;
     }
   }
+}
+
+/** Packs 2-bit occlusion for each face corner, from the blocks around the cell in front. */
+function cornerShades(
+  vol: Uint16Array,
+  table: RenderTable,
+  p: number[],
+  n: readonly number[],
+  u: number,
+  v: number,
+): number {
+  const solid = (du: number, dv: number) => {
+    const q = [p[0] + n[0], p[1] + n[1], p[2] + n[2]];
+    q[u] += du;
+    q[v] += dv;
+    return table.transparent[vol[paddedIndex(q[0], q[1], q[2])]] === 0 ? 1 : 0;
+  };
+  let packed = 0;
+  CORNERS.forEach(([cu, cv], k) => {
+    const a = solid(cu, 0);
+    const b = solid(0, cv);
+    const ao = a && b ? 0 : 3 - a - b - solid(cu, cv);
+    packed |= ao << (k * 2);
+  });
+  return packed;
 }
 
 function faceVisible(block: number, neighbor: number, table: RenderTable): boolean {
@@ -130,6 +166,7 @@ class MeshBuilder {
   private uvs = new Uint8Array(256 * 2);
   private faces = new Uint8Array(256);
   private layers = new Uint16Array(256);
+  private ao = new Uint8Array(256);
   private vertices = 0;
 
   quad(
@@ -140,6 +177,7 @@ class MeshBuilder {
     w: number,
     h: number,
     layer: number,
+    shades: number,
   ): void {
     this.reserve(this.vertices + 4);
     const [d, u, v] = axes(face);
@@ -151,7 +189,7 @@ class MeshBuilder {
       [i + w, j + h],
       [i, j + h],
     ];
-    for (const [cu, cv] of corners) {
+    for (const [c, [cu, cv]] of corners.entries()) {
       const p = [0, 0, 0];
       p[d] = plane;
       p[u] = cu;
@@ -162,6 +200,7 @@ class MeshBuilder {
       this.uvs[k * 2 + 1] = p[tv];
       this.faces[k] = face;
       this.layers[k] = layer;
+      this.ao[k] = (shades >> (c * 2)) & 3;
     }
   }
 
@@ -170,8 +209,7 @@ class MeshBuilder {
     const indices = n > 0xffff ? new Uint32Array((n / 4) * 6) : new Uint16Array((n / 4) * 6);
     for (let q = 0; q < n / 4; q++) {
       const base = q * 4;
-      // Positive faces wind 0-1-2 counter-clockwise from outside; negative faces reverse it.
-      const order = this.faces[base] & 1 ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3];
+      const order = triangles(this.faces[base] & 1, this.flipped(base));
       for (let k = 0; k < 6; k++) indices[q * 6 + k] = base + order[k];
     }
     return {
@@ -179,8 +217,15 @@ class MeshBuilder {
       uvs: this.uvs.slice(0, n * 2),
       faces: this.faces.slice(0, n),
       layers: this.layers.slice(0, n),
+      ao: this.ao.slice(0, n),
       indices,
     };
+  }
+
+  /** Splitting along the brighter diagonal keeps corner shading smooth instead of streaky. */
+  private flipped(base: number): boolean {
+    const a = this.ao;
+    return a[base] + a[base + 2] < a[base + 1] + a[base + 3];
   }
 
   private reserve(vertices: number): void {
@@ -194,5 +239,12 @@ class MeshBuilder {
     this.uvs = grow(this.uvs);
     this.faces = grow(this.faces);
     this.layers = grow(this.layers);
+    this.ao = grow(this.ao);
   }
+}
+
+/** Index order for a quad; positive faces wind counter-clockwise from outside, negative reverse it. */
+function triangles(negative: number, flip: boolean): number[] {
+  const order = flip ? [1, 2, 3, 1, 3, 0] : [0, 1, 2, 0, 2, 3];
+  return negative ? [order[0], order[2], order[1], order[3], order[5], order[4]] : order;
 }
