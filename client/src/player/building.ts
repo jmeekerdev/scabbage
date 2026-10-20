@@ -12,6 +12,8 @@ export interface BuildWorld {
   solid: readonly boolean[];
   targetable: readonly boolean[]; // solid blocks and torches
   shape: readonly number[];
+  usable: ReadonlySet<number>; // pressed by hand, like switches, instead of built against
+  item: readonly number[]; // the block players hold for each one
   unbreakable: ReadonlySet<number>; // also never placeable
   mineMs: readonly number[]; // how long survival players dig each block
   inside(x: number, y: number, z: number): boolean;
@@ -29,22 +31,27 @@ export function buildWorldFor(
   info: {
     radius: number;
     height: number;
-    blocks: readonly { id: number; name: string; solid: boolean; shape: number; mineMs: number }[];
+    blocks: readonly {
+      id: number;
+      name: string;
+      solid: boolean;
+      shape: number;
+      mineMs: number;
+      usable?: boolean;
+      item?: number;
+    }[];
   },
   blockAt: BuildWorld["blockAt"],
 ): BuildWorld {
   const { radius: r, height } = info;
-  const [solid, targetable, shape, mineMs]: [boolean[], boolean[], number[], number[]] = [
-    [],
-    [],
-    [],
-    [],
-  ];
+  const [solid, targetable]: [boolean[], boolean[]] = [[], []];
+  const [shape, mineMs, item]: [number[], number[], number[]] = [[], [], []];
   for (const b of info.blocks) {
     solid[b.id] = b.solid;
-    targetable[b.id] = b.solid || b.shape === Shape.TORCH;
+    targetable[b.id] = b.solid || b.shape === Shape.TORCH || b.shape === Shape.FLAT;
     shape[b.id] = b.shape;
     mineMs[b.id] = b.mineMs;
+    item[b.id] = b.item || b.id;
   }
   return {
     blockAt,
@@ -52,6 +59,8 @@ export function buildWorldFor(
     targetable,
     shape,
     mineMs,
+    item,
+    usable: new Set(info.blocks.filter((b) => b.usable).map((b) => b.id)),
     unbreakable: new Set(info.blocks.filter((b) => b.name === "bedrock").map((b) => b.id)),
     inside: (x, y, z) => y >= 0 && y < height && (r < 0 || (x >= -r && x < r && z >= -r && z < r)),
   };
@@ -101,4 +110,17 @@ function overlaps(b: Body, x: number, y: number, z: number): boolean {
     b.z - HALF_WIDTH < z + 1 &&
     b.z + HALF_WIDTH > z
   );
+}
+
+/** Tells a fresh press from a held button's repeats, so holding a switch doesn't flick it. */
+export class PressFilter {
+  private lastMs = -Infinity;
+
+  constructor(private readonly repeatMs: number) {}
+
+  fresh(nowMs: number): boolean {
+    const fresh = nowMs - this.lastMs > this.repeatMs * 1.5;
+    this.lastMs = nowMs;
+    return fresh;
+  }
 }

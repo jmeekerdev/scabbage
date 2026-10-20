@@ -79,3 +79,12 @@ func TestTorchesBreakAndBlockPlacing(t *testing.T) {
 		t.Fatal("placing into a torch should be rejected")
 	}
 }
+
+func TestOnlyOffLogicBlocksArePlaced(t *testing.T) {
+	if !Allowed(feet, place(2, 10, 0, world.Wire), world.Air, nil) || Allowed(feet, place(2, 10, 0, world.Wire+1), world.Air, nil) {
+		t.Fatal("wire is placed off and powered by its circuit")
+	}
+	if !InReach(feet, 2, 9, 0) || InReach(feet, 7, 11, 0) {
+		t.Fatal("reach")
+	}
+}

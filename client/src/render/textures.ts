@@ -46,6 +46,38 @@ const wool =
   (x, y, n) =>
     shade(rgb, ((x + y) % 4 < 2 ? 0.95 : 1.03) * (0.94 + n() * 0.12));
 
+const STONE: [number, number, number] = [125, 125, 125];
+const edge = (x: number, y: number) => x === 0 || y === 0 || x === 15 || y === 15;
+const inSquare = (x: number, y: number, r: number) =>
+  Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)) < r;
+
+/** A lamp's glass between wooden bars, glowing or dark. */
+const lampGlass =
+  (glass: [number, number, number]): Painter =>
+  (x, y, n) => {
+    if (edge(x, y)) return shade([92, 70, 44], 0.9 + n() * 0.2);
+    return x % 5 === 0 || y % 5 === 0 ? shade(glass, 0.8) : shade(glass, 0.96 + n() * 0.08);
+  };
+
+/** Wire is a cross of red that brightens when powered; the rest is see-through. */
+const wire =
+  (rgb: [number, number, number]): Painter =>
+  (x, y, n) =>
+    Math.abs(x - 7.5) < 2 || Math.abs(y - 7.5) < 2 ? shade(rgb, 0.9 + n() * 0.2) : [0, 0, 0, 0];
+
+/** A stone block with a coloured square in the middle: red when off, green when on. */
+const knob =
+  (rgb: [number, number, number], size: number): Painter =>
+  (x, y, n) =>
+    inSquare(x, y, size)
+      ? shade(rgb, 0.95 + n() * 0.1)
+      : shade(STONE, edge(x, y) ? 0.7 : 0.9 + n() * 0.2);
+
+const plate =
+  (k: number): Painter =>
+  (x, y, n) =>
+    shade([160, 160, 150], (edge(x, y) ? 0.75 : 1) * k * (0.95 + n() * 0.1));
+
 // Row 0 is the bottom of the texture (v = 0), so side textures read bottom-up.
 const PAINTERS: Record<string, Painter> = {
   missing: (x, y) => (((x >> 3) + (y >> 3)) % 2 ? [255, 0, 255, 255] : [20, 20, 20, 255]),
@@ -91,6 +123,16 @@ const PAINTERS: Record<string, Painter> = {
     if (frame) return shade([92, 70, 44], 0.9 + n() * 0.2);
     return bars ? shade([200, 150, 60], 0.95) : shade([255, 226, 140], 0.96 + n() * 0.08);
   },
+  wire: wire([110, 20, 20]),
+  wire_on: wire([255, 50, 40]),
+  switch: knob([200, 40, 40], 4),
+  switch_on: knob([60, 200, 60], 4),
+  button: knob([150, 150, 150], 3),
+  button_on: knob([250, 210, 60], 3),
+  pressure_plate: plate(1),
+  pressure_plate_on: plate(0.8),
+  signal_lamp: lampGlass([110, 90, 60]),
+  signal_lamp_on: lampGlass([255, 226, 140]),
   // The torch box spans columns 6–9 and rows 0–9, so only that part is painted.
   torch: (x, y, n) => {
     if (x < 6 || x > 9 || y > 9) return [0, 0, 0, 0];

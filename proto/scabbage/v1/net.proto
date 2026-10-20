@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 15;
+  PROTOCOL_VERSION_CURRENT = 16;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -29,6 +29,7 @@ message ClientMessage {
     MoveItem move_item = 14;
     Craft craft = 15;
     HitMob hit_mob = 16;
+    UseBlock use_block = 17;
   }
 }
 
@@ -108,6 +109,8 @@ message BlockType {
   Shape shape = 6;
   uint32 light = 7; // how brightly it glows, 0 to 12
   uint32 mine_ms = 8; // how long survival players dig to break it; 0 is instant
+  bool usable = 9; // players press it by hand, like a switch
+  uint32 item = 10; // the block players hold for this one, when it differs
 }
 
 // Block geometry; stairs' tall half faces the named direction (north is -z).
@@ -119,6 +122,7 @@ enum Shape {
   SHAPE_STAIRS_SOUTH = 4;
   SHAPE_STAIRS_WEST = 5;
   SHAPE_TORCH = 6;
+  SHAPE_FLAT = 7; // a thin layer on the floor, like wire
 }
 
 // A built-in block texture repainted by an admin, e.g. "grass_side".
@@ -188,6 +192,11 @@ message EditBlock {
   BlockPos pos = 1;
   uint32 block = 2;
   uint32 slot = 3; // survival placements: the inventory slot the block comes from
+}
+
+// Presses the switch or button at pos.
+message UseBlock {
+  BlockPos pos = 1;
 }
 
 message BlockChanged {

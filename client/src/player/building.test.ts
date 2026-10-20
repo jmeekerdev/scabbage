@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aim, breakEdit, buildWorldFor, placeEdit, type BuildWorld } from "./building";
+import { aim, breakEdit, buildWorldFor, placeEdit, PressFilter, type BuildWorld } from "./building";
 import { newBody } from "./physics";
 import { Shape } from "../world/shapes";
 
@@ -14,6 +14,8 @@ function world(): BuildWorld {
     solid,
     targetable,
     shape,
+    usable: new Set(),
+    item: [],
     unbreakable: new Set([BEDROCK]),
     mineMs: [],
     inside: (_x, y) => y >= 0 && y < 64,
@@ -37,6 +39,18 @@ describe("buildWorldFor", () => {
     ];
     const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
     expect(w.mineMs[STONE]).toBe(1500);
+  });
+
+  it("aims at flat blocks, presses usable ones and holds powered ones as off", () => {
+    const blocks = [
+      { id: 60, name: "wire", solid: false, shape: Shape.FLAT, mineMs: 0 },
+      { id: 61, name: "wire_on", solid: false, shape: Shape.FLAT, mineMs: 0, item: 60 },
+      { id: 62, name: "switch", solid: true, shape: 0, mineMs: 300, usable: true },
+    ];
+    const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
+    expect(w.targetable[61]).toBe(true);
+    expect([...w.usable]).toEqual([62]);
+    expect([w.item[61], w.item[62]]).toEqual([60, 62]);
   });
 });
 
@@ -105,5 +119,18 @@ describe("torches and stairs", () => {
     const hit = { x: 2, y: 9, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 };
     const body = newBody(0.5, 10, 0.5);
     expect(placeEdit(hit, STAIRS, body, Math.PI, world())?.block).toBe(STAIRS + 2);
+  });
+});
+
+describe("PressFilter", () => {
+  it("lets a held button through once", () => {
+    const presses = new PressFilter(250);
+    expect([0, 250, 500, 1000, 1500].map((t) => presses.fresh(t))).toEqual([
+      true,
+      false,
+      false,
+      true,
+      true,
+    ]);
   });
 });

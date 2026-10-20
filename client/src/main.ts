@@ -7,6 +7,7 @@ import { screenForRejection, type Action, type Screen } from "./join/outcome";
 import {
   encodeEditBlock,
   encodeHitMob,
+  encodeUseBlock,
   encodeEmote,
   encodeMove,
   encodeCraft,
@@ -39,6 +40,7 @@ import {
   breakEdit,
   buildWorldFor,
   placeEdit,
+  PressFilter,
   type BuildWorld,
   type Edit,
 } from "./player/building";
@@ -82,7 +84,7 @@ import {
 } from "./ui/pwa";
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
-import { collisionBoxes, FULL_BLOCK, heldBlock, type Box } from "./world/shapes";
+import { collisionBoxes, FULL_BLOCK, type Box } from "./world/shapes";
 import { lookDirection, type RayHit } from "./world/raycast";
 import { solidQuery } from "./world/solid";
 import { zoneGreeting, Zones } from "./world/zones";
@@ -121,6 +123,7 @@ const backpack = new InventoryView(
   (recipe) => conn?.send(encodeCraft(recipe)),
 );
 const miner = new Miner();
+const presses = new PressFilter(250); // input repeats held buttons every 250 ms
 let survival = false;
 const zones = new Zones();
 let zoneHere: string | undefined; // the zone we stand in, to greet on entering
@@ -409,6 +412,13 @@ function build(
     if (act.breaking) hitMob(mob.id);
     return;
   }
+  const target = hit && building?.blockAt(hit.x, hit.y, hit.z);
+  if (hit && act.placing && target !== undefined && building?.usable.has(target)) {
+    miner.stop();
+    selection.show(hit);
+    if (presses.fresh(performance.now())) sendUse(hit);
+    return;
+  }
   if (hit && !zones.canBuild(hit.x, hit.z)) {
     miner.stop();
     selection.show(hit);
@@ -420,7 +430,7 @@ function build(
   if (!hit || !building) return;
   if (act.picking) {
     const block = building.blockAt(hit.x, hit.y, hit.z) ?? 0;
-    hotbar.pick(heldBlock(block, building.shape[block] ?? 0));
+    hotbar.pick(building.item[block] ?? block);
   }
   const breaking = survival ? dug === 1 : act.breaking;
   const edit = breaking
@@ -463,6 +473,15 @@ function hitMob(id: number): void {
   if (pose) conn.send(encodeMove(pose, moves.teleport));
   conn.send(encodeHitMob(id));
   audio.play("bonk");
+}
+
+/** Presses a switch or button; anyone may, even in a protected zone. */
+function sendUse(hit: RayHit): void {
+  if (!conn || !moves) return;
+  const pose = moves.flush(player.pose()); // the server checks reach from our latest position
+  if (pose) conn.send(encodeMove(pose, moves.teleport));
+  conn.send(encodeUseBlock(hit));
+  audio.play("place");
 }
 
 /** Shows the edit straight away; the server confirms it or sends back what is really there. */

@@ -15,6 +15,7 @@ import {
   encodeDecideJoin,
   encodeHello,
   encodeEditBlock,
+  encodeUseBlock,
   encodeEmote,
   encodeMove,
   encodeCraft,
@@ -53,6 +54,11 @@ describe("codec", () => {
   it("encodes the inventory slot a survival placement comes from", () => {
     const body = decodeClient(encodeEditBlock({ x: 0, y: 1, z: 2, block: 8 }, 4));
     expect(body.case === "editBlock" && body.value.slot).toBe(4);
+  });
+
+  it("encodes pressing a block", () => {
+    const body = decodeClient(encodeUseBlock({ x: 1, y: -2, z: 3 }));
+    expect(body.case === "useBlock" && body.value.pos).toMatchObject({ x: 1, y: -2, z: 3 });
   });
 
   it("encodes moving an item", () => {

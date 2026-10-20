@@ -100,7 +100,11 @@ func (g *Gateway) dropPlayer(s *session) (pendingSave, bool) {
 
 // Tick runs the world's players for one step; call it from the sim loop.
 func (g *Gateway) Tick() {
-	g.save(g.step(time.Now()))
+	now := time.Now()
+	g.save(g.step(now))
+	if err := g.stepCircuits(now); err != nil {
+		g.cfg.Logger.Error("circuits", "err", err)
+	}
 }
 
 // step heals players, hands out items, runs mobs and sends each the others that moved since the last tick.

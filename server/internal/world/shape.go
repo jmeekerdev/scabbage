@@ -11,6 +11,7 @@ const (
 	StairsSouth
 	StairsWest
 	TorchShape
+	Flat // a thin layer on the floor, like wire
 )
 
 // Box is part of a block's collision volume, in block-local coordinates from 0 to 1.
@@ -26,6 +27,7 @@ var shapeBoxes = [...][]Box{
 	StairsSouth: {lowerHalf, {Min: [3]float64{0, 0.5, 0.5}, Max: [3]float64{1, 1, 1}}},
 	StairsWest:  {lowerHalf, {Min: [3]float64{0, 0.5, 0}, Max: [3]float64{0.5, 1, 1}}},
 	TorchShape:  nil,
+	Flat:        {{Max: [3]float64{1, 0.125, 1}}},
 }
 
 var lowerHalf = Box{Max: [3]float64{1, 0.5, 1}}
@@ -39,4 +41,4 @@ func (i BlockInfo) Boxes() []Box {
 }
 
 // Targetable reports whether players can aim at the block to break it.
-func (i BlockInfo) Targetable() bool { return i.Solid || i.Shape == TorchShape }
+func (i BlockInfo) Targetable() bool { return i.Solid || i.Shape == TorchShape || i.Shape == Flat }

@@ -231,7 +231,11 @@ Each phase ends with something the family can play. Compact the model context be
       checks every edit and the client refuses early and greets you on entering)
 
 ### Phase 4 — Logic Blocks
-- [ ] Signal-propagation system (server tick): wire, switch, button, pressure plate, lamp
+- [x] Signal-propagation system (server tick): wire, switch, button, pressure plate, lamp
+      (`internal/logic`: each block has an off and an on ID, so power needs no extra storage.
+      A circuit is re-powered only when one of its blocks changes, walking at most 4096 wires;
+      the tick only lets go of buttons after 1 s and presses plates under players' feet.
+      Anyone may press switches and buttons, even in protected zones.)
 - [ ] Doors, pistons, timers, counters, teleporters, note blocks
 - [ ] Deterministic tests of logic circuits
 

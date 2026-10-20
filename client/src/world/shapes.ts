@@ -7,6 +7,7 @@ export const Shape = {
   STAIRS_SOUTH: 4,
   STAIRS_WEST: 5,
   TORCH: 6,
+  FLAT: 7, // a thin layer on the floor, like wire
 } as const;
 
 /** An axis-aligned box inside a block: x0, y0, z0, x1, y1, z1. */
@@ -23,6 +24,7 @@ export const SHAPE_BOXES: readonly (readonly Box[])[] = [
   [LOWER, [0, 4, 4, 8, 8, 8]],
   [LOWER, [0, 4, 0, 4, 8, 8]],
   [[3, 0, 3, 5, 5, 5]],
+  [[0, 0, 0, 8, 1, 8]],
 ];
 
 const inBlocks = SHAPE_BOXES.map((boxes) =>
@@ -38,11 +40,6 @@ export function collisionBoxes(shape: number, solid: boolean): readonly Box[] {
 
 export const isStairs = (shape: number) =>
   shape >= Shape.STAIRS_NORTH && shape <= Shape.STAIRS_WEST;
-
-/** The block the player holds for a placed block: north-facing stairs stand for all four. */
-export function heldBlock(id: number, shape: number): number {
-  return isStairs(shape) ? id - (shape - Shape.STAIRS_NORTH) : id;
-}
 
 /**
  * Stairs come as four consecutive block IDs, north first. Picks the one whose tall half

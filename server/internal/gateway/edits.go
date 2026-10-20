@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"scabbage/internal/edit"
+	"scabbage/internal/logic"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/world"
 )
@@ -41,6 +42,9 @@ func (g *Gateway) edit(s *session, r edit.Request, slot uint32) (bool, error) {
 	g.broadcast(blockChanged(r.X, r.Y, r.Z, r.Block))
 	if r.Block == world.Air {
 		g.broke(s, r, current, now)
+	}
+	if logic.Involves(current) || logic.Involves(r.Block) {
+		return true, g.powerLocked(logic.Pos{X: r.X, Y: r.Y, Z: r.Z})
 	}
 	return true, nil
 }

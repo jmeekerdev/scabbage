@@ -29,8 +29,13 @@ const (
 	WhiteWool   // 16 colors in woolColors order
 	Lamp        = WhiteWool + 16
 	Torch       = Lamp + 1
-	StoneSlab   = Torch + 1     // one per shapedMaterials entry
-	StoneStairs = StoneSlab + 4 // four facings per material: north, east, south, west
+	StoneSlab   = Torch + 1        // one per shapedMaterials entry
+	StoneStairs = StoneSlab + 4    // four facings per material: north, east, south, west
+	Wire        = StoneStairs + 16 // each logic block is followed by its powered state
+	Switch      = Wire + 2
+	Button      = Switch + 2
+	Plate       = Button + 2
+	SignalLamp  = Plate + 2
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block.
@@ -46,6 +51,8 @@ type BlockInfo struct {
 	Light       uint8  // how brightly it glows, up to MaxLight
 	MineMs      uint16 // how long survival players dig to break it
 	Drop        Block  // what breaking it gives, if not the block itself
+	Usable      bool   // players switch it by hand
+	Powered     bool   // the on state of the block before it
 }
 
 var (
@@ -97,8 +104,30 @@ func palette() []BlockInfo {
 			})
 		}
 	}
+	out = append(out, logicBlocks()...)
 	for id := range out {
 		out[id].ID = Block(id)
+	}
+	return out
+}
+
+// logicBlocks pairs each circuit block with its powered state.
+func logicBlocks() []BlockInfo {
+	offs := []BlockInfo{
+		{Name: "wire", Transparent: true, Shape: Flat},
+		{Name: "switch", Solid: true, Usable: true, MineMs: 300},
+		{Name: "button", Solid: true, Usable: true, MineMs: 300},
+		{Name: "pressure_plate", Transparent: true, Shape: Flat, MineMs: 300},
+		{Name: "signal_lamp", Solid: true, MineMs: 300},
+	}
+	out := make([]BlockInfo, 0, 2*len(offs))
+	for _, off := range offs {
+		on := off
+		on.Name, on.Powered = off.Name+"_on", true
+		if off.Name == "signal_lamp" {
+			on.Light = MaxLight
+		}
+		out = append(out, off, on)
 	}
 	return out
 }
@@ -179,10 +208,14 @@ func Info(b Block) BlockInfo {
 	return blocks[Air]
 }
 
-// Item is the block as players hold it: stairs face north until placed.
+// Item is the block as players hold it: stairs face north until placed, logic blocks are off.
 func (b Block) Item() Block {
-	if s := Info(b).Shape; s >= StairsNorth && s <= StairsWest {
+	info := Info(b)
+	if s := info.Shape; s >= StairsNorth && s <= StairsWest {
 		return b - Block(s-StairsNorth)
+	}
+	if info.Powered {
+		return b - 1
 	}
 	return b
 }

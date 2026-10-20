@@ -18,5 +18,10 @@
   {"make": "stone_stairs", "count": 4, "from": {"stone": 6}},
   {"make": "cobblestone_stairs", "count": 4, "from": {"cobblestone": 6}},
   {"make": "planks_stairs", "count": 4, "from": {"planks": 6}},
-  {"make": "brick_stairs", "count": 4, "from": {"brick": 6}}
+  {"make": "brick_stairs", "count": 4, "from": {"brick": 6}},
+  {"make": "wire", "count": 8, "from": {"torch": 1, "cobblestone": 1}},
+  {"make": "switch", "count": 1, "from": {"planks": 1, "cobblestone": 1}},
+  {"make": "button", "count": 1, "from": {"stone": 1}},
+  {"make": "pressure_plate", "count": 2, "from": {"stone": 2}},
+  {"make": "signal_lamp", "count": 1, "from": {"lamp": 1, "wire": 1}}
 ]

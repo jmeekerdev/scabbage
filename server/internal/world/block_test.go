@@ -51,13 +51,14 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 	pinned := map[Block]string{
 		WhiteWool: "white_wool", WhiteWool + 15: "black_wool", Lamp: "lamp", Torch: "torch",
 		StoneSlab: "stone_slab", StoneStairs: "stone_stairs", StoneStairs + 15: "brick_stairs_west",
+		Wire: "wire", SignalLamp + 1: "signal_lamp_on",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(StoneStairs)+16 {
+	if len(blocks) != int(SignalLamp)+2 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -82,6 +83,25 @@ func TestTorchesGlowAndLetPlayersThrough(t *testing.T) {
 	}
 	if torch.Boxes() != nil {
 		t.Fatal("torches don't collide")
+	}
+}
+
+func TestLogicBlocksHaveOnStates(t *testing.T) {
+	for _, off := range []Block{Wire, Switch, Button, Plate, SignalLamp} {
+		on := Info(off + 1)
+		if Info(off).Powered || !on.Powered || (off+1).Item() != off || Drops(off+1) != off {
+			t.Fatalf("%v and %v", off, on.Name)
+		}
+	}
+	if !Info(Switch).Usable || !Info(Button).Usable || Info(Wire).Usable {
+		t.Fatal("only switches and buttons are used by hand")
+	}
+	if Info(SignalLamp).Light != 0 || Info(SignalLamp+1).Light != MaxLight {
+		t.Fatal("signal lamps glow only when on")
+	}
+	wire := Info(Wire)
+	if wire.Solid || !wire.Targetable() || wire.Shape != Flat || Info(Plate).Shape != Flat {
+		t.Fatalf("wire = %+v", wire)
 	}
 }
 

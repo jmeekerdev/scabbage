@@ -28,6 +28,12 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   bedrock: same("bedrock"),
   lamp: same("lamp"),
   torch: same("torch"),
+  ...Object.fromEntries(
+    ["wire", "switch", "button", "pressure_plate", "signal_lamp"].flatMap((b) => [
+      [b, same(b)],
+      [`${b}_on`, same(`${b}_on`)],
+    ]),
+  ),
   ...Object.fromEntries(WOOL_COLORS.map((c) => [`${c}_wool`, same(`${c}_wool`)])),
 };
 

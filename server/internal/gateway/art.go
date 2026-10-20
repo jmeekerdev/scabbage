@@ -54,9 +54,18 @@ func (g *Gateway) palette() *pb.BlocksChanged {
 		out.Blocks = append(out.Blocks, &pb.BlockType{
 			Id: uint32(b.ID), Name: b.Name, Solid: b.Solid, Transparent: b.Transparent, Pixels: g.art.pixels[b.ID],
 			Shape: pb.Shape(b.Shape), Light: uint32(b.Light), MineMs: uint32(b.MineMs),
+			Usable: b.Usable, Item: heldAs(b.ID),
 		})
 	}
 	return out
+}
+
+// heldAs is the block players hold for b, or 0 when it is b itself.
+func heldAs(b world.Block) uint32 {
+	if item := b.Item(); item != b {
+		return uint32(item)
+	}
+	return 0
 }
 
 func (s *session) submitArt(ctx context.Context, m *pb.SubmitArt) error {

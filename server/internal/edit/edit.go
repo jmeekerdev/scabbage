@@ -19,22 +19,23 @@ type Request struct {
 // Allowed reports whether a player with feet at `feet` may change a block that is now `current`.
 // Solid placements must not overlap any body in `bodies`.
 func Allowed(feet motion.Vec, r Request, current world.Block, bodies []motion.Vec) bool {
-	if !inReach(feet, r) {
+	if !InReach(feet, r.X, r.Y, r.Z) {
 		return false
 	}
 	if r.Block == world.Air {
 		return world.Info(current).Targetable() && current != world.Bedrock
 	}
-	if !r.Block.Valid() || r.Block == world.Bedrock || world.Info(current).Targetable() {
+	if !r.Block.Valid() || r.Block == world.Bedrock || world.Info(r.Block).Powered || world.Info(current).Targetable() {
 		return false
 	}
 	return !world.Info(r.Block).Solid || !overlapsAny(r, bodies)
 }
 
-func inReach(feet motion.Vec, r Request) bool {
-	dx := float64(r.X) + 0.5 - feet.X
-	dy := float64(r.Y) + 0.5 - (feet.Y + motion.EyeHeight)
-	dz := float64(r.Z) + 0.5 - feet.Z
+// InReach reports whether a player with feet at `feet` can reach the block at x, y, z.
+func InReach(feet motion.Vec, x, y, z int32) bool {
+	dx := float64(x) + 0.5 - feet.X
+	dy := float64(y) + 0.5 - (feet.Y + motion.EyeHeight)
+	dz := float64(z) + 0.5 - feet.Z
 	return dx*dx+dy*dy+dz*dz <= Reach*Reach
 }
 
