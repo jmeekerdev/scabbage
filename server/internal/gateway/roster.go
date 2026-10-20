@@ -40,6 +40,7 @@ func (s *session) other(a *avatar) *pb.OtherPlayer {
 
 // addPlayer puts a session in the world, introducing it and everyone already there to each other.
 func (g *Gateway) addPlayer(s *session) {
+	marks := g.arenaMarks()
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.entity++
@@ -56,7 +57,7 @@ func (g *Gateway) addPlayer(s *session) {
 		s.push(present)
 	}
 	a.mode = g.zoneMode(a)
-	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked(), g.zonesMessage(s, true)} {
+	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked(), g.zonesMessage(s, marks, true)} {
 		if msg != nil {
 			s.push(msg)
 		}

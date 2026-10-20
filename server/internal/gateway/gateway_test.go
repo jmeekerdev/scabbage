@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
+	"scabbage/internal/arenas"
 	"scabbage/internal/art"
 	"scabbage/internal/mobs"
 	pb "scabbage/internal/pb/scabbage/v1"
@@ -25,13 +26,14 @@ import (
 const currentVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
 
 type testServer struct {
-	hub   *sim.Hub
-	svc   *access.Service
-	world *world.World
-	herd  *mobs.Herd
-	zones *zones.Service
-	gw    *Gateway
-	url   string
+	hub    *sim.Hub
+	svc    *access.Service
+	world  *world.World
+	herd   *mobs.Herd
+	zones  *zones.Service
+	arenas *arenas.Service
+	gw     *Gateway
+	url    string
 }
 
 func startServer(t *testing.T) *testServer {
@@ -56,13 +58,14 @@ func startServer(t *testing.T) *testServer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, ServerName: "test", HelloTimeout: time.Second})
+	games := arenas.New(db)
+	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	return &testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	return &testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, arenas: games, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

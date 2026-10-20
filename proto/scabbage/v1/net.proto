@@ -387,6 +387,16 @@ message Zone {
   int32 z1 = 5;
   bool build = 6; // whether the recipient may change blocks here
   GameMode mode = 7; // unspecified keeps each player's own
+  repeated ArenaMark marks = 8; // spawns and goals, when the zone is an arena
+}
+
+// A block in an arena where a team spawns or scores.
+message ArenaMark {
+  int32 x = 1;
+  int32 y = 2;
+  int32 z = 3;
+  string team = 4; // red, blue, green or yellow; empty for everyone
+  bool goal = 5; // a goal rather than a spawn
 }
 
 // Every zone, sent on join and whenever one changes; where zones overlap the smallest wins.

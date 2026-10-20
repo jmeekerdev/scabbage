@@ -143,3 +143,13 @@ func TestCornersInAnyOrder(t *testing.T) {
 		t.Fatalf("pond = %+v, %v", z, ok)
 	}
 }
+
+func TestNamedIgnoresCase(t *testing.T) {
+	s := newService(t, 8)
+	if z, ok := s.Named("spawn"); !ok || z.Name != SpawnName {
+		t.Fatalf("Named = %+v, %v", z, ok)
+	}
+	if _, ok := s.Named("Farm"); ok {
+		t.Fatal("found a zone that isn't there")
+	}
+}

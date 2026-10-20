@@ -11,6 +11,7 @@ import (
 	"github.com/coder/websocket"
 
 	"scabbage/internal/access"
+	"scabbage/internal/arenas"
 	"scabbage/internal/art"
 	"scabbage/internal/crafting"
 	"scabbage/internal/drops"
@@ -30,6 +31,7 @@ type Config struct {
 	Recipes        []crafting.Recipe // crafting.Default() when nil
 	Mobs           *mobs.Herd        // a new herd when nil; guarded by the gateway's mu
 	Zones          *zones.Service
+	Arenas         *arenas.Service
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration

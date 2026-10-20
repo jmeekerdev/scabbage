@@ -250,7 +250,11 @@ Each phase ends with something the family can play. Compact the model context be
       Doors never close on a player; they wait until everyone has stepped out.)
 
 ### Phase 5 — Minigame Maker
-- [ ] Mark an area as an arena: spawns, teams, goal, timer, win condition
+- [x] Mark an area as an arena: spawns, teams, goal, timer, win condition
+      (an arena is a saved zone's minigame setup, stored as JSON beside it and removed with it;
+      admins run `/arena spawn|goal ZONE [red|blue|green|yellow]` to mark where they stand,
+      `timer ZONE SECONDS`, `win ZONE last|goal|points N`, `clear ZONE` and `list`; teams are the
+      colors that have spawns)
 - [ ] Built-in templates: race, capture-the-flag, tag, spleef, last-one-standing
 - [ ] PVP enabled **only** inside minigames or opt-in arenas
 - [ ] Lobby/portal blocks, scoreboards, round flow
@@ -270,8 +274,6 @@ Each phase ends with something the family can play. Compact the model context be
 
 1. **Public access:** how will family outside the house reach the server: a port forward to
    Caddy, Cloudflare Tunnel, or something else? (Not needed until Phase 1 testing.)
-2. **Extra worlds:** should minigame and adventure maps live in the main world, or in separate
-   worlds reached through portals? (Decide by Phase 5; the storage layer will support multiple worlds.)
 
 ## Resolved
 
@@ -280,3 +282,4 @@ Each phase ends with something the family can play. Compact the model context be
 - The world starts bounded and can open up to infinite later.
 - Admins approve joins from the web page or in-game.
 - The name stays **Scabbage**.
+- Minigame arenas live in the main world, inside zones; separate worlds can come later if needed.

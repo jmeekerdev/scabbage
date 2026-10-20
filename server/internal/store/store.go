@@ -81,6 +81,10 @@ var migrations = []string{
 		player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
 		PRIMARY KEY (zone_id, player_id)
 	) WITHOUT ROWID;`,
+	`CREATE TABLE arenas (
+		zone_id INTEGER PRIMARY KEY REFERENCES zones(id) ON DELETE CASCADE,
+		setup   TEXT NOT NULL
+	);`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

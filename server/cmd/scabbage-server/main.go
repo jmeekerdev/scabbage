@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"scabbage/internal/access"
+	"scabbage/internal/arenas"
 	"scabbage/internal/art"
 	"scabbage/internal/backup"
 	"scabbage/internal/config"
@@ -91,6 +92,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		World:          w,
 		Recipes:        recipes,
 		Zones:          areas,
+		Arenas:         arenas.New(db),
 		ServerName:     cfg.ServerName,
 		Mode:           access.Mode(cfg.Mode),
 		OriginPatterns: cfg.Origins,

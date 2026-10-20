@@ -58,6 +58,7 @@ import type { BoxesAt } from "./player/physics";
 import { Player } from "./player/player";
 import { RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
+import { ArenaMarks } from "./render/arena-marks";
 import { Drops } from "./render/drops";
 import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
@@ -128,6 +129,7 @@ const miner = new Miner();
 const presses = new PressFilter(250); // input repeats held buttons every 250 ms
 let survival = false;
 const zones = new Zones();
+const arenaMarks = new ArenaMarks(gameScene.scene);
 let zoneHere: string | undefined; // the zone we stand in, to greet on entering
 let refusedAtMs = -Infinity; // when we last said a zone is protected
 inventory.onChange = () => {
@@ -259,8 +261,10 @@ function connect(join?: JoinInit): void {
           if (inventory.set(msg.body.value.slots)) audio.play("pop", 0.5);
         } else if (msg.body.case === "itemsChanged")
           drops.change(msg.body.value.drops, msg.body.value.gone);
-        else if (msg.body.case === "zonesChanged") zones.set(msg.body.value.zones);
-        else if (msg.body.case === "mobsChanged")
+        else if (msg.body.case === "zonesChanged") {
+          zones.set(msg.body.value.zones);
+          arenaMarks.set(msg.body.value.zones);
+        } else if (msg.body.case === "mobsChanged")
           mobs?.change(msg.body.value.mobs, msg.body.value.gone, performance.now());
         else if (msg.body.case === "chat") {
           chat.add(msg.body.value);
@@ -346,6 +350,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   others = new RemotePlayers(1000 / Math.max(1, tickRateHz));
   mobs = new Mobs(MOB_STEP_MS); // the server lists every mob again on joining
   zones.set([]);
+  arenaMarks.set([]);
   zoneHere = undefined;
   hintEl.hidden = document.pointerLockElement !== null || touch;
   $("#touch").hidden = !touch;

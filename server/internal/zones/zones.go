@@ -95,7 +95,7 @@ func (s *Service) Put(name string, x0, z0, x1, z1 int32) error {
 	if n := utf8.RuneCountInString(name); n == 0 || n > maxNameRunes {
 		return ErrBadName
 	}
-	z, ok := s.find(name)
+	z, ok := s.Named(name)
 	if !ok {
 		z = Zone{Name: name}
 	}
@@ -109,7 +109,7 @@ func (s *Service) SetMode(name string, m access.Mode) error {
 	if !m.Valid() {
 		return access.ErrBadMode
 	}
-	z, ok := s.find(name)
+	z, ok := s.Named(name)
 	if !ok {
 		return ErrNoZone
 	}
@@ -119,7 +119,7 @@ func (s *Service) SetMode(name string, m access.Mode) error {
 
 // Allow adds a builder to a zone, or takes them off when on is false.
 func (s *Service) Allow(name string, player int64, on bool) error {
-	z, ok := s.find(name)
+	z, ok := s.Named(name)
 	if !ok {
 		return ErrNoZone
 	}
@@ -142,7 +142,8 @@ func (s *Service) Remove(name string) error {
 	return s.load()
 }
 
-func (s *Service) find(name string) (Zone, bool) {
+// Named finds a zone by name, ignoring case.
+func (s *Service) Named(name string) (Zone, bool) {
 	for _, z := range s.All() {
 		if strings.EqualFold(z.Name, name) {
 			return z, true
