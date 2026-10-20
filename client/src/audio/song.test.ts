@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BAR_BEATS, chordAt, PROGRESSION } from "./chords";
-import { arpeggioNotes, sectionNotes, SONG } from "./song";
+import { arpeggioNotes, barNotes, sectionNotes, SONG } from "./song";
 
 const D_FLAT_MAJOR = [1, 3, 5, 6, 8, 10, 0];
 const sectionBeats = (bars: number) => bars * BAR_BEATS;
@@ -50,5 +50,24 @@ describe("song", () => {
       expect(n.beat).toBe(i / 2);
       expect(chordAt(n.beat).voicing).toContain(n.midi);
     });
+  });
+
+  it("splits each section into bars without changing a note", () => {
+    for (const s of SONG) {
+      const bars = Array.from({ length: s.bars }, (_, bar) => barNotes(s, bar));
+      const fromBar = (bar: number) => (n: { beat: number }) => ({
+        ...n,
+        beat: n.beat + bar * BAR_BEATS,
+      });
+      expect(
+        bars.flatMap((b, bar) => b.tune.map(fromBar(bar))),
+        s.name,
+      ).toEqual(sectionNotes(s));
+      const arpeggio = s.arpeggio ? arpeggioNotes(s.bars) : [];
+      expect(
+        bars.flatMap((b, bar) => b.arpeggio.map(fromBar(bar))),
+        s.name,
+      ).toEqual(arpeggio);
+    }
   });
 });

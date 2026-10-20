@@ -78,7 +78,7 @@ export interface Quality {
 const QUALITY: Record<Preset, Quality> = {
   low: { maxPixelRatio: 0.75, antialias: false },
   medium: { maxPixelRatio: 1, antialias: false },
-  high: { maxPixelRatio: 2, antialias: true },
+  high: { maxPixelRatio: 1.5, antialias: true }, // 1.5x is 56% of the pixels of 2x
 };
 
 export function qualityFor(preset: Preset): Quality {

@@ -82,7 +82,7 @@ describe("graphics presets", () => {
 
   it("never renders above the device's own pixel ratio", () => {
     expect(pixelRatioFor("high", 1)).toBe(1);
-    expect(pixelRatioFor("high", 3)).toBe(2);
+    expect(pixelRatioFor("high", 3)).toBe(1.5); // antialiasing covers the rest, at well under 2x the pixels
     expect(pixelRatioFor("low", 3)).toBeLessThan(1);
   });
 });

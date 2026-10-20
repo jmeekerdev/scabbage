@@ -1,5 +1,5 @@
 import { BAR_BEATS, chordAt, midiHz } from "./chords";
-import { arpeggioNotes, type Section, sectionNotes, SONG } from "./song";
+import { barNotes, type Section, SONG } from "./song";
 import { echo, noise, noiseBuffer, tone, voice } from "./synth";
 
 export type Cue = "step" | "break" | "place" | "pop" | "hurt" | "bonk";
@@ -7,7 +7,7 @@ export type Cue = "step" | "break" | "place" | "pop" | "hurt" | "bonk";
 const BEAT = 0.65; // seconds; slow and calm
 const PAD_GAIN = 0.1; // per voice, under the melody
 const MUSIC_GAIN = 0.12;
-const LOOKAHEAD = 0.5; // seconds a section is queued before it plays
+const LOOKAHEAD = 1; // seconds a bar is queued before it plays, so few notes wait at once
 const GAP_MS = { min: 10000, max: 20000 }; // quiet between plays of the song
 // Touch only counts as a gesture on pointerup, a mouse on pointerdown.
 const GESTURES = ["pointerdown", "pointerup", "keydown"];
@@ -40,7 +40,7 @@ export class GameAudio {
   private sfx?: GainNode;
   private music?: GainNode;
   private noise?: AudioBuffer;
-  private nextSection?: number;
+  private nextBar?: number;
   private run?: GainNode; // this play of the song, so stopping silences its queued notes
   private idle?: number;
 
@@ -101,18 +101,18 @@ export class GameAudio {
     const ctx = this.ctx;
     if (!ctx) return;
     const playing = this.musicOn && !document.hidden;
-    if (playing && this.nextSection === undefined) this.playSection(0, ctx.currentTime + 0.1);
+    if (playing && this.nextBar === undefined) this.playBar(0, 0, ctx.currentTime + 0.1);
     if (!playing) this.stopSong(ctx);
     if (playing) this.wake();
     else this.sleepSoon();
   }
 
-  /** Queues section `i` of the song at `start`, then the next one just before this ends. */
-  private playSection(i: number, start: number): void {
+  /** Queues bar `bar` of section `i` at `start`, then the next bar just before this one ends. */
+  private playBar(i: number, bar: number, start: number): void {
     const { ctx, music } = this;
     if (!ctx || !music) return;
     this.wake();
-    if (i === 0) {
+    if (i === 0 && bar === 0) {
       this.run = ctx.createGain();
       this.run.gain.value = MUSIC_GAIN;
       this.run.connect(music);
@@ -120,32 +120,33 @@ export class GameAudio {
     const section = SONG[i];
     if (!section || !this.run) {
       const gap = GAP_MS.min + Math.random() * (GAP_MS.max - GAP_MS.min);
-      this.nextSection = window.setTimeout(() => this.playSection(0, ctx.currentTime + 0.1), gap);
+      this.nextBar = window.setTimeout(() => this.playBar(0, 0, ctx.currentTime + 0.1), gap);
       return;
     }
+    if (bar >= section.bars) return this.playBar(i + 1, 0, start);
     start = Math.max(start, ctx.currentTime + 0.05); // a throttled timer may run late
-    this.section(ctx, this.run, section, start);
-    const end = start + section.bars * BAR_BEATS * BEAT;
+    this.bar(ctx, this.run, section, bar, start);
+    const end = start + BAR_BEATS * BEAT;
     const wait = (end - ctx.currentTime - LOOKAHEAD) * 1000;
-    this.nextSection = window.setTimeout(() => this.playSection(i + 1, end), wait);
+    this.nextBar = window.setTimeout(() => this.playBar(i, bar + 1, end), wait);
   }
 
   /** Fades out whatever is queued and forgets the song's place. */
   private stopSong(ctx: AudioContext): void {
-    clearTimeout(this.nextSection);
-    this.nextSection = undefined;
+    clearTimeout(this.nextBar);
+    this.nextBar = undefined;
     const run = this.run;
     this.run = undefined;
     run?.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
     window.setTimeout(() => run?.disconnect(), 2000);
   }
 
-  /** One section: chords every bar, then the tune and, in choruses, the arpeggio. */
-  private section(ctx: AudioContext, out: AudioNode, s: Section, start: number): void {
+  /** One bar of a section: its chord, then the tune and, in choruses, the arpeggio. */
+  private bar(ctx: AudioContext, out: AudioNode, s: Section, bar: number, start: number): void {
     const at = (beat: number) => start + beat * BEAT;
-    for (let bar = 0; bar < s.bars; bar++)
-      this.chord(ctx, out, bar * BAR_BEATS, at(bar * BAR_BEATS), s.level);
-    for (const n of sectionNotes(s))
+    this.chord(ctx, out, bar * BAR_BEATS, start, s.level);
+    const { tune, arpeggio } = barNotes(s, bar);
+    for (const n of tune)
       voice(ctx, out, {
         freq: midiHz(n.midi),
         start: at(n.beat),
@@ -155,8 +156,7 @@ export class GameAudio {
         release: 0.9,
         type: "triangle",
       });
-    if (!s.arpeggio) return;
-    for (const n of arpeggioNotes(s.bars))
+    for (const n of arpeggio)
       voice(ctx, out, {
         freq: midiHz(n.midi),
         start: at(n.beat),

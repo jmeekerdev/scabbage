@@ -106,3 +106,13 @@ export function arpeggioNotes(bars: number): Note[] {
   }
   return notes;
 }
+
+/** The tune and arpeggio notes that start in one bar of a section, timed from that bar. */
+export function barNotes(s: Section, bar: number): { tune: Note[]; arpeggio: Note[] } {
+  const from = bar * BAR_BEATS;
+  const inBar = (notes: Note[]) =>
+    notes
+      .filter((n) => n.beat >= from && n.beat < from + BAR_BEATS)
+      .map((n) => ({ ...n, beat: n.beat - from }));
+  return { tune: inBar(sectionNotes(s)), arpeggio: s.arpeggio ? inBar(arpeggioNotes(s.bars)) : [] };
+}
