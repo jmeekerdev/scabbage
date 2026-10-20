@@ -7,6 +7,7 @@ import { WorldClient, type ChunkView, type Mesher } from "./world-client";
 const AIR = Uint8Array.of(1, 1, 0);
 const STONE = Uint8Array.of(1, 1, 1);
 const TORCH = 2;
+const WIRE = 3; // see-through and dark, like a wire turning on or off
 const bounds = { radius: 32, height: 32 }; // chunk columns -2..1, two layers
 
 class FakeMesher implements Mesher {
@@ -44,7 +45,7 @@ function setup(slots?: number) {
   const view = new FakeView();
   const world = new WorldClient({ send: (b) => sent.push(b), mesher, view });
   world.start(bounds);
-  world.setLights(Uint8Array.of(0, 0, 11));
+  world.setLights(Uint8Array.of(0, 0, 11, 0), Uint8Array.of(1, 0, 1, 1));
   return { sent, mesher, view, world };
 }
 
@@ -141,6 +142,29 @@ describe("WorldClient", () => {
     world.tick(0, 0, 1);
     expect(mesher.jobs.length).toBe(10);
     expect(mesher.jobs.every((j) => j.volume.length === PADDED_VOLUME)).toBe(true);
+  });
+
+  it("re-meshes only the chunk itself for a change that leaves the light alone", () => {
+    const { mesher, world } = loaded();
+    world.setBlock(5, 5, 5, TORCH);
+    world.setBlock(6, 5, 5, 0);
+    world.tick(0, 0, 1);
+    mesher.finishAll();
+    world.setBlock(6, 5, 5, WIRE);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(1);
+    expect(mesher.jobs[0]!.volume.length).toBe(REGION_VOLUME); // still lit by the torch
+  });
+
+  it("re-meshes every chunk the light reaches when a block starts blocking it", () => {
+    const { mesher, world } = loaded();
+    world.setBlock(5, 5, 5, TORCH);
+    world.setBlock(6, 5, 5, 0);
+    world.tick(0, 0, 1);
+    mesher.finishAll();
+    world.setBlock(6, 5, 5, 1);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(10);
   });
 
   it("ignores changes to chunks that aren't loaded", () => {

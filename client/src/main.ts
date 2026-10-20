@@ -65,7 +65,7 @@ import { Drops } from "./render/drops";
 import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
 import { TEXTURE_NAMES } from "./render/textures";
-import { startScene } from "./render/scene";
+import { DEBUG_FRAMES, startScene } from "./render/scene";
 import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
 import { AutoQuality } from "./settings/auto-quality";
@@ -197,7 +197,14 @@ gameScene.onFrame((timeMs) => {
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
-gameScene.onDrawn((timeMs, steady) => {
+const drawn = { view: 0, objects: 0 };
+if (DEBUG_FRAMES)
+  window.setInterval(() => {
+    $("#fps").textContent = `${drawn.view + drawn.objects} fps drawn (${drawn.view} view)`;
+    drawn.view = drawn.objects = 0;
+  }, 1000);
+gameScene.onDrawn((timeMs, steady, change) => {
+  if (change !== "none") drawn[change]++;
   const lighter = moves && autoQuality.frame(timeMs, settings, steady);
   if (lighter) {
     changeSettings(lighter);

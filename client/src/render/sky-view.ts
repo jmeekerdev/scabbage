@@ -20,6 +20,8 @@ export class SkyView {
 
   constructor(private readonly scene: Scene) {
     scene.background = this.background;
+    this.sun.name = "sun";
+    this.moon.name = "moon";
     scene.add(this.sun, this.moon);
   }
 

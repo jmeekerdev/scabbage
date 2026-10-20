@@ -84,6 +84,7 @@ export class MobView {
 
   private add(m: MobState): Figure {
     const f = { group: m.kind === MobKind.SLIME ? slime() : sheep(), hopMs: 0 };
+    f.group.name = `mob ${m.id}`;
     this.scene.add(f.group);
     this.figures.set(m.id, f);
     return f;

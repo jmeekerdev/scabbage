@@ -247,6 +247,7 @@ export class Avatars {
       let a = this.shown.get(p.entity);
       if (!a) {
         a = new Avatar(p.name, p.color, p.skin);
+        a.root.name = `player ${p.name ?? p.entity}`;
         this.shown.set(p.entity, a);
         this.scene.add(a.root);
       }

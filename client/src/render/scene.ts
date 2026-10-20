@@ -1,8 +1,9 @@
-import { Fog, PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import { Fog, PerspectiveCamera, Scene, WebGLRenderer, type Object3D } from "three";
 import { FrameLimiter, pixelRatioFor, qualityFor, type Settings } from "../settings/settings";
 import { CHUNK_SIZE } from "../world/constants";
 import { daylight } from "./chunk-material";
-import { FrameState } from "./frame-state";
+import { FrameState, type Change } from "./frame-state";
+import { Pacer } from "./pacer";
 import { skyAt } from "./sky";
 import { SkyView } from "./sky-view";
 
@@ -16,13 +17,17 @@ export interface GameScene {
   /** Runs fn on each frame the limiter allows, before deciding whether to draw it. */
   onFrame(fn: (timeMs: number) => void): void;
   /** Runs fn after each drawn frame; steady is false when the frame before it wasn't drawn. */
-  onDrawn(fn: (timeMs: number, steady: boolean) => void): void;
+  onDrawn(fn: (timeMs: number, steady: boolean, change: Change) => void): void;
   /** Draws the next frame even if nothing visible seems to have changed, e.g. after new textures. */
   invalidate(): void;
 }
 
 // The sky moves so slowly that stepping it once a second is unnoticeable, and lets idle frames go undrawn.
 const SKY_STEP_MS = 1000;
+// Things moving on their own, like mobs and other players, look smooth at this rate; the camera gets more.
+const OBJECTS_FPS = 30;
+// Input that should bring an idle loop straight back to full speed.
+const WAKING_EVENTS = ["keydown", "pointerdown", "pointermove", "mousemove", "wheel", "touchstart"];
 
 /** Creates the renderer, sky and camera, and draws whenever something changed and the limiter allows. */
 export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameScene {
@@ -34,9 +39,10 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   const camera = new PerspectiveCamera(70, 1, 0.1);
   const limiter = new FrameLimiter(initial.fpsCap);
   const frameHooks: ((timeMs: number) => void)[] = [];
-  const drawnHooks: ((timeMs: number, steady: boolean) => void)[] = [];
+  const drawnHooks: ((timeMs: number, steady: boolean, change: Change) => void)[] = [];
   const frame = new FrameState();
   let steady = false;
+  let lastDrawnMs = -Infinity;
 
   const resize = () => {
     const { clientWidth: w, clientHeight: h } = canvas;
@@ -56,22 +62,59 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   };
   apply(initial);
 
-  // setAnimationLoop uses requestAnimationFrame, which browsers pause in hidden tabs.
-  renderer.setAnimationLoop((timeMs) => {
-    if (!limiter.ready(timeMs)) return;
+  /** Runs one frame's hooks and draws it if anything changed, reporting what did. */
+  const step = (timeMs: number): Change => {
     for (const fn of frameHooks) fn(timeMs);
     const now = skyAt(Math.floor(Date.now() / SKY_STEP_MS) * SKY_STEP_MS);
     if (now.daylight !== daylight.value) frame.invalidate();
     daylight.value = now.daylight;
     sky.update(now, camera, camera.far * 0.8);
-    if (!frame.changed(scene, camera)) {
+    const change = frame.check(scene, camera);
+    const soon = change === "objects" && timeMs - lastDrawnMs < 1000 / OBJECTS_FPS;
+    if (change === "none" || soon) {
       steady = false;
-      return;
+      return change;
     }
+    if (DEBUG_FRAMES) logCulprit(change, frame.culprit(scene));
     renderer.render(scene, camera);
-    for (const fn of drawnHooks) fn(timeMs, steady);
+    frame.drew();
+    lastDrawnMs = timeMs;
+    for (const fn of drawnHooks) fn(timeMs, steady, change);
     steady = true;
-  });
+    return change;
+  };
+
+  // While the view is still, a timer replaces requestAnimationFrame so the page mostly sleeps.
+  const pacer = new Pacer();
+  let sleeping = false;
+  let timer: number | undefined;
+  const paced = (timeMs: number) => {
+    pacer.frame(timeMs, step(timeMs));
+    const ms = pacer.step();
+    if (ms !== undefined) sleep(ms);
+  };
+  const sleep = (ms: number) => {
+    if (!sleeping) renderer.setAnimationLoop(null);
+    sleeping = true;
+    // Hidden tabs wait for visibilitychange instead.
+    timer = document.hidden ? undefined : window.setTimeout(idleTick, ms);
+  };
+  const idleTick = () => {
+    paced(performance.now());
+    if (pacer.step() === undefined) wake();
+  };
+  const wake = () => {
+    pacer.wake(performance.now());
+    if (!sleeping) return;
+    sleeping = false;
+    clearTimeout(timer);
+    // setAnimationLoop uses requestAnimationFrame, which browsers pause in hidden tabs.
+    renderer.setAnimationLoop((timeMs) => limiter.ready(timeMs) && paced(timeMs));
+  };
+  for (const type of WAKING_EVENTS) addEventListener(type, wake, { capture: true, passive: true });
+  document.addEventListener("visibilitychange", () => !document.hidden && wake());
+  sleeping = true;
+  wake();
   return {
     scene,
     camera,
@@ -81,6 +124,16 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
     onDrawn: (fn) => drawnHooks.push(fn),
     invalidate: () => frame.invalidate(),
   };
+}
+
+// With ?frames in the address, a counter and the console say what made each frame get drawn.
+export const DEBUG_FRAMES = new URLSearchParams(location.search).has("frames");
+
+function logCulprit(change: Change, o: Object3D | undefined): void {
+  const path: string[] = [];
+  for (let at: Object3D | null | undefined = o; at; at = at.parent)
+    path.unshift(at.name || at.type);
+  console.debug(change, path.join(" > "), o?.position.toArray());
 }
 
 /** Fades terrain into the sky before the far plane so chunk edges never pop into view. */

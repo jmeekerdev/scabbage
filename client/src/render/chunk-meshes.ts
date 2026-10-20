@@ -26,7 +26,10 @@ export class ChunkMeshes implements ChunkView {
   constructor(
     private readonly opaque: Material,
     private readonly translucent: Material,
-  ) {}
+  ) {
+    this.group.name = "chunks";
+    this.group.userData.fixed = true; // meshes never move, so frame checks only see which are in view
+  }
 
   show(key: ChunkKey, pos: ChunkPos, mesh: ChunkMesh): void {
     this.remove(key);

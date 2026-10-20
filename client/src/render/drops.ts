@@ -57,6 +57,7 @@ export class Drops {
     const s = new Sprite(this.material(d.block));
     s.scale.set(SIZE, SIZE, SIZE);
     s.userData.block = d.block;
+    s.name = `drop ${d.id}`;
     this.sprites.set(d.id, s);
     this.scene.add(s);
     return s;

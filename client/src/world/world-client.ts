@@ -39,6 +39,7 @@ export class WorldClient {
   private jobs = 0;
   private center = { cx: 0, cz: 0, vd: 0 };
   private emits: Uint8Array = new Uint8Array(0); // light level per block ID
+  private transparent: Uint8Array = new Uint8Array(0); // 1 where light passes, per block ID
   private readonly glowing = new Map<ChunkKey, boolean>(); // cached: holds a glowing block
 
   constructor(private readonly deps: WorldClientDeps) {}
@@ -53,9 +54,10 @@ export class WorldClient {
     this.deps.view.clear();
   }
 
-  /** How brightly each block ID glows; meshes made from now on use it. */
-  setLights(emits: Uint8Array): void {
+  /** How brightly each block ID glows and which let light through; meshes made from now on use it. */
+  setLights(emits: Uint8Array, transparent: Uint8Array): void {
     this.emits = emits;
+    this.transparent = transparent;
     this.glowing.clear();
   }
 
@@ -89,8 +91,7 @@ export class WorldClient {
     // A neighbor needs a new mesh if the block is within `reach` of its side.
     const near = (reach: number) => (d: number[]) =>
       d.every((o, a) => o === 0 || (o < 0 ? local[a] < reach : local[a] >= S - reach));
-    const lit = (this.emits[old] ?? 0) > 0 || (this.emits[block] ?? 0) > 0;
-    this.remeshAround(cx, cy, cz, near(lit || this.lightsNear(cx, cy, cz) ? LIGHT_MARGIN : 1));
+    this.remeshAround(cx, cy, cz, near(this.movesLight(old, block, cx, cy, cz) ? LIGHT_MARGIN : 1));
   }
 
   /** Call every frame with the player's block position; does little unless something is due. */
@@ -127,6 +128,13 @@ export class WorldClient {
           if (pick([dx, dy, dz])) this.remesh(x + dx, y + dy, z + dz);
       }
     }
+  }
+
+  /** Whether swapping old for block changes any light: it glows, or stops or lets through light nearby. */
+  private movesLight(old: number, block: number, cx: number, cy: number, cz: number): boolean {
+    if ((this.emits[old] ?? 0) > 0 || (this.emits[block] ?? 0) > 0) return true;
+    const blocksLight = (b: number) => this.transparent[b] !== 1;
+    return blocksLight(old) !== blocksLight(block) && this.lightsNear(cx, cy, cz);
   }
 
   /** Whether a glowing block in this chunk or a neighbor could light it. */

@@ -36,6 +36,7 @@ export class ArenaMarks {
   readonly group = new Group();
 
   constructor(scene: Scene) {
+    this.group.name = "arena marks";
     scene.add(this.group);
   }
 

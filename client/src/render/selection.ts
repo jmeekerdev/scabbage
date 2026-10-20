@@ -21,6 +21,7 @@ export class Selection {
   });
 
   constructor(scene: Scene) {
+    this.box.name = "selection";
     this.box.visible = false;
     this.box.add(new Mesh(new BoxGeometry(1.002, 1.002, 1.002), this.shade));
     scene.add(this.box);
