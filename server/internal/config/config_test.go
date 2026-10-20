@@ -15,7 +15,7 @@ func TestDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := Config{Addr: ":8080", WebDir: "web", DataDir: "data", ServerName: "Scabbage", TickRate: 20,
-		Backups: 7, BackupHour: 4, Mode: "creative"}
+		Backups: 7, BackupHour: 4, Mode: "creative", SpawnZone: 16}
 	if !reflect.DeepEqual(c, want) {
 		t.Fatalf("got %+v, want %+v", c, want)
 	}
@@ -67,6 +67,16 @@ func TestBackupSettings(t *testing.T) {
 func TestInvalidBackupHour(t *testing.T) {
 	if _, err := Load([]string{"-backup-hour", "24"}, env(nil)); err == nil {
 		t.Fatal("expected error for hour 24")
+	}
+}
+
+func TestSpawnZone(t *testing.T) {
+	c, err := Load([]string{"-spawn-zone", "0"}, env(nil))
+	if err != nil || c.SpawnZone != 0 {
+		t.Fatalf("spawn zone = %d, err = %v", c.SpawnZone, err)
+	}
+	if _, err := Load(nil, env(map[string]string{"SCABBAGE_SPAWN_ZONE": "-1"})); err == nil {
+		t.Fatal("expected error for a negative spawn zone")
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"scabbage/internal/store"
 	"scabbage/internal/web"
 	"scabbage/internal/world"
+	"scabbage/internal/zones"
 )
 
 // autosaveEvery bounds how much building a crash can lose while players are on.
@@ -79,12 +80,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("recipes.json: %w", err)
 	}
+	areas, err := zones.New(db, int32(cfg.SpawnZone))
+	if err != nil {
+		return err
+	}
 	gw, err = gateway.New(gateway.Config{
 		Hub:            hub,
 		Access:         svc,
 		Art:            pieces,
 		World:          w,
 		Recipes:        recipes,
+		Zones:          areas,
 		ServerName:     cfg.ServerName,
 		Mode:           access.Mode(cfg.Mode),
 		OriginPatterns: cfg.Origins,

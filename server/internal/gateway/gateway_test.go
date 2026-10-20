@@ -19,6 +19,7 @@ import (
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
 	"scabbage/internal/world"
+	"scabbage/internal/zones"
 )
 
 const currentVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
@@ -28,6 +29,7 @@ type testServer struct {
 	svc   *access.Service
 	world *world.World
 	herd  *mobs.Herd
+	zones *zones.Service
 	url   string
 }
 
@@ -49,13 +51,17 @@ func startServer(t *testing.T) *testServer {
 	}
 	pieces := art.New(db, art.Options{OnPendingChange: func() { gw.ArtChanged() }, Reserved: world.IsBuiltinName})
 	herd := mobs.New(1, false) // spawned mobs would race with expected messages
-	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, ServerName: "test", HelloTimeout: time.Second})
+	areas, err := zones.New(db, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	return &testServer{hub: hub, svc: svc, world: w, herd: herd, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	return &testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

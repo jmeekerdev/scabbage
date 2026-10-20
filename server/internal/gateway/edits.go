@@ -32,7 +32,7 @@ func (g *Gateway) edit(s *session, r edit.Request, slot uint32) (bool, error) {
 	defer g.editMu.Unlock()
 	now := time.Now()
 	current, err := g.cfg.World.Block(r.X, r.Y, r.Z)
-	if err != nil || !edit.Allowed(s.body.Pos(), r, current, g.bodies()) || !g.spend(s, r, current, slot, now) {
+	if err != nil || !g.cfg.Zones.CanBuild(s.player.ID, s.player.Admin, r.X, r.Z) || !edit.Allowed(s.body.Pos(), r, current, g.bodies()) || !g.spend(s, r, current, slot, now) {
 		return false, nil
 	}
 	if err := g.cfg.World.SetBlock(r.X, r.Y, r.Z, r.Block); err != nil {

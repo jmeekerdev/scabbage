@@ -224,7 +224,11 @@ Each phase ends with something the family can play. Compact the model context be
       night only near survival players, hop after them and bite, pop after three hits and melt at
       dawn; the server steps them 10×/s, hops one-block ledges, avoids water and cliffs, caps their
       numbers and clears them when everyone leaves)
-- [ ] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode
+- [x] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode
+      (admins-only zone around spawn, half-width `-spawn-zone`, default 16; admins run
+      `/zone add NAME SIZE`, `remove`, `allow`/`disallow NAME PLAYER`, `mode NAME creative|survival|any`
+      and `list`; zones are columns saved in SQLite, the smallest overlapping one wins; the server
+      checks every edit and the client refuses early and greets you on entering)
 
 ### Phase 4 — Logic Blocks
 - [ ] Signal-propagation system (server tick): wire, switch, button, pressure plate, lamp

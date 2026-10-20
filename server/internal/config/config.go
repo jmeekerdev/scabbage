@@ -18,6 +18,7 @@ type Config struct {
 	Backups    int      // nightly copies to keep; 0 turns backups off
 	BackupHour int      // local hour of day the backup runs
 	Mode       string   // game mode for players without their own: creative or survival
+	SpawnZone  int      // half-width of the admins-only zone around spawn; 0 turns it off
 	Origins    []string // extra allowed WebSocket Origin hosts
 }
 
@@ -31,7 +32,7 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	}
 	ints := map[string]int{}
 	for key, def := range map[string]string{
-		"SCABBAGE_TICK_RATE": "20", "SCABBAGE_BACKUPS": "7", "SCABBAGE_BACKUP_HOUR": "4",
+		"SCABBAGE_TICK_RATE": "20", "SCABBAGE_BACKUPS": "7", "SCABBAGE_BACKUP_HOUR": "4", "SCABBAGE_SPAWN_ZONE": "16",
 	} {
 		n, err := strconv.Atoi(or(key, def))
 		if err != nil {
@@ -51,6 +52,7 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	fs.IntVar(&c.Backups, "backups", ints["SCABBAGE_BACKUPS"], "nightly database copies to keep (0 = off)")
 	fs.IntVar(&c.BackupHour, "backup-hour", ints["SCABBAGE_BACKUP_HOUR"], "local hour (0-23) to back up")
 	fs.StringVar(&c.Mode, "mode", or("SCABBAGE_MODE", "creative"), "game mode for new players: creative or survival")
+	fs.IntVar(&c.SpawnZone, "spawn-zone", ints["SCABBAGE_SPAWN_ZONE"], "half-width of the admins-only zone around spawn (0 = off)")
 	fs.StringVar(&origins, "origins", or("SCABBAGE_ORIGINS", ""), "comma-separated extra allowed WebSocket origins")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
@@ -60,6 +62,9 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	}
 	if c.Backups < 0 || c.BackupHour < 0 || c.BackupHour > 23 {
 		return Config{}, errors.New("backups must be 0 or more and backup hour 0 to 23")
+	}
+	if c.SpawnZone < 0 || c.SpawnZone > 1024 {
+		return Config{}, errors.New("spawn zone must be 0 to 1024")
 	}
 	if c.Mode != "creative" && c.Mode != "survival" {
 		return Config{}, errors.New("mode must be creative or survival")

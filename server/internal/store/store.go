@@ -67,6 +67,20 @@ var migrations = []string{
 	);`,
 	`ALTER TABLE players ADD COLUMN mode TEXT NOT NULL DEFAULT '' CHECK (mode IN ('', 'creative', 'survival'));`,
 	`ALTER TABLE players ADD COLUMN inventory BLOB NOT NULL DEFAULT x'';`,
+	`CREATE TABLE zones (
+		id   INTEGER PRIMARY KEY,
+		name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+		x0   INTEGER NOT NULL,
+		z0   INTEGER NOT NULL,
+		x1   INTEGER NOT NULL,
+		z1   INTEGER NOT NULL,
+		mode TEXT NOT NULL DEFAULT '' CHECK (mode IN ('', 'creative', 'survival'))
+	);
+	CREATE TABLE zone_builders (
+		zone_id   INTEGER NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+		player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+		PRIMARY KEY (zone_id, player_id)
+	) WITHOUT ROWID;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

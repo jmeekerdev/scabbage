@@ -159,9 +159,8 @@ func (g *Gateway) changeMode(playerID int64, m pb.GameMode) {
 	defer g.mu.Unlock()
 	for s, a := range g.players {
 		if s.player.ID == playerID {
-			a.mode = m
-			a.vitals.Revive(time.Now())
-			s.push(vitalsMessage(a, pb.Harm_HARM_UNSPECIFIED))
+			a.own = m
+			g.refreshModeLocked(s, a, true)
 		}
 	}
 }

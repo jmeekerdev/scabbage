@@ -17,6 +17,7 @@ import (
 	"scabbage/internal/mobs"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
+	"scabbage/internal/zones"
 )
 
 // Config configures the gateway handler.
@@ -27,6 +28,7 @@ type Config struct {
 	World          *world.World
 	Recipes        []crafting.Recipe // crafting.Default() when nil
 	Mobs           *mobs.Herd        // a new herd when nil; guarded by the gateway's mu
+	Zones          *zones.Service
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration

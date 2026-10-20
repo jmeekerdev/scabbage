@@ -15,8 +15,9 @@ type avatar struct {
 	entity     uint32
 	pos        motion.Vec // last accepted feet position
 	yaw, pitch float32
-	moved      bool // since the last tick
-	mode       pb.GameMode
+	moved      bool        // since the last tick
+	own        pb.GameMode // the player's mode, which a zone may override
+	mode       pb.GameMode // the mode they play right now
 	vitals     *vitals.State
 	inv        inventory.Inventory
 	invDirty   bool // changed since it was last saved
@@ -43,7 +44,7 @@ func (g *Gateway) addPlayer(s *session) {
 	defer g.mu.Unlock()
 	g.entity++
 	a := &avatar{
-		entity: g.entity, pos: s.body.Pos(), mode: g.modeOf(s.player), vitals: vitals.New(time.Now()), inv: s.carried,
+		entity: g.entity, pos: s.body.Pos(), own: g.modeOf(s.player), vitals: vitals.New(time.Now()), inv: s.carried,
 	}
 	arrived := playersJoined(s.other(a))
 	present := playersJoined()
@@ -54,7 +55,8 @@ func (g *Gateway) addPlayer(s *session) {
 	if len(g.players) > 0 {
 		s.push(present)
 	}
-	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked()} {
+	a.mode = g.zoneMode(a)
+	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked(), g.zonesMessage(s, true)} {
 		if msg != nil {
 			s.push(msg)
 		}
@@ -67,6 +69,7 @@ func (g *Gateway) movePlayer(s *session, at motion.Vec, yaw, pitch float32) {
 	defer g.mu.Unlock()
 	if a := g.players[s]; a != nil {
 		a.pos, a.yaw, a.pitch, a.moved = at, yaw, pitch, true
+		g.refreshModeLocked(s, a, false)
 	}
 }
 

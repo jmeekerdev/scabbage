@@ -52,16 +52,25 @@ export class ChatView {
   }
 
   add(c: Chat): void {
-    const line = c.notice
-      ? el("div", { class: "line notice" }, c.text)
-      : el(
-          "div",
-          { class: "line" },
-          el("span", { class: "dot", style: `background: ${colorCss(c.color)}` }),
-          el("strong", {}, c.name),
-          " ",
-          c.text,
-        );
+    if (c.notice) return this.note(c.text);
+    this.append(
+      el(
+        "div",
+        { class: "line" },
+        el("span", { class: "dot", style: `background: ${colorCss(c.color)}` }),
+        el("strong", {}, c.name),
+        " ",
+        c.text,
+      ),
+    );
+  }
+
+  /** Shows a line from the game itself. */
+  note(text: string): void {
+    this.append(el("div", { class: "line notice" }, text));
+  }
+
+  private append(line: HTMLElement): void {
     this.log.append(line);
     while (this.log.childElementCount > MAX_LINES) this.log.firstElementChild?.remove();
     this.log.scrollTop = this.log.scrollHeight;

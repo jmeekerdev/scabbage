@@ -85,6 +85,7 @@ import { TouchControls } from "./ui/touch-controls";
 import { collisionBoxes, FULL_BLOCK, heldBlock, type Box } from "./world/shapes";
 import { lookDirection, type RayHit } from "./world/raycast";
 import { solidQuery } from "./world/solid";
+import { zoneGreeting, Zones } from "./world/zones";
 import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 
@@ -121,6 +122,9 @@ const backpack = new InventoryView(
 );
 const miner = new Miner();
 let survival = false;
+const zones = new Zones();
+let zoneHere: string | undefined; // the zone we stand in, to greet on entering
+let refusedAtMs = -Infinity; // when we last said a zone is protected
 inventory.onChange = () => {
   if (survival) hotbar.carry(inventory.slots);
   backpack.draw();
@@ -166,6 +170,7 @@ gameScene.onFrame((timeMs) => {
   );
   player.update(dt, intent.move, solid);
   if (moves && footsteps.update(player.body)) audio.play("step");
+  if (moves) greetZone();
   const eye = player.eye();
   gameScene.camera.position.set(eye.x, eye.y, eye.z);
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
@@ -247,6 +252,7 @@ function connect(join?: JoinInit): void {
           if (inventory.set(msg.body.value.slots)) audio.play("pop", 0.5);
         } else if (msg.body.case === "itemsChanged")
           drops.change(msg.body.value.drops, msg.body.value.gone);
+        else if (msg.body.case === "zonesChanged") zones.set(msg.body.value.zones);
         else if (msg.body.case === "mobsChanged")
           mobs?.change(msg.body.value.mobs, msg.body.value.gone, performance.now());
         else if (msg.body.case === "chat") {
@@ -332,6 +338,8 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
   others = new RemotePlayers(1000 / Math.max(1, tickRateHz));
   mobs = new Mobs(MOB_STEP_MS); // the server lists every mob again on joining
+  zones.set([]);
+  zoneHere = undefined;
   hintEl.hidden = document.pointerLockElement !== null || touch;
   $("#touch").hidden = !touch;
   chat.enabled = true;
@@ -401,6 +409,12 @@ function build(
     if (act.breaking) hitMob(mob.id);
     return;
   }
+  if (hit && !zones.canBuild(hit.x, hit.z)) {
+    miner.stop();
+    selection.show(hit);
+    if (act.breaking || act.digging || act.placing) refuse(hit.x, hit.z);
+    return;
+  }
   const dug = survival ? dig(act.digging, hit, dt) : 0;
   selection.show(hit, dug);
   if (!hit || !building) return;
@@ -427,6 +441,22 @@ function dig(held: boolean, hit: RayHit | undefined, dt: number): number {
   return miner.dig(dt, hit, building.mineMs[block] ?? 0);
 }
 
+/** Says, now and then, that this zone is protected. */
+function refuse(x: number, z: number): void {
+  const now = performance.now();
+  if (now - refusedAtMs < 3000) return;
+  refusedAtMs = now;
+  chat.note(`Only builders of ${zones.at(x, z)?.name ?? "this zone"} can change blocks here.`);
+}
+
+/** Welcomes us into each zone we walk into. */
+function greetZone(): void {
+  const zone = zones.at(Math.floor(player.body.x), Math.floor(player.body.z));
+  if (zone?.name === zoneHere) return;
+  zoneHere = zone?.name;
+  if (zone) chat.note(zoneGreeting(zone));
+}
+
 function hitMob(id: number): void {
   if (!conn || !moves) return;
   const pose = moves.flush(player.pose()); // the server checks reach from our latest position
@@ -438,6 +468,7 @@ function hitMob(id: number): void {
 /** Shows the edit straight away; the server confirms it or sends back what is really there. */
 function sendEdit(edit: Edit): void {
   if (!conn || !moves) return;
+  if (!zones.canBuild(edit.x, edit.z)) return refuse(edit.x, edit.z);
   const pose = moves.flush(player.pose()); // the server checks reach from our latest position
   if (pose) conn.send(encodeMove(pose, moves.teleport));
   conn.send(encodeEditBlock(edit, hotbar.selected));
