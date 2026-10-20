@@ -16,9 +16,11 @@ const (
 	MaxPush = 12
 	// maxRounds bounds how many counters one update may switch on or off in a chain.
 	maxRounds = 16
-	// lastCount is when a counter stops counting and gives power.
+	// lastCount is where a counter starts giving power and turns to count back down to 0.
 	lastCount = 9
-	notes     = 8
+	// countCycle is how many pulses take a counter up to lastCount and back to 0.
+	countCycle = 2 * lastCount
+	notes      = 8
 )
 
 // Pos is a block position; it converts to and from world.Pos.
@@ -55,7 +57,7 @@ func isSource(b world.Block) bool {
 	case world.Switch, world.Button, world.Plate, world.Timer:
 		return isOn(b)
 	case world.Counter:
-		return state(b) == lastCount
+		return countStep(b) >= lastCount
 	}
 	return false
 }
@@ -298,6 +300,38 @@ func (u *updater) powered(p Pos) (bool, error) {
 	return false, nil
 }
 
+// input reports whether the machine b at p has power coming in.
+func (u *updater) input(p Pos, b world.Block) (bool, error) {
+	if b.Item() == world.Counter {
+		return u.fedFromElsewhere(p)
+	}
+	return u.powered(p)
+}
+
+// fedFromElsewhere reports whether power reaches p from a source other than p itself,
+// so a counter giving power still sees its own input go off and on.
+func (u *updater) fedFromElsewhere(p Pos) (bool, error) {
+	seen := u.seen
+	defer func() { u.seen = seen }()
+	u.seen = map[Pos]bool{}
+	for _, d := range sides {
+		n, err := u.block(add(p, d))
+		if err != nil || isSource(n) {
+			return err == nil, err
+		}
+		_, near, err := u.wiresFrom(add(p, d))
+		if err != nil {
+			return false, err
+		}
+		for _, at := range near {
+			if b, err := u.block(at); err != nil || (at != p && isSource(b)) {
+				return err == nil, err
+			}
+		}
+	}
+	return false, nil
+}
+
 // run lets the machine at p follow the power beside it.
 func (u *updater) run(p Pos) error {
 	b, err := u.block(p)
@@ -315,7 +349,7 @@ func (u *updater) run(p Pos) error {
 	default:
 		return nil
 	}
-	on, err := u.powered(p)
+	on, err := u.input(p, b)
 	if err != nil || on == isOn(b) {
 		return err
 	}
@@ -332,13 +366,29 @@ func (u *updater) run(p Pos) error {
 	return u.set(p, b, switched(b, on))
 }
 
+// countStep is how far through its cycle a counter is: up from 0 to 9, then down past it.
+func countStep(b world.Block) int {
+	if b >= world.CountingDown {
+		return countCycle - 1 - int(b-world.CountingDown)/2
+	}
+	return state(b)
+}
+
+// counterAt is the counter showing the given step of its cycle, not yet powered.
+func counterAt(step int) world.Block {
+	if step <= lastCount {
+		return world.Counter + world.Block(2*step)
+	}
+	return world.CountingDown + world.Block(2*(countCycle-1-step))
+}
+
 // count notes the power coming into a counter, counting each time it arrives.
 func (u *updater) count(p Pos, b world.Block, on bool) error {
-	n := state(b)
-	if on && n < lastCount {
-		n++
+	step := countStep(b)
+	if on {
+		step = (step + 1) % countCycle
 	}
-	next := switched(world.Counter+world.Block(2*n), on)
+	next := switched(counterAt(step), on)
 	if isSource(next) != isSource(b) {
 		u.again = append(u.again, p)
 	}

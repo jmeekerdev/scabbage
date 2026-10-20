@@ -60,6 +60,11 @@ describe("buildRenderTable", () => {
     expect(t.layers[11 * 6]).toBe(layer("note_2"));
   });
 
+  it("lights a counter's digits while it counts back down", () => {
+    expect(BLOCK_STYLES.counter_down_3_on?.side).toBe("counter_down_3");
+    expect(layer("counter_down_3")).toBeGreaterThan(layer("counter_9"));
+  });
+
   it("shows unknown blocks with a placeholder texture instead of failing", () => {
     expect(t.layers[4 * 6]).toBe(layer("missing"));
   });

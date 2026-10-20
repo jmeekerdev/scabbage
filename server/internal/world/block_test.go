@@ -53,13 +53,14 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 		StoneSlab: "stone_slab", StoneStairs: "stone_stairs", StoneStairs + 15: "brick_stairs_west",
 		Wire: "wire", SignalLamp + 1: "signal_lamp_on", Door + 1: "door_open", Piston + 9: "piston_up_on",
 		Timer: "timer", Counter + 19: "counter_9_on", Teleporter: "teleporter", NoteBlock + 15: "note_block_7_on", Portal: "portal",
+		CountingDown: "counter_down_1", CountingDown + 15: "counter_down_8_on",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(Portal)+1 {
+	if len(blocks) != int(CountingDown)+16 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -176,6 +177,7 @@ func TestBuiltinFindsBlocksByName(t *testing.T) {
 func TestVariantsAreHeldAsTheirItem(t *testing.T) {
 	cases := map[Block]Block{
 		Door + 1: Door, Piston + 7: Piston, Counter + 13: Counter, NoteBlock + 9: NoteBlock, Timer + 1: Timer,
+		CountingDown + 5: Counter,
 	}
 	for b, want := range cases {
 		if b.Item() != want || Drops(b) != want {
@@ -190,7 +192,7 @@ func TestOnlyItemsAndFacingsArePlaceable(t *testing.T) {
 			t.Errorf("%v is placeable", b)
 		}
 	}
-	for _, b := range []Block{Wire + 1, Door + 1, Piston + 3, Counter + 2, NoteBlock + 2} {
+	for _, b := range []Block{Wire + 1, Door + 1, Piston + 3, Counter + 2, NoteBlock + 2, CountingDown} {
 		if Placeable(b) {
 			t.Errorf("%v is a state, not something to place", b)
 		}

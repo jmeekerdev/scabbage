@@ -64,13 +64,16 @@ export function digitPixel(d: number, x: number, y: number): boolean {
   return ((DIGITS[d]![row]! >> (2 - col)) & 1) === 1;
 }
 
-/** A stone display showing its count in green; 9 glows brighter, since it gives power. */
+// The counts a counter shows on its way back down from 9, giving power all along.
+export const COUNT_DOWN = [1, 2, 3, 4, 5, 6, 7, 8];
+
+/** A stone display showing its count in green, brighter while it gives power. */
 const counter =
-  (d: number): Painter =>
+  (d: number, giving: boolean): Painter =>
   (x, y, n) => {
     if (edge(x, y, 2)) return shade(STONE, edge(x, y) ? 0.6 : 0.85 + n() * 0.3);
     if (!digitPixel(d, x, y)) return [20, 30, 20, 255];
-    return d === 9 ? [140, 255, 120, 255] : [60, 200, 60, 255];
+    return giving ? [140, 255, 120, 255] : [60, 200, 60, 255];
   };
 
 /** Purple rings that swirl toward the middle. */
@@ -117,7 +120,8 @@ export const MACHINE_PAINTERS: Record<string, Painter> = {
   piston_front_on: pistonFront([230, 230, 240]),
   timer: timer([150, 150, 130]),
   timer_on: timer([255, 240, 150]),
-  ...Object.fromEntries(DIGITS.map((_, d) => [`counter_${d}`, counter(d)])),
+  ...Object.fromEntries(DIGITS.map((_, d) => [`counter_${d}`, counter(d, d === 9)])),
+  ...Object.fromEntries(COUNT_DOWN.map((d) => [`counter_down_${d}`, counter(d, true)])),
   teleporter,
   portal,
   ...Object.fromEntries(PITCH_COLORS.map((c, i) => [`note_${i}`, noteBlock(c)])),

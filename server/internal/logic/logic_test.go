@@ -272,6 +272,34 @@ func TestCountersPowerAfterNinePulses(t *testing.T) {
 	}
 }
 
+func TestCountersCountBackDownToZero(t *testing.T) {
+	g := line(world.Switch, wire, counter, wire, lamp)
+	pulse := func() {
+		set(t, g, Pos{}, on)
+		set(t, g, Pos{}, world.Switch)
+	}
+	for range 9 {
+		pulse()
+	}
+	for i := range 8 {
+		pulse()
+		if g[Pos{4, 0, 0}] != lit || g[Pos{2, 0, 0}].Item() != counter {
+			t.Fatalf("dark after %d pulses down: %v", i+1, g)
+		}
+	}
+	pulse()
+	if g[Pos{4, 0, 0}] != lamp || g[Pos{2, 0, 0}] != counter {
+		t.Fatalf("back at zero should darken it: %v", g)
+	}
+	for range 10 {
+		pulse()
+	}
+	use(t, g, Pos{2, 0, 0})
+	if g[Pos{4, 0, 0}] != lamp || g[Pos{2, 0, 0}] != counter {
+		t.Fatalf("resetting while counting down should darken it: %v", g)
+	}
+}
+
 func TestNoteBlocksSoundWhilePowered(t *testing.T) {
 	g := line(on, world.NoteBlock+4)
 	update(t, g, Pos{})

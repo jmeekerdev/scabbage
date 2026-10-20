@@ -1,6 +1,7 @@
 import type { RenderTable } from "../world/mesher";
 import { customLayerName } from "./atlas";
 import { Shape } from "../world/shapes";
+import { COUNT_DOWN } from "./machine-textures";
 import { TEXTURE_NAMES, WOOL_COLORS } from "./textures";
 
 export interface BlockStyle {
@@ -63,6 +64,12 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
     ]),
   ),
   ...Object.fromEntries(numbered("counter", "counter", 10)),
+  ...Object.fromEntries(
+    COUNT_DOWN.flatMap((d) => [
+      [`counter_down_${d}`, same(`counter_down_${d}`)],
+      [`counter_down_${d}_on`, same(`counter_down_${d}`)],
+    ]),
+  ),
   teleporter: same("teleporter"),
   portal: same("portal"),
   ...Object.fromEntries(numbered("note_block", "note", 8)),

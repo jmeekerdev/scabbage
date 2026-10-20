@@ -27,23 +27,24 @@ const (
 	Glass
 	Brick
 	Bedrock
-	WhiteWool   // 16 colors in woolColors order
-	Lamp        = WhiteWool + 16
-	Torch       = Lamp + 1
-	StoneSlab   = Torch + 1        // one per shapedMaterials entry
-	StoneStairs = StoneSlab + 4    // four facings per material: north, east, south, west
-	Wire        = StoneStairs + 16 // each logic block is followed by its powered state
-	Switch      = Wire + 2
-	Button      = Switch + 2
-	Plate       = Button + 2
-	SignalLamp  = Plate + 2
-	Door        = SignalLamp + 2 // closed, then open
-	Piston      = Door + 2       // six facings, each followed by its powered state
-	Timer       = Piston + 12
-	Counter     = Timer + 2 // counts 0 to 9, each followed by its state with power coming in
-	Teleporter  = Counter + 20
-	NoteBlock   = Teleporter + 1 // eight pitches, each followed by its sounding state
-	Portal      = NoteBlock + 16 // a lobby pad that joins an arena's round
+	WhiteWool    // 16 colors in woolColors order
+	Lamp         = WhiteWool + 16
+	Torch        = Lamp + 1
+	StoneSlab    = Torch + 1        // one per shapedMaterials entry
+	StoneStairs  = StoneSlab + 4    // four facings per material: north, east, south, west
+	Wire         = StoneStairs + 16 // each logic block is followed by its powered state
+	Switch       = Wire + 2
+	Button       = Switch + 2
+	Plate        = Button + 2
+	SignalLamp   = Plate + 2
+	Door         = SignalLamp + 2 // closed, then open
+	Piston       = Door + 2       // six facings, each followed by its powered state
+	Timer        = Piston + 12
+	Counter      = Timer + 2 // counts 0 to 9, each followed by its state with power coming in
+	Teleporter   = Counter + 20
+	NoteBlock    = Teleporter + 1 // eight pitches, each followed by its sounding state
+	Portal       = NoteBlock + 16 // a lobby pad that joins an arena's round
+	CountingDown = Portal + 1     // a counter past 9 counting 1 to 8 back down, each with its powered state
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block.
@@ -151,7 +152,18 @@ func machines() []BlockInfo {
 	out = append(out, numbered(BlockInfo{Name: "counter", Solid: true, Usable: true, MineMs: 300}, 10)...)
 	out = append(out, BlockInfo{Name: "teleporter", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
 	out = append(out, numbered(BlockInfo{Name: "note_block", Solid: true, Usable: true, MineMs: 300}, 8)...)
-	return append(out, BlockInfo{Name: "portal", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
+	out = append(out, BlockInfo{Name: "portal", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
+	return append(out, countingDown()...)
+}
+
+// countingDown is the counter's states on its way back from 9, held as a counter.
+func countingDown() []BlockInfo {
+	var out []BlockInfo
+	for n := 1; n <= 8; n++ {
+		b := BlockInfo{Name: fmt.Sprintf("counter_down_%d", n), Solid: true, Usable: true, MineMs: 300}
+		out = append(out, withOn(b, "_on", int(CountingDown-Counter)+2*(n-1))...)
+	}
+	return out
 }
 
 // withOn is b and its powered state, both `variant` IDs past their item.
