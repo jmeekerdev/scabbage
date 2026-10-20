@@ -244,7 +244,10 @@ Each phase ends with something the family can play. Compact the model context be
       count to 9 and then give power until someone resets them by hand. A teleporter sends you
       to the next pad joined to it by wire. Note blocks play a C-major pitch on the client when
       powered or retuned by hand. Logic blocks switching state no longer make place sounds.)
-- [ ] Deterministic tests of logic circuits
+- [x] Deterministic tests of logic circuits
+      (Hundreds of seeded random circuits must settle in one pass and change the same way every
+      run. They found that doors taller than four split in two, so a door is now its whole column.
+      Doors never close on a player; they wait until everyone has stepped out.)
 
 ### Phase 5 — Minigame Maker
 - [ ] Mark an area as an arena: spawns, teams, goal, timer, win condition

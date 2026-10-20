@@ -28,7 +28,7 @@ func Allowed(feet motion.Vec, r Request, current world.Block, bodies []motion.Ve
 	if !r.Block.Valid() || r.Block == world.Bedrock || !world.Placeable(r.Block) || world.Info(current).Targetable() {
 		return false
 	}
-	return !world.Info(r.Block).Solid || !overlapsAny(r, bodies)
+	return !world.Info(r.Block).Solid || !Occupied(r.X, r.Y, r.Z, bodies)
 }
 
 // InReach reports whether a player with feet at `feet` can reach the block at x, y, z.
@@ -39,9 +39,10 @@ func InReach(feet motion.Vec, x, y, z int32) bool {
 	return dx*dx+dy*dy+dz*dz <= Reach*Reach
 }
 
-func overlapsAny(r Request, bodies []motion.Vec) bool {
-	only := func(x, y, z int32) []world.Box {
-		if x == r.X && y == r.Y && z == r.Z {
+// Occupied reports whether any of bodies stands partly inside the block at x, y, z.
+func Occupied(x, y, z int32, bodies []motion.Vec) bool {
+	only := func(bx, by, bz int32) []world.Box {
+		if bx == x && by == y && bz == z {
 			return []world.Box{world.FullBox}
 		}
 		return nil

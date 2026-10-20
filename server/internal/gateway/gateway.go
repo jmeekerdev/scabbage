@@ -67,7 +67,7 @@ func New(cfg Config) (*Gateway, error) {
 		cfg.Recipes = crafting.Default()
 	}
 	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{},
-		circuits: circuits{letGo: map[logic.Pos]time.Time{}}}
+		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}}
 	return g, g.loadArt()
 }
 

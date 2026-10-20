@@ -197,3 +197,24 @@ func TestPistonsKeepOutOfZonesTheyAreNotIn(t *testing.T) {
 		t.Fatal("pistons push neither into nor out of a zone")
 	}
 }
+
+func TestDoorsCloseOnlyOncePlayersStepOut(t *testing.T) {
+	ts := startServer(t)
+	admin := ts.joinAdmin(t)
+	sx, sy, sz := ts.spawn()
+	x, y, z := int32(sx), int32(sy), int32(sz)
+	for dy := range int32(2) {
+		if err := ts.world.SetBlock(x, y+dy, z, world.Door+1); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	send(t, admin, useBlock(x, y, z))
+	waitFor(t, admin, func(m *pb.ServerMessage) bool { return m.GetPong() != nil })
+	if b, _ := ts.world.Block(x, y+1, z); b != world.Door+1 {
+		t.Fatalf("the door closed on the player: %v", b)
+	}
+
+	send(t, admin, move(sx-1, sy, sz, 0))
+	waitForBlocks(t, admin, changed(x, y, z, world.Door), changed(x, y+1, z, world.Door))
+}

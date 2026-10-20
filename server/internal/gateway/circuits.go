@@ -19,6 +19,7 @@ const buttonPress = time.Second
 type circuits struct {
 	letGo   map[logic.Pos]time.Time // pressed buttons and when they pop back up
 	pressed map[logic.Pos]bool      // plates someone stands on
+	held    map[logic.Pos]bool      // doors kept open for someone inside, to close once they leave
 	beat    int64                   // the second timers last changed on
 }
 
@@ -59,6 +60,15 @@ func (w circuitWorld) Block(x, y, z int32) (world.Block, error) { return w.g.cfg
 
 func (w circuitWorld) SetBlock(x, y, z int32, b world.Block) error {
 	return w.g.cfg.World.SetBlock(x, y, z, b)
+}
+
+// Occupied tells circuits whether a player is in p, remembering it so the door there closes later.
+func (w circuitWorld) Occupied(p logic.Pos) bool {
+	in := edit.Occupied(p.X, p.Y, p.Z, w.g.bodies())
+	if in {
+		w.g.circuits.held[p] = true
+	}
+	return in
 }
 
 func (w circuitWorld) CanPush(piston, at logic.Pos) bool {
@@ -103,6 +113,9 @@ func (g *Gateway) stepCircuits(now time.Time) error {
 	if err := g.beatLocked(now); err != nil {
 		return err
 	}
+	if err := g.releaseDoorsLocked(feet); err != nil {
+		return err
+	}
 	return g.pressPlatesLocked(feet)
 }
 
@@ -120,6 +133,20 @@ func (g *Gateway) beatLocked(now time.Time) error {
 	changes, err := logic.Beat(circuitWorld{g}, timers, beat%2 == 0)
 	g.broadcastChanges(changes)
 	return err
+}
+
+// releaseDoorsLocked lets held doors follow their power again once nobody is inside.
+func (g *Gateway) releaseDoorsLocked(feet []motion.Vec) error {
+	for p := range g.circuits.held {
+		if edit.Occupied(p.X, p.Y, p.Z, feet) {
+			continue
+		}
+		delete(g.circuits.held, p)
+		if err := g.powerLocked(p); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // pressPlatesLocked turns on plates under someone's feet and off those nobody stands on.

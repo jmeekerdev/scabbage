@@ -264,6 +264,10 @@ const TEX_AXES: readonly [number, number][] = [
   [0, 1], // z faces: u = x, v = y
 ];
 
+// Faces whose u above runs leftward seen from outside; flipping keeps their textures unmirrored.
+const FLIP_U = [true, false, true, false, false, true];
+const CHUNK_SPAN = S * POSITION_SCALE;
+
 /** Accumulates quads into growable typed arrays. */
 class MeshBuilder {
   private positions = new Uint8Array(256 * 3);
@@ -299,7 +303,7 @@ class MeshBuilder {
       p[v] = cv;
       const k = this.vertices++;
       this.positions.set(p, k * 3);
-      this.uvs[k * 2] = p[tu];
+      this.uvs[k * 2] = FLIP_U[face] ? CHUNK_SPAN - p[tu] : p[tu];
       this.uvs[k * 2 + 1] = p[tv];
       this.faces[k] = face;
       this.layers[k] = layer;

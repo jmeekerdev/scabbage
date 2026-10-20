@@ -16,8 +16,6 @@ const (
 	MaxPush = 12
 	// maxRounds bounds how many counters one update may switch on or off in a chain.
 	maxRounds = 16
-	// maxDoor is how many doors tall a door may be.
-	maxDoor = 4
 	// lastCount is when a counter stops counting and gives power.
 	lastCount = 9
 	notes     = 8
@@ -31,6 +29,7 @@ type World interface {
 	Block(x, y, z int32) (world.Block, error)
 	SetBlock(x, y, z int32, b world.Block) error
 	CanPush(piston, at Pos) bool // whether a piston may move the block at `at`, e.g. outside zones
+	Occupied(p Pos) bool         // whether someone stands in p, so a door there mustn't close
 }
 
 // Change is a block a circuit update switched on or off.
@@ -346,12 +345,15 @@ func (u *updater) count(p Pos, b world.Block, on bool) error {
 	return u.set(p, b, next)
 }
 
-// door is the column of doors that p is part of.
+// door is the column of doors that p is part of, however tall; the world's height bounds it.
 func (u *updater) door(p Pos) ([]Pos, error) {
 	column := []Pos{p}
 	for _, dy := range []int32{1, -1} {
-		for at := (Pos{X: p.X, Y: p.Y + dy, Z: p.Z}); len(column) < maxDoor; at.Y += dy {
+		for at := (Pos{X: p.X, Y: p.Y + dy, Z: p.Z}); ; at.Y += dy {
 			b, err := u.block(at)
+			if errors.Is(err, world.ErrOutside) {
+				break
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -377,10 +379,10 @@ func (u *updater) doorPowered(p Pos) (bool, error) {
 	return false, nil
 }
 
-// setDoor opens or closes the whole door that p is part of.
+// setDoor opens or closes the whole door that p is part of; it won't close on anyone.
 func (u *updater) setDoor(p Pos, open bool) error {
 	column, err := u.door(p)
-	if err != nil {
+	if err != nil || (!open && slices.ContainsFunc(column, u.w.Occupied)) {
 		return err
 	}
 	for _, at := range column {

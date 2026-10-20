@@ -23,6 +23,16 @@ const fence = 50
 
 func (g grid) CanPush(_, at Pos) bool { return at.X < fence }
 
+func (g grid) Occupied(Pos) bool { return false }
+
+// crowded is a grid with people standing in it.
+type crowded struct {
+	grid
+	people map[Pos]bool
+}
+
+func (c crowded) Occupied(p Pos) bool { return c.people[p] }
+
 // line lays blocks along +x from the origin.
 func line(blocks ...world.Block) grid {
 	g := grid{}
@@ -182,6 +192,21 @@ func TestDoorsOpenByHand(t *testing.T) {
 	use(t, g, Pos{})
 	if g[Pos{}] != door {
 		t.Fatalf("grid %v", g)
+	}
+}
+
+func TestDoorsWaitForPeopleToStepOut(t *testing.T) {
+	g := line(world.Switch, wire+1, open)
+	g[Pos{2, 1, 0}] = open
+	w := crowded{g, map[Pos]bool{{2, 1, 0}: true}}
+	if _, err := Update(w, Pos{}); err != nil || g[Pos{2, 0, 0}] != open {
+		t.Fatalf("power closed a door on someone: %v %v", g, err)
+	}
+	if _, ok, err := Use(w, Pos{2, 0, 0}); err != nil || !ok || g[Pos{2, 1, 0}] != open {
+		t.Fatalf("a hand closed a door on someone: %v %v", g, err)
+	}
+	if _, ok, _ := Use(crowded{line(door), w.people}, Pos{}); !ok {
+		t.Fatal("doors still open with people beside them")
 	}
 }
 

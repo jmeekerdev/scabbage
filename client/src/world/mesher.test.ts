@@ -184,6 +184,23 @@ describe("meshChunk", () => {
     }
   });
 
+  it("shows every face's texture unmirrored from outside, so digits read right", () => {
+    const m = meshChunk(volume([[5, 5, 5, STONE]]), table()).opaque;
+    for (let q = 0; q < quads(m); q++) {
+      const [p0, p1, p3] = [q * 4, q * 4 + 1, q * 4 + 3].map((i) => vertex(m, i));
+      const uv = (i: number) => [m.uvs[i * 2], m.uvs[i * 2 + 1]];
+      const [[u0, v0], [u1, v1], [u3, v3]] = [q * 4, q * 4 + 1, q * 4 + 3].map(uv);
+      const turn = (u1 - u0) * (v3 - v0) - (u3 - u0) * (v1 - v0);
+      const [e1, e2] = [p1.map((c, a) => c - p0[a]), p3.map((c, a) => c - p0[a])];
+      const n = FACE_NORMALS[m.faces[q * 4]];
+      const out = [1, 2, 0].reduce(
+        (s, a, i) => s + n[i] * (e1[a] * e2[(a + 1) % 3] - e1[(a + 1) % 3] * e2[a]),
+        0,
+      );
+      expect(out * turn, `face ${m.faces[q * 4]}`).toBeGreaterThan(0);
+    }
+  });
+
   it("leaves a lone block fully lit", () => {
     const m = meshChunk(volume([[5, 5, 5, STONE]]), table()).opaque;
     expect([...m.ao].every((a) => a === 3)).toBe(true);
