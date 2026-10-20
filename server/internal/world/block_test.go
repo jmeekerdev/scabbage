@@ -51,14 +51,15 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 	pinned := map[Block]string{
 		WhiteWool: "white_wool", WhiteWool + 15: "black_wool", Lamp: "lamp", Torch: "torch",
 		StoneSlab: "stone_slab", StoneStairs: "stone_stairs", StoneStairs + 15: "brick_stairs_west",
-		Wire: "wire", SignalLamp + 1: "signal_lamp_on",
+		Wire: "wire", SignalLamp + 1: "signal_lamp_on", Door + 1: "door_open", Piston + 9: "piston_up_on",
+		Timer: "timer", Counter + 19: "counter_9_on", Teleporter: "teleporter", NoteBlock + 15: "note_block_7_on",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(SignalLamp)+2 {
+	if len(blocks) != int(NoteBlock)+16 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -78,8 +79,8 @@ func TestTorchesGlowAndLetPlayersThrough(t *testing.T) {
 	if torch.Light == 0 || lamp.Light != MaxLight || torch.Solid || !torch.Transparent {
 		t.Fatalf("torch = %+v, lamp = %+v", torch, lamp)
 	}
-	if !torch.Targetable() || Info(Water).Targetable() || Info(Air).Targetable() {
-		t.Fatal("only solid blocks and torches can be aimed at")
+	if !torch.Targetable() || !Info(Door+1).Targetable() || Info(Water).Targetable() || Info(Air).Targetable() {
+		t.Fatal("only solid, usable blocks and torches can be aimed at")
 	}
 	if torch.Boxes() != nil {
 		t.Fatal("torches don't collide")
@@ -169,5 +170,41 @@ func TestBuiltinFindsBlocksByName(t *testing.T) {
 	}
 	if _, ok := Builtin("unobtainium"); ok {
 		t.Fatal("found a block that does not exist")
+	}
+}
+
+func TestVariantsAreHeldAsTheirItem(t *testing.T) {
+	cases := map[Block]Block{
+		Door + 1: Door, Piston + 7: Piston, Counter + 13: Counter, NoteBlock + 9: NoteBlock, Timer + 1: Timer,
+	}
+	for b, want := range cases {
+		if b.Item() != want || Drops(b) != want {
+			t.Errorf("%v is held as %v, want %v", b, b.Item(), want)
+		}
+	}
+}
+
+func TestOnlyItemsAndFacingsArePlaceable(t *testing.T) {
+	for _, b := range []Block{Stone, StoneStairs + 2, Piston + 2, Piston + 10, Door, Counter} {
+		if !Placeable(b) {
+			t.Errorf("%v is placeable", b)
+		}
+	}
+	for _, b := range []Block{Wire + 1, Door + 1, Piston + 3, Counter + 2, NoteBlock + 2} {
+		if Placeable(b) {
+			t.Errorf("%v is a state, not something to place", b)
+		}
+	}
+}
+
+func TestOpenDoorsLetPlayersThrough(t *testing.T) {
+	if !Info(Door).Solid || Info(Door+1).Solid || !Info(Door+1).Usable || !Info(Door+1).Transparent {
+		t.Fatalf("door = %+v, open = %+v", Info(Door), Info(Door+1))
+	}
+}
+
+func TestOnlyTimersTick(t *testing.T) {
+	if !Info(Timer).Ticks || !Info(Timer+1).Ticks || Info(Wire).Ticks || Info(Counter).Ticks {
+		t.Fatal("timers alone tick")
 	}
 }

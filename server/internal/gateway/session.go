@@ -11,6 +11,7 @@ import (
 
 	"scabbage/internal/access"
 	"scabbage/internal/inventory"
+	"scabbage/internal/logic"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/rate"
@@ -36,6 +37,7 @@ type session struct {
 
 	body     *motion.Tracker // the player's server-side position; nil for the console
 	teleport uint32          // id of the last Teleport sent
+	pad      logic.Pos       // the block the player last stood in, so teleporters fire once per step
 	edits    *rate.Bucket
 	talk     *rate.Bucket        // chat and emotes
 	carried  inventory.Inventory // as loaded on admit; the avatar's copy is the live one

@@ -41,4 +41,6 @@ func (i BlockInfo) Boxes() []Box {
 }
 
 // Targetable reports whether players can aim at the block to break it.
-func (i BlockInfo) Targetable() bool { return i.Solid || i.Shape == TorchShape || i.Shape == Flat }
+func (i BlockInfo) Targetable() bool {
+	return i.Solid || i.Usable || i.Shape == TorchShape || i.Shape == Flat
+}

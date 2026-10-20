@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 16;
+  PROTOCOL_VERSION_CURRENT = 17;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -59,6 +59,7 @@ message ServerMessage {
     ItemsChanged items_changed = 21;
     MobsChanged mobs_changed = 22;
     ZonesChanged zones_changed = 23;
+    BlockBatch block_batch = 24;
   }
 }
 
@@ -202,6 +203,11 @@ message UseBlock {
 message BlockChanged {
   BlockPos pos = 1;
   uint32 block = 2;
+}
+
+// Many blocks that changed at once, like a whole circuit switching on.
+message BlockBatch {
+  repeated BlockChanged blocks = 1;
 }
 
 // Other players in the world. Entity ids are per connection, so one player on two devices is two.

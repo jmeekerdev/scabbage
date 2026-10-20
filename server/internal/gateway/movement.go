@@ -32,7 +32,9 @@ func (s *session) move(ctx context.Context, m *pb.Move) error {
 		s.gw.movePlayer(s, to, m.Yaw, m.Pitch)
 		if s.gw.land(s, to.Y, s.gw.footing(to)) {
 			s.respawn()
+			return nil
 		}
+		s.stepOnPad(to)
 		return nil
 	}
 	s.teleport++

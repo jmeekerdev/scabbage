@@ -1,8 +1,10 @@
 package world
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 )
 
@@ -15,13 +17,17 @@ var (
 
 // World caches loaded chunks and tracks which need saving. It is safe for concurrent use.
 type World struct {
-	mu     sync.Mutex
-	meta   Meta
-	store  *Store
-	gen    Generator
-	chunks map[ChunkPos]*Chunk
-	dirty  map[ChunkPos]struct{}
+	mu      sync.Mutex
+	meta    Meta
+	store   *Store
+	gen     Generator
+	chunks  map[ChunkPos]*Chunk
+	dirty   map[ChunkPos]struct{}
+	ticking map[Pos]struct{} // loaded blocks the server steps, like timers
 }
+
+// Pos is a block position.
+type Pos struct{ X, Y, Z int32 }
 
 // Open loads the named world, creating it from d the first time.
 func Open(s *Store, name string, d Defaults) (*World, error) {
@@ -34,7 +40,7 @@ func Open(s *Store, name string, d Defaults) (*World, error) {
 		return nil, err
 	}
 	return &World{meta: meta, store: s, gen: gen,
-		chunks: map[ChunkPos]*Chunk{}, dirty: map[ChunkPos]struct{}{}}, nil
+		chunks: map[ChunkPos]*Chunk{}, dirty: map[ChunkPos]struct{}{}, ticking: map[Pos]struct{}{}}, nil
 }
 
 // Meta returns the world's stored identity.
@@ -104,7 +110,35 @@ func (w *World) chunk(p ChunkPos) (*Chunk, error) {
 		return nil, fmt.Errorf("chunk %v: %w", p, err)
 	}
 	w.chunks[p] = c
+	w.indexTicking(p, c)
 	return c, nil
+}
+
+// indexTicking remembers the ticking blocks in a freshly loaded chunk.
+func (w *World) indexTicking(p ChunkPos, c *Chunk) {
+	if c.Uniform() {
+		return
+	}
+	ox, oy, oz := p.Origin()
+	for i, b := range c.blocks {
+		if Info(b).Ticks {
+			w.ticking[Pos{ox + int32(i%Size), oy + int32(i/(Size*Size)), oz + int32(i/Size%Size)}] = struct{}{}
+		}
+	}
+}
+
+// Ticking lists the loaded blocks the server steps, in a stable order.
+func (w *World) Ticking() []Pos {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	out := make([]Pos, 0, len(w.ticking))
+	for p := range w.ticking {
+		out = append(out, p)
+	}
+	slices.SortFunc(out, func(a, b Pos) int {
+		return cmp.Or(cmp.Compare(a.X, b.X), cmp.Compare(a.Y, b.Y), cmp.Compare(a.Z, b.Z))
+	})
+	return out
 }
 
 // Block returns the block at world coordinates.
@@ -140,6 +174,11 @@ func (w *World) SetBlock(x, y, z int32, b Block) error {
 	}
 	c.Set(lx, ly, lz, b)
 	w.dirty[p] = struct{}{}
+	if Info(b).Ticks {
+		w.ticking[Pos{x, y, z}] = struct{}{}
+	} else {
+		delete(w.ticking, Pos{x, y, z})
+	}
 	return nil
 }
 
@@ -193,6 +232,7 @@ func (w *World) Unload() error {
 		return err
 	}
 	w.chunks = map[ChunkPos]*Chunk{}
+	clear(w.ticking)
 	return nil
 }
 

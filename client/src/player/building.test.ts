@@ -3,7 +3,7 @@ import { aim, breakEdit, buildWorldFor, placeEdit, PressFilter, type BuildWorld 
 import { newBody } from "./physics";
 import { Shape } from "../world/shapes";
 
-const [AIR, STONE, WATER, BEDROCK, TORCH, STAIRS] = [0, 1, 5, 12, 30, 40];
+const [AIR, STONE, WATER, BEDROCK, TORCH, STAIRS, PISTON] = [0, 1, 5, 12, 30, 40, 70];
 const solid = Array.from({ length: 44 }, (_, id) => id === STONE || id === BEDROCK || id >= STAIRS);
 const targetable = solid.map((s, id) => s || id === TORCH);
 const shape = solid.map((_, id) => (id >= STAIRS ? Shape.STAIRS_NORTH + id - STAIRS : Shape.CUBE));
@@ -15,6 +15,7 @@ function world(): BuildWorld {
     targetable,
     shape,
     usable: new Set(),
+    sixWay: new Set([PISTON]),
     item: [],
     unbreakable: new Set([BEDROCK]),
     mineMs: [],
@@ -46,10 +47,13 @@ describe("buildWorldFor", () => {
       { id: 60, name: "wire", solid: false, shape: Shape.FLAT, mineMs: 0 },
       { id: 61, name: "wire_on", solid: false, shape: Shape.FLAT, mineMs: 0, item: 60 },
       { id: 62, name: "switch", solid: true, shape: 0, mineMs: 300, usable: true },
+      { id: 63, name: "door_open", solid: false, shape: 0, mineMs: 600, usable: true, item: 62 },
+      { id: 64, name: "piston", solid: true, shape: 0, mineMs: 600 },
     ];
     const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
-    expect(w.targetable[61]).toBe(true);
-    expect([...w.usable]).toEqual([62]);
+    expect(w.targetable[61] && w.targetable[63]).toBe(true);
+    expect([...w.sixWay]).toEqual([64]);
+    expect([...w.usable]).toEqual([62, 63]);
     expect([w.item[61], w.item[62]]).toEqual([60, 62]);
   });
 });
@@ -80,7 +84,7 @@ describe("placeEdit", () => {
   const onTopOf = (x: number, z: number) => ({ x, y: 9, z, nx: 0, ny: 1, nz: 0, distance: 2 });
 
   it("places against the face that was hit", () => {
-    expect(placeEdit(onTopOf(2, 0), STONE, body, 0, world())).toEqual({
+    expect(placeEdit(onTopOf(2, 0), STONE, body, { yaw: 0, pitch: 0 }, world())).toEqual({
       x: 2,
       y: 10,
       z: 0,
@@ -89,22 +93,30 @@ describe("placeEdit", () => {
   });
 
   it("replaces water", () => {
-    expect(placeEdit(onTopOf(3, 3), STONE, body, 0, world())).toMatchObject({ x: 3, y: 10, z: 3 });
+    expect(placeEdit(onTopOf(3, 3), STONE, body, { yaw: 0, pitch: 0 }, world())).toMatchObject({
+      x: 3,
+      y: 10,
+      z: 3,
+    });
   });
 
   it("won't place a solid block inside the player, but will under their feet", () => {
-    expect(placeEdit(onTopOf(0, 0), STONE, body, 0, world())).toBeUndefined();
+    expect(placeEdit(onTopOf(0, 0), STONE, body, { yaw: 0, pitch: 0 }, world())).toBeUndefined();
     const jumping = { ...body, y: 11.05 };
-    expect(placeEdit(onTopOf(0, 0), STONE, jumping, 0, world())).toMatchObject({ y: 10 });
+    expect(placeEdit(onTopOf(0, 0), STONE, jumping, { yaw: 0, pitch: 0 }, world())).toMatchObject({
+      y: 10,
+    });
   });
 
   it("won't place outside the world, into solid blocks, or unplaceable blocks", () => {
     const w = world();
     const top = { x: 2, y: 63, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 };
-    expect(placeEdit(top, STONE, body, 0, w)).toBeUndefined();
-    expect(placeEdit({ ...onTopOf(2, 0), ny: -1, y: 10 }, STONE, body, 0, w)).toBeUndefined();
-    expect(placeEdit(onTopOf(2, 0), BEDROCK, body, 0, w)).toBeUndefined();
-    expect(placeEdit(onTopOf(2, 0), AIR, body, 0, w)).toBeUndefined();
+    expect(placeEdit(top, STONE, body, { yaw: 0, pitch: 0 }, w)).toBeUndefined();
+    expect(
+      placeEdit({ ...onTopOf(2, 0), ny: -1, y: 10 }, STONE, body, { yaw: 0, pitch: 0 }, w),
+    ).toBeUndefined();
+    expect(placeEdit(onTopOf(2, 0), BEDROCK, body, { yaw: 0, pitch: 0 }, w)).toBeUndefined();
+    expect(placeEdit(onTopOf(2, 0), AIR, body, { yaw: 0, pitch: 0 }, w)).toBeUndefined();
   });
 });
 
@@ -112,13 +124,26 @@ describe("torches and stairs", () => {
   it("aims at torches and won't place into them", () => {
     expect(aim([4.5, 11.62, 4.5], 0, down, world())).toMatchObject({ x: 4, y: 10, z: 4 });
     const beside = { x: 5, y: 10, z: 4, nx: -1, ny: 0, nz: 0, distance: 2 };
-    expect(placeEdit(beside, STONE, newBody(8.5, 10, 8.5), 0, world())).toBeUndefined();
+    expect(
+      placeEdit(beside, STONE, newBody(8.5, 10, 8.5), { yaw: 0, pitch: 0 }, world()),
+    ).toBeUndefined();
   });
 
   it("turns stairs to rise away from the player", () => {
     const hit = { x: 2, y: 9, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 };
     const body = newBody(0.5, 10, 0.5);
-    expect(placeEdit(hit, STAIRS, body, Math.PI, world())?.block).toBe(STAIRS + 2);
+    expect(placeEdit(hit, STAIRS, body, { yaw: Math.PI, pitch: 0 }, world())?.block).toBe(
+      STAIRS + 2,
+    );
+  });
+
+  it("turns pistons to push where the player looks", () => {
+    const hit = { x: 2, y: 9, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 };
+    const body = newBody(0.5, 10, 0.5);
+    expect(placeEdit(hit, PISTON, body, { yaw: -Math.PI / 2, pitch: 0 }, world())?.block).toBe(
+      PISTON + 2,
+    );
+    expect(placeEdit(hit, PISTON, body, { yaw: 0, pitch: down }, world())?.block).toBe(PISTON + 10);
   });
 });
 

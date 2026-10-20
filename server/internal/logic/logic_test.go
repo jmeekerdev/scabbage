@@ -1,6 +1,8 @@
 package logic
 
 import (
+	"maps"
+	"slices"
 	"testing"
 
 	"scabbage/internal/world"
@@ -15,6 +17,11 @@ func (g grid) SetBlock(x, y, z int32, b world.Block) error {
 	g[Pos{x, y, z}] = b
 	return nil
 }
+
+// fence is where the grid's protected land starts; pistons can't push past it.
+const fence = 50
+
+func (g grid) CanPush(_, at Pos) bool { return at.X < fence }
 
 // line lays blocks along +x from the origin.
 func line(blocks ...world.Block) grid {
@@ -109,22 +116,181 @@ func TestHugeCircuitsStopSpreading(t *testing.T) {
 	}
 }
 
+func use(t *testing.T, g grid, at Pos) bool {
+	t.Helper()
+	_, ok, err := Use(g, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ok
+}
+
 func TestUse(t *testing.T) {
 	cases := map[world.Block]world.Block{
 		world.Switch: on, on: world.Switch, world.Button: world.Button + 1, world.Button + 1: world.Button + 1,
+		world.NoteBlock + 1: world.NoteBlock + 3, world.NoteBlock + 14: world.NoteBlock,
+		world.Counter + 7: world.Counter + 1,
 	}
 	for b, want := range cases {
-		if got, ok := Use(b); !ok || got != want {
-			t.Errorf("Use(%v) = %v, %v", b, got, ok)
+		g := line(b)
+		if !use(t, g, Pos{}) || g[Pos{}] != want {
+			t.Errorf("using %v made %v", b, g[Pos{}])
 		}
 	}
-	if _, ok := Use(world.Stone); ok {
-		t.Error("stone is not usable")
+	if use(t, line(world.Stone), Pos{}) || use(t, line(lamp), Pos{}) {
+		t.Error("stone and lamps are not usable")
 	}
 }
 
 func TestInvolves(t *testing.T) {
-	if !Involves(world.Plate+1) || !Involves(lamp) || Involves(world.Lamp) || Involves(world.Stone) {
+	if !Involves(world.Plate+1) || !Involves(lamp) || !Involves(world.Piston+5) || Involves(world.Lamp) || Involves(world.Stone) {
 		t.Fatal("only circuit blocks are involved")
+	}
+}
+
+const (
+	door      = world.Door
+	open      = world.Door + 1
+	eastward  = world.Piston + 2
+	pushing   = world.Piston + 3
+	counter   = world.Counter
+	sounding  = world.NoteBlock + 1
+	timerOn   = world.Timer + 1
+	teleport  = world.Teleporter
+	somewhere = world.Stone
+)
+
+func TestPowerOpensAWholeDoor(t *testing.T) {
+	g := line(on, wire, door)
+	g[Pos{2, 1, 0}] = door
+	update(t, g, Pos{})
+	if g[Pos{2, 0, 0}] != open || g[Pos{2, 1, 0}] != open {
+		t.Fatalf("grid %v", g)
+	}
+	g[Pos{}] = world.Switch
+	update(t, g, Pos{})
+	if g[Pos{2, 0, 0}] != door || g[Pos{2, 1, 0}] != door {
+		t.Fatalf("grid %v", g)
+	}
+}
+
+func TestDoorsOpenByHand(t *testing.T) {
+	g := grid{{0, 0, 0}: door, {0, 1, 0}: door}
+	if !use(t, g, Pos{0, 1, 0}) || g[Pos{}] != open || g[Pos{0, 1, 0}] != open {
+		t.Fatalf("grid %v", g)
+	}
+	use(t, g, Pos{})
+	if g[Pos{}] != door {
+		t.Fatalf("grid %v", g)
+	}
+}
+
+func TestPistonsPushARowOnce(t *testing.T) {
+	g := line(on, eastward, somewhere, world.Dirt, world.Air, world.Sand)
+	update(t, g, Pos{})
+	want := line(on, pushing, world.Air, somewhere, world.Dirt, world.Sand)
+	for p, b := range want {
+		if g[p] != b {
+			t.Fatalf("grid %v, want %v", g, want)
+		}
+	}
+	update(t, g, Pos{})
+	if g[Pos{3, 0, 0}] != somewhere {
+		t.Fatal("a piston that stays powered pushes only once")
+	}
+}
+
+func TestPistonsPushIntoWater(t *testing.T) {
+	g := line(on, eastward, somewhere, world.Water)
+	update(t, g, Pos{})
+	if g[Pos{3, 0, 0}] != somewhere {
+		t.Fatalf("grid %v", g)
+	}
+}
+
+func TestPistonsCannotPushEverything(t *testing.T) {
+	cases := map[string]grid{
+		"bedrock":   line(on, eastward, somewhere, world.Bedrock),
+		"logic":     line(on, eastward, wire),
+		"open land": line(on, eastward),
+		"too many":  line(append([]world.Block{on, eastward}, slices.Repeat([]world.Block{somewhere}, MaxPush+1)...)...),
+	}
+	fenced := grid{{fence - 2, 0, 0}: on, {fence - 1, 0, 0}: eastward, {fence, 0, 0}: somewhere}
+	cases["protected"] = fenced
+	for name, g := range cases {
+		before := maps.Clone(g)
+		update(t, g, Pos{})
+		update(t, g, Pos{fence - 2, 0, 0})
+		for p, b := range before {
+			if p.X > 1 && p.X != fence-1 && g[p] != b {
+				t.Errorf("%s: pushed %v", name, g)
+			}
+		}
+	}
+}
+
+func TestCountersPowerAfterNinePulses(t *testing.T) {
+	g := line(world.Switch, wire, counter, wire, lamp)
+	for range 9 {
+		if g[Pos{4, 0, 0}] != lamp {
+			t.Fatalf("lit early: %v", g)
+		}
+		set(t, g, Pos{}, on)
+		set(t, g, Pos{}, world.Switch)
+	}
+	if g[Pos{4, 0, 0}] != lit || g[Pos{2, 0, 0}].Item() != counter {
+		t.Fatalf("grid %v", g)
+	}
+	use(t, g, Pos{2, 0, 0})
+	if g[Pos{4, 0, 0}] != lamp || g[Pos{2, 0, 0}] != counter {
+		t.Fatalf("resetting should darken it: %v", g)
+	}
+}
+
+func TestNoteBlocksSoundWhilePowered(t *testing.T) {
+	g := line(on, world.NoteBlock+4)
+	update(t, g, Pos{})
+	if g[Pos{1, 0, 0}] != world.NoteBlock+5 {
+		t.Fatalf("grid %v", g)
+	}
+}
+
+func TestTimersBeat(t *testing.T) {
+	g := line(world.Timer, wire, lamp)
+	beat(t, g, true)
+	if g[Pos{}] != timerOn || g[Pos{2, 0, 0}] != lit {
+		t.Fatalf("grid %v", g)
+	}
+	beat(t, g, false)
+	if g[Pos{2, 0, 0}] != lamp {
+		t.Fatalf("grid %v", g)
+	}
+}
+
+func TestTeleportersTakeTurnsAlongTheirWire(t *testing.T) {
+	g := line(teleport, wire, wire, wire, teleport)
+	g[Pos{2, 0, 1}] = teleport
+	g[Pos{9, 0, 9}] = teleport
+	for from, to := range map[Pos]Pos{{0, 0, 0}: {2, 0, 1}, {2, 0, 1}: {4, 0, 0}, {4, 0, 0}: {0, 0, 0}} {
+		if got, ok, err := Partner(g, from); err != nil || !ok || got != to {
+			t.Errorf("%v goes to %v, want %v", from, got, to)
+		}
+	}
+	if _, ok, _ := Partner(g, Pos{9, 0, 9}); ok {
+		t.Error("a teleporter without wire goes nowhere")
+	}
+}
+
+func set(t *testing.T, g grid, at Pos, b world.Block) {
+	t.Helper()
+	if _, err := Set(g, at, b); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func beat(t *testing.T, g grid, on bool) {
+	t.Helper()
+	if _, err := Beat(g, []Pos{{}}, on); err != nil {
+		t.Fatal(err)
 	}
 }

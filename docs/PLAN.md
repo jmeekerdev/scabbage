@@ -236,7 +236,14 @@ Each phase ends with something the family can play. Compact the model context be
       A circuit is re-powered only when one of its blocks changes, walking at most 4096 wires;
       the tick only lets go of buttons after 1 s and presses plates under players' feet.
       Anyone may press switches and buttons, even in protected zones.)
-- [ ] Doors, pistons, timers, counters, teleporters, note blocks
+- [x] Doors, pistons, timers, counters, teleporters, note blocks
+      (Every state is its own block ID, still with no extra storage. Doors open as a whole
+      column, by hand or by power. Pistons face six ways and push up to 12 blocks one step
+      when power arrives; they don't pull, and never push logic blocks or across a zone's edge.
+      Loaded timers blink once a second, using a per-chunk index of ticking blocks. Counters
+      count to 9 and then give power until someone resets them by hand. A teleporter sends you
+      to the next pad joined to it by wire. Note blocks play a C-major pitch on the client when
+      powered or retuned by hand. Logic blocks switching state no longer make place sounds.)
 - [ ] Deterministic tests of logic circuits
 
 ### Phase 5 — Minigame Maker

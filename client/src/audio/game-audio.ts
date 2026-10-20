@@ -63,6 +63,14 @@ export class GameAudio {
     CUES[cue](this.ctx, this.sfx, this.noise, this.ctx.currentTime, gain);
   }
 
+  /** Plays a note block's MIDI note, like a soft xylophone. */
+  playNote(midi: number, gain = 1): void {
+    if (!this.soundOn || !this.ctx || !this.sfx || gain <= 0) return;
+    this.wake();
+    const t = { freq: midiHz(midi), start: this.ctx.currentTime, dur: 0.6, gain: 0.35 * gain };
+    tone(this.ctx, this.sfx, { ...t, type: "triangle" });
+  }
+
   /** Browsers only allow audio after a user gesture, so listening stops once it is running. */
   private readonly unlock = (): void => {
     this.ctx ??= this.createContext();

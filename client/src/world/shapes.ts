@@ -46,7 +46,21 @@ export const isStairs = (shape: number) =>
  * is away from a player facing yaw (0 looks toward -z), so they walk up it.
  */
 export function stairsFacing(northId: number, yaw: number): number {
+  return northId + compassFacing(yaw);
+}
+
+/** The way a player facing yaw looks: 0 north, 1 east, 2 south, 3 west. */
+function compassFacing(yaw: number): number {
   const quarter = Math.round(yaw / (Math.PI / 2));
-  const facing = [0, 3, 2, 1][((quarter % 4) + 4) % 4]; // yaw turns counter-clockwise from north
-  return northId + facing;
+  return [0, 3, 2, 1][((quarter % 4) + 4) % 4]; // yaw turns counter-clockwise from north
+}
+
+/**
+ * Pistons come as north, east, south, west, up and down, each followed by its powered state.
+ * Picks the one that pushes where the player looks.
+ */
+export function pistonFacing(northId: number, yaw: number, pitch: number): number {
+  const steep = Math.PI / 4;
+  const facing = pitch > steep ? 4 : pitch < -steep ? 5 : compassFacing(yaw);
+  return northId + 2 * facing;
 }

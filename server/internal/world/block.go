@@ -3,6 +3,7 @@ package world
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -36,6 +37,12 @@ const (
 	Button      = Switch + 2
 	Plate       = Button + 2
 	SignalLamp  = Plate + 2
+	Door        = SignalLamp + 2 // closed, then open
+	Piston      = Door + 2       // six facings, each followed by its powered state
+	Timer       = Piston + 12
+	Counter     = Timer + 2 // counts 0 to 9, each followed by its state with power coming in
+	Teleporter  = Counter + 20
+	NoteBlock   = Teleporter + 1 // eight pitches, each followed by its sounding state
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block.
@@ -52,7 +59,10 @@ type BlockInfo struct {
 	MineMs      uint16 // how long survival players dig to break it
 	Drop        Block  // what breaking it gives, if not the block itself
 	Usable      bool   // players switch it by hand
-	Powered     bool   // the on state of the block before it
+	Powered     bool   // a logic block's on state
+	Variant     uint8  // how many IDs past the block players hold it is
+	Facing      bool   // its item turned another way, so players place it as it is
+	Ticks       bool   // the server steps it while its chunk is loaded
 }
 
 var (
@@ -61,7 +71,7 @@ var (
 		"light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black",
 	}
 	shapedMaterials = []string{"stone", "cobblestone", "planks", "brick"}
-	facings         = []string{"", "_east", "_south", "_west"}
+	facings         = []string{"", "_east", "_south", "_west", "_up", "_down"}
 )
 
 var blocks = palette()
@@ -97,14 +107,15 @@ func palette() []BlockInfo {
 		out = append(out, BlockInfo{Name: m + "_slab", Solid: true, Transparent: true, Shape: Slab, MineMs: digs(m)})
 	}
 	for _, m := range shapedMaterials {
-		for f, suffix := range facings {
+		for f, suffix := range facings[:4] {
 			out = append(out, BlockInfo{
 				Name: m + "_stairs" + suffix, Solid: true, Transparent: true, Shape: StairsNorth + Shape(f),
-				MineMs: digs(m),
+				MineMs: digs(m), Variant: uint8(f), Facing: f > 0,
 			})
 		}
 	}
 	out = append(out, logicBlocks()...)
+	out = append(out, machines()...)
 	for id := range out {
 		out[id].ID = Block(id)
 	}
@@ -113,21 +124,51 @@ func palette() []BlockInfo {
 
 // logicBlocks pairs each circuit block with its powered state.
 func logicBlocks() []BlockInfo {
-	offs := []BlockInfo{
+	var out []BlockInfo
+	for _, off := range []BlockInfo{
 		{Name: "wire", Transparent: true, Shape: Flat},
 		{Name: "switch", Solid: true, Usable: true, MineMs: 300},
 		{Name: "button", Solid: true, Usable: true, MineMs: 300},
 		{Name: "pressure_plate", Transparent: true, Shape: Flat, MineMs: 300},
 		{Name: "signal_lamp", Solid: true, MineMs: 300},
+	} {
+		out = append(out, withOn(off, "_on", 0)...)
 	}
-	out := make([]BlockInfo, 0, 2*len(offs))
-	for _, off := range offs {
-		on := off
-		on.Name, on.Powered = off.Name+"_on", true
-		if off.Name == "signal_lamp" {
-			on.Light = MaxLight
+	out[len(out)-1].Light = MaxLight
+	return out
+}
+
+// machines are the logic blocks that do something when powered.
+func machines() []BlockInfo {
+	door := withOn(BlockInfo{Name: "door", Solid: true, Usable: true, MineMs: 600}, "_open", 0)
+	door[1].Solid, door[1].Transparent = false, true
+	out := door
+	for f, suffix := range facings {
+		out = append(out, withOn(BlockInfo{Name: "piston" + suffix, Solid: true, MineMs: 600, Facing: f > 0}, "_on", 2*f)...)
+	}
+	out = append(out, withOn(BlockInfo{Name: "timer", Solid: true, MineMs: 300, Ticks: true}, "_on", 0)...)
+	out = append(out, numbered(BlockInfo{Name: "counter", Solid: true, Usable: true, MineMs: 300}, 10)...)
+	out = append(out, BlockInfo{Name: "teleporter", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
+	return append(out, numbered(BlockInfo{Name: "note_block", Solid: true, Usable: true, MineMs: 300}, 8)...)
+}
+
+// withOn is b and its powered state, both `variant` IDs past their item.
+func withOn(b BlockInfo, suffix string, variant int) []BlockInfo {
+	b.Variant = uint8(variant)
+	on := b
+	on.Name, on.Powered, on.Variant, on.Facing = b.Name+suffix, true, uint8(variant+1), false
+	return []BlockInfo{b, on}
+}
+
+// numbered is b in n numbered states, each with its powered state; the first keeps b's name.
+func numbered(b BlockInfo, n int) []BlockInfo {
+	var out []BlockInfo
+	for i := range n {
+		state := b
+		if i > 0 {
+			state.Name = fmt.Sprintf("%s_%d", b.Name, i)
 		}
-		out = append(out, off, on)
+		out = append(out, withOn(state, "_on", 2*i)...)
 	}
 	return out
 }
@@ -208,16 +249,13 @@ func Info(b Block) BlockInfo {
 	return blocks[Air]
 }
 
-// Item is the block as players hold it: stairs face north until placed, logic blocks are off.
-func (b Block) Item() Block {
+// Item is the block as players hold it: stairs and pistons face north, logic blocks are off.
+func (b Block) Item() Block { return b - Block(Info(b).Variant) }
+
+// Placeable reports whether players may place b: an item, or an item turned to face some way.
+func Placeable(b Block) bool {
 	info := Info(b)
-	if s := info.Shape; s >= StairsNorth && s <= StairsWest {
-		return b - Block(s-StairsNorth)
-	}
-	if info.Powered {
-		return b - 1
-	}
-	return b
+	return info.Variant == 0 || info.Facing
 }
 
 // Drops is the item breaking b gives.

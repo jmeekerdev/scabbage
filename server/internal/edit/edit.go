@@ -25,7 +25,7 @@ func Allowed(feet motion.Vec, r Request, current world.Block, bodies []motion.Ve
 	if r.Block == world.Air {
 		return world.Info(current).Targetable() && current != world.Bedrock
 	}
-	if !r.Block.Valid() || r.Block == world.Bedrock || world.Info(r.Block).Powered || world.Info(current).Targetable() {
+	if !r.Block.Valid() || r.Block == world.Bedrock || !world.Placeable(r.Block) || world.Info(current).Targetable() {
 		return false
 	}
 	return !world.Info(r.Block).Solid || !overlapsAny(r, bodies)

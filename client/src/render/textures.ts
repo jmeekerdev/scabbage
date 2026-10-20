@@ -1,8 +1,11 @@
 /** Procedural 16×16 pixel-art block textures: no image files to download. */
+import { MACHINE_PAINTERS } from "./machine-textures";
+
 export const TEXTURE_SIZE = 16;
 
 type RGBA = [number, number, number, number];
-type Painter = (x: number, y: number, noise: (salt?: number) => number) => RGBA;
+export type RGB = [number, number, number];
+export type Painter = (x: number, y: number, noise: (salt?: number) => number) => RGBA;
 
 const shade = ([r, g, b]: [number, number, number], k: number, a = 255): RGBA => [
   clamp(r * k),
@@ -141,6 +144,7 @@ const PAINTERS: Record<string, Painter> = {
     return core ? [255, 244, 170, 255] : shade([255, 178, 50], 0.95 + n() * 0.1);
   },
   ...Object.fromEntries(WOOL.map(([name, rgb]) => [`${name}_wool`, wool(rgb)])),
+  ...MACHINE_PAINTERS,
 };
 
 export const TEXTURE_NAMES = Object.keys(PAINTERS);

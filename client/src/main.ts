@@ -1,5 +1,6 @@
 import "./style.css";
 import { distanceGain, Footsteps } from "./audio/cues";
+import { noteTable, noteToPlay } from "./audio/notes";
 import { GameAudio } from "./audio/game-audio";
 import { browserStore, loadSecret, resetSecret } from "./join/identity";
 import { parseInvite } from "./join/invite";
@@ -161,6 +162,7 @@ let others: RemotePlayers | undefined; // set while in the world
 let mobs: Mobs | undefined; // set while in the world
 let solid: BoxesAt = () => FULL_BLOCK;
 let building: BuildWorld | undefined;
+let notes = noteTable([]);
 let bounds: WorldBounds | undefined; // set while in the world
 let me: PlayerInfo | undefined;
 let read: (texture: string) => Uint8Array | undefined = () => undefined; // current block textures
@@ -251,6 +253,7 @@ function connect(join?: JoinInit): void {
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "vitals") applyVitals(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
+        else if (msg.body.case === "blockBatch") msg.body.value.blocks.forEach(blockChanged);
         else if (msg.body.case === "inventory") {
           if (inventory.set(msg.body.value.slots)) audio.play("pop", 0.5);
         } else if (msg.body.case === "itemsChanged")
@@ -364,6 +367,7 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   for (const b of blocks) boxesById[b.id] = collisionBoxes(b.shape, b.solid);
   solid = solidQuery(bounds, boxesById, blockAt);
   building = buildWorldFor({ ...bounds, blocks }, blockAt);
+  notes = noteTable(blocks);
   const name = (id: number) => blocks.find((b) => b.id === id)?.name ?? "missing";
   const icon = blockIconPainter(atlas, table);
   mountHotbar($("#hotbar"), hotbar, name, icon);
@@ -436,7 +440,7 @@ function build(
   const edit = breaking
     ? breakEdit(hit, building)
     : act.placing
-      ? placeEdit(hit, hotbar.current(), player.body, player.look.yaw, building)
+      ? placeEdit(hit, hotbar.current(), player.body, player.look, building)
       : undefined;
   if (edit) sendEdit(edit);
 }
@@ -508,15 +512,22 @@ function emoteShown(entity: number, e: Emote): void {
   audio.play("pop", 0.4);
 }
 
-/** Someone's edit, or our own echoed back; only changes we haven't already shown make a sound. */
+/**
+ * Someone's edit, or our own echoed back; only changes we haven't already shown make a sound.
+ * Logic blocks switching state are quiet, except note blocks, which play.
+ */
 function blockChanged(c: BlockChanged): void {
   if (!c.pos) return;
   const { x, y, z } = c.pos;
-  if (world.blockAt(x, y, z) === c.block) return;
+  const was = world.blockAt(x, y, z);
+  if (was === c.block) return;
   world.setBlock(x, y, z, c.block);
   const b = player.body;
   const gain = distanceGain(Math.hypot(x + 0.5 - b.x, y + 0.5 - b.y, z + 0.5 - b.z));
-  audio.play(c.block === 0 ? "break" : "place", gain);
+  const note = noteToPlay(notes, was, c.block);
+  const switched = was !== undefined && building?.item[was] === building?.item[c.block];
+  if (note !== undefined) audio.playNote(note, gain);
+  else if (!switched) audio.play(c.block === 0 ? "break" : "place", gain);
 }
 
 /** Applies other players arriving, moving or leaving; false if `msg` is about something else. */

@@ -30,6 +30,7 @@ type testServer struct {
 	world *world.World
 	herd  *mobs.Herd
 	zones *zones.Service
+	gw    *Gateway
 	url   string
 }
 
@@ -61,7 +62,7 @@ func startServer(t *testing.T) *testServer {
 	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	return &testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	return &testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

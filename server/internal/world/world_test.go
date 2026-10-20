@@ -228,3 +228,28 @@ func TestSolidWallsInTheBorderAndFloor(t *testing.T) {
 		}
 	}
 }
+
+func TestTickingBlocksAreIndexedWhileLoaded(t *testing.T) {
+	db := openDB(t)
+	w := openWorld(t, db)
+	for _, p := range []Pos{{1, 50, 1}, {2, 50, 1}} {
+		if err := w.SetBlock(p.X, p.Y, p.Z, Timer); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := w.SetBlock(2, 50, 1, Stone); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.Ticking(); len(got) != 1 || got[0] != (Pos{1, 50, 1}) {
+		t.Fatalf("ticking = %v", got)
+	}
+	if err := w.Unload(); err != nil || len(w.Ticking()) != 0 {
+		t.Fatalf("unloaded chunks still tick: %v", err)
+	}
+	if _, err := w.Block(1, 50, 1); err != nil || len(openWorld(t, db).Ticking()) != 0 {
+		t.Fatal(err)
+	}
+	if got := w.Ticking(); len(got) != 1 {
+		t.Fatalf("loading the chunk again should find its timer: %v", got)
+	}
+}

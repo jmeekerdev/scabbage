@@ -23,5 +23,11 @@
   {"make": "switch", "count": 1, "from": {"planks": 1, "cobblestone": 1}},
   {"make": "button", "count": 1, "from": {"stone": 1}},
   {"make": "pressure_plate", "count": 2, "from": {"stone": 2}},
-  {"make": "signal_lamp", "count": 1, "from": {"lamp": 1, "wire": 1}}
+  {"make": "signal_lamp", "count": 1, "from": {"lamp": 1, "wire": 1}},
+  {"make": "door", "count": 1, "from": {"planks": 2}},
+  {"make": "piston", "count": 1, "from": {"planks": 1, "cobblestone": 2, "wire": 1}},
+  {"make": "timer", "count": 1, "from": {"stone": 1, "torch": 1, "wire": 1}},
+  {"make": "counter", "count": 1, "from": {"stone": 1, "glass": 1, "wire": 1}},
+  {"make": "teleporter", "count": 2, "from": {"glass": 2, "lamp": 1, "wire": 2}},
+  {"make": "note_block", "count": 1, "from": {"planks": 1, "wire": 1}}
 ]

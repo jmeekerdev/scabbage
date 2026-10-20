@@ -13,6 +13,11 @@ const types = [
   { id: 5, name: "brick_stairs_east", transparent: true, shape: Shape.STAIRS_EAST },
   { id: 6, name: "torch", transparent: true, shape: Shape.TORCH, light: 11 },
   { id: 7, name: "red_wool", transparent: false },
+  { id: 8, name: "piston_east_on", transparent: false },
+  { id: 9, name: "piston", transparent: false },
+  { id: 10, name: "counter_3_on", transparent: false },
+  { id: 11, name: "note_block_2", transparent: false },
+  { id: 12, name: "counter", transparent: false },
 ];
 const layer = (name: string) => TEXTURE_NAMES.indexOf(name);
 
@@ -27,11 +32,11 @@ describe("buildRenderTable", () => {
 
   it("never draws air and marks the server's see-through blocks", () => {
     expect(t.layers[0]).toBe(-1);
-    expect([...t.transparent]).toEqual([1, 0, 0, 1, 0, 1, 1, 0]);
+    expect([...t.transparent]).toEqual([1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0]);
   });
 
   it("blends only water", () => {
-    expect([...t.translucent]).toEqual([0, 0, 0, 1, 0, 0, 0, 0]);
+    expect([...t.translucent]).toEqual([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   });
 
   it("dresses slabs and stairs in their material and keeps shapes and glow", () => {
@@ -42,6 +47,19 @@ describe("buildRenderTable", () => {
     expect(t.layers[7 * 6]).toBe(layer("red_wool"));
   });
 
+  it("turns a piston's face the way it pushes", () => {
+    const faces = (id: number) => [...t.layers.slice(id * 6, id * 6 + 6)];
+    const [side, front] = [layer("piston_side"), layer("piston_front")];
+    expect(faces(8)).toEqual([layer("piston_front_on"), side, side, side, side, side]);
+    expect(faces(9)).toEqual([side, side, side, side, side, front]);
+  });
+
+  it("shows a counter's count and a note block's pitch on every face", () => {
+    expect(t.layers[10 * 6 + 2]).toBe(layer("counter_3"));
+    expect(t.layers[12 * 6 + 4]).toBe(layer("counter_0"));
+    expect(t.layers[11 * 6]).toBe(layer("note_2"));
+  });
+
   it("shows unknown blocks with a placeholder texture instead of failing", () => {
     expect(t.layers[4 * 6]).toBe(layer("missing"));
   });
@@ -50,7 +68,9 @@ describe("buildRenderTable", () => {
 describe("textures", () => {
   it("paints every texture the block styles use", () => {
     for (const s of Object.values(BLOCK_STYLES)) {
-      for (const name of [s.top, s.side, s.bottom]) expect(TEXTURE_NAMES).toContain(name);
+      for (const name of [s.top, s.side, s.bottom, s.front ?? s.side]) {
+        expect(TEXTURE_NAMES).toContain(name);
+      }
     }
   });
 

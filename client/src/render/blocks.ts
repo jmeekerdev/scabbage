@@ -7,8 +7,28 @@ export interface BlockStyle {
   top: string;
   side: string;
   bottom: string;
+  front?: string; // the face a piston pushes from
   translucent?: boolean;
 }
+
+// Each piston facing's name suffix and the face it pushes from, in +x, -x, +y, -y, +z, -z order.
+const FACINGS: [string, number][] = [
+  ["", 5],
+  ["_east", 0],
+  ["_south", 4],
+  ["_west", 1],
+  ["_up", 2],
+  ["_down", 3],
+];
+const piston = (front: string): BlockStyle => ({ ...same("piston_side"), front });
+const numbered = (block: string, texture: string, n: number) =>
+  Array.from({ length: n }, (_, i) => {
+    const name = i ? `${block}_${i}` : block;
+    return [
+      [name, same(`${texture}_${i}`)],
+      [`${name}_on`, same(`${texture}_${i}`)],
+    ];
+  }).flat();
 
 const same = (t: string): BlockStyle => ({ top: t, side: t, bottom: t });
 
@@ -29,11 +49,22 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   lamp: same("lamp"),
   torch: same("torch"),
   ...Object.fromEntries(
-    ["wire", "switch", "button", "pressure_plate", "signal_lamp"].flatMap((b) => [
+    ["wire", "switch", "button", "pressure_plate", "signal_lamp", "timer"].flatMap((b) => [
       [b, same(b)],
       [`${b}_on`, same(`${b}_on`)],
     ]),
   ),
+  door: same("door"),
+  door_open: same("door_open"),
+  ...Object.fromEntries(
+    FACINGS.flatMap(([f]) => [
+      [`piston${f}`, piston("piston_front")],
+      [`piston${f}_on`, piston("piston_front_on")],
+    ]),
+  ),
+  ...Object.fromEntries(numbered("counter", "counter", 10)),
+  teleporter: same("teleporter"),
+  ...Object.fromEntries(numbered("note_block", "note", 8)),
   ...Object.fromEntries(WOOL_COLORS.map((c) => [`${c}_wool`, same(`${c}_wool`)])),
 };
 
@@ -77,6 +108,7 @@ export function buildRenderTable(
     table.translucent[t.id] = style.translucent ? 1 : 0;
     // Face order: +x, -x, +y, -y, +z, -z.
     const faces = [style.side, style.side, style.top, style.bottom, style.side, style.side];
+    if (style.front) faces[frontFace(t.name)] = style.front;
     const missing = layerOf("missing");
     faces.forEach((name, f) => {
       const layer = layerOf(name);
@@ -84,4 +116,10 @@ export function buildRenderTable(
     });
   }
   return table;
+}
+
+/** The face a turned block like a piston looks out of, from its name's facing suffix. */
+function frontFace(name: string): number {
+  const facing = name.replace(/_on$/, "").match(/_(east|south|west|up|down)$/)?.[0] ?? "";
+  return FACINGS.find(([f]) => f === facing)![1];
 }

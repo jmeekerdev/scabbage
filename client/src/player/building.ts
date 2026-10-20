@@ -1,5 +1,5 @@
 import { lookDirection, raycast, type RayHit, type Vec3 } from "../world/raycast";
-import { isStairs, Shape, stairsFacing } from "../world/shapes";
+import { isStairs, pistonFacing, Shape, stairsFacing } from "../world/shapes";
 import { HALF_WIDTH, HEIGHT, type Body } from "./physics";
 
 /** How far the eye reaches; server/internal/edit allows a little more. */
@@ -10,9 +10,10 @@ const AIR = 0;
 export interface BuildWorld {
   blockAt(x: number, y: number, z: number): number | undefined;
   solid: readonly boolean[];
-  targetable: readonly boolean[]; // solid blocks and torches
+  targetable: readonly boolean[]; // solid, flat and usable blocks and torches
   shape: readonly number[];
   usable: ReadonlySet<number>; // pressed by hand, like switches, instead of built against
+  sixWay: ReadonlySet<number>; // placed facing any of six ways, like pistons
   item: readonly number[]; // the block players hold for each one
   unbreakable: ReadonlySet<number>; // also never placeable
   mineMs: readonly number[]; // how long survival players dig each block
@@ -48,7 +49,7 @@ export function buildWorldFor(
   const [shape, mineMs, item]: [number[], number[], number[]] = [[], [], []];
   for (const b of info.blocks) {
     solid[b.id] = b.solid;
-    targetable[b.id] = b.solid || b.shape === Shape.TORCH || b.shape === Shape.FLAT;
+    targetable[b.id] = b.solid || !!b.usable || b.shape === Shape.TORCH || b.shape === Shape.FLAT;
     shape[b.id] = b.shape;
     mineMs[b.id] = b.mineMs;
     item[b.id] = b.item || b.id;
@@ -61,6 +62,7 @@ export function buildWorldFor(
     mineMs,
     item,
     usable: new Set(info.blocks.filter((b) => b.usable).map((b) => b.id)),
+    sixWay: new Set(info.blocks.filter((b) => b.name === "piston").map((b) => b.id)),
     unbreakable: new Set(info.blocks.filter((b) => b.name === "bedrock").map((b) => b.id)),
     inside: (x, y, z) => y >= 0 && y < height && (r < 0 || (x >= -r && x < r && z >= -r && z < r)),
   };
@@ -81,13 +83,13 @@ export function breakEdit(hit: RayHit, w: BuildWorld): Edit | undefined {
 
 /**
  * Places `block` against the face that was hit, if that spot is free and clear of the body.
- * Stairs turn to rise away from a player facing yaw.
+ * Stairs turn to rise away from the player and pistons to push where they look.
  */
 export function placeEdit(
   hit: RayHit,
   block: number,
   body: Body,
-  yaw: number,
+  look: { yaw: number; pitch: number },
   w: BuildWorld,
 ): Edit | undefined {
   const [x, y, z] = [hit.x + hit.nx, hit.y + hit.ny, hit.z + hit.nz];
@@ -95,7 +97,12 @@ export function placeEdit(
   if (block === AIR || w.unbreakable.has(block) || !w.inside(x, y, z)) return undefined;
   if (current === undefined || isTargetable(w, current)) return undefined;
   if (w.solid[block] && overlaps(body, x, y, z)) return undefined;
-  return { x, y, z, block: isStairs(w.shape[block] ?? 0) ? stairsFacing(block, yaw) : block };
+  return { x, y, z, block: turned(block, look, w) };
+}
+
+function turned(block: number, look: { yaw: number; pitch: number }, w: BuildWorld): number {
+  if (w.sixWay.has(block)) return pistonFacing(block, look.yaw, look.pitch);
+  return isStairs(w.shape[block] ?? 0) ? stairsFacing(block, look.yaw) : block;
 }
 
 const isTargetable = (w: BuildWorld, b: number | undefined) =>

@@ -92,25 +92,37 @@ func (g *Gateway) land(s *session, y float64, f vitals.Footing) bool {
 // respawn puts a player who fainted back at the world spawn with full health.
 func (s *session) respawn() {
 	x, y, z := s.gw.cfg.World.Spawn()
-	at := motion.Vec{X: x, Y: y, Z: z}
-	s.teleport++
-	s.body.Reset(at, time.Now())
-	s.gw.revive(s, at, s.teleport)
+	s.teleportTo(motion.Vec{X: x, Y: y, Z: z})
+	s.gw.revive(s)
 }
 
-func (g *Gateway) revive(s *session, at motion.Vec, teleport uint32) {
+// teleportTo moves the player to at and tells their client.
+func (s *session) teleportTo(at motion.Vec) {
+	s.teleport++
+	s.body.Reset(at, time.Now())
+	s.gw.place(s, at, s.teleport)
+}
+
+func (g *Gateway) place(s *session, at motion.Vec, teleport uint32) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	a := g.players[s]
 	if a == nil {
 		return
 	}
-	a.vitals.Revive(time.Now())
 	a.pos, a.moved = at, true
 	s.push(&pb.ServerMessage{Body: &pb.ServerMessage_Teleport{Teleport: &pb.Teleport{
 		Id: teleport, Pos: &pb.Vec3{X: float32(at.X), Y: float32(at.Y), Z: float32(at.Z)},
 	}}})
-	s.push(vitalsMessage(a, pb.Harm_HARM_UNSPECIFIED))
+}
+
+func (g *Gateway) revive(s *session) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if a := g.players[s]; a != nil {
+		a.vitals.Revive(time.Now())
+		s.push(vitalsMessage(a, pb.Harm_HARM_UNSPECIFIED))
+	}
 }
 
 // healLocked lets survival players slowly heal; call with g.mu held.
