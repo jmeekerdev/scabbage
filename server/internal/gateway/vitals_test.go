@@ -28,7 +28,7 @@ func (ts *testServer) survivalAdmin(t *testing.T) *websocket.Conn {
 		if v := msg.GetVitals(); v != nil && (v.Mode != pb.GameMode_GAME_MODE_SURVIVAL || v.Health != vitals.Max) {
 			t.Fatalf("vitals = %v", v)
 		}
-		if msg.GetVitals() == nil && !noticeOf("Mom plays survival now")(msg) && msg.GetPlayerList() == nil {
+		if msg.GetVitals() == nil && !noticeOf("Mom plays survival now")(msg) && msg.GetPlayerList() == nil && msg.GetMobsChanged() == nil {
 			t.Fatalf("got %v", msg)
 		}
 	}

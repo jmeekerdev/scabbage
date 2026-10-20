@@ -28,6 +28,11 @@ function partBox(part: Part): BoxGeometry {
   const g = new BoxGeometry(w * PX, h * PX, d * PX);
   const { position, normal } = g.attributes;
   g.setAttribute("uv", new Float32BufferAttribute(boxUVs(part, position.array, normal.array), 2));
+  return shaded(g);
+}
+
+/** Gives a box the chunks' fixed per-face light as vertex colors. */
+export function shaded(g: BoxGeometry): BoxGeometry {
   const faceLight = [0.8, 0.8, 1, 0.5, 0.7, 0.7]; // +x -x +y -y +z -z, 4 vertices each
   g.setAttribute(
     "color",
@@ -47,7 +52,9 @@ const shapes = {
   leg: partBox("leg"),
 };
 /** A flat-colored material that dims with the time of day, like the terrain. */
-function daylit(params: ConstructorParameters<typeof MeshBasicMaterial>[0]): MeshBasicMaterial {
+export function daylit(
+  params: ConstructorParameters<typeof MeshBasicMaterial>[0],
+): MeshBasicMaterial {
   const m = new MeshBasicMaterial(params);
   m.onBeforeCompile = (shader) => {
     shader.uniforms.daylight = daylight;

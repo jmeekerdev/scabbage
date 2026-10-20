@@ -219,7 +219,11 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] Crafting recipes (data-driven) (shapeless recipes in an embedded JSON book, replaceable by
       `data/recipes.json`; sent in WorldInfo; the Backpack's "Make" row crafts with a tap and dims
       what you can't afford; the server checks inputs and room before trading; survival only)
-- [ ] Mobs: passive animals + night monsters with simple server-side AI
+- [x] Mobs: passive animals + night monsters with simple server-side AI
+      (sheep graze near players by day and drop wool when hit, which regrows; slimes come out at
+      night only near survival players, hop after them and bite, pop after three hits and melt at
+      dawn; the server steps them 10×/s, hops one-block ledges, avoids water and cliffs, caps their
+      numbers and clears them when everyone leaves)
 - [ ] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode
 
 ### Phase 4 — Logic Blocks

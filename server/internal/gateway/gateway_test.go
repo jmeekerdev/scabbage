@@ -14,6 +14,7 @@ import (
 
 	"scabbage/internal/access"
 	"scabbage/internal/art"
+	"scabbage/internal/mobs"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
@@ -26,6 +27,7 @@ type testServer struct {
 	hub   *sim.Hub
 	svc   *access.Service
 	world *world.World
+	herd  *mobs.Herd
 	url   string
 }
 
@@ -46,13 +48,14 @@ func startServer(t *testing.T) *testServer {
 		t.Fatal(err)
 	}
 	pieces := art.New(db, art.Options{OnPendingChange: func() { gw.ArtChanged() }, Reserved: world.IsBuiltinName})
-	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, ServerName: "test", HelloTimeout: time.Second})
+	herd := mobs.New(1, false) // spawned mobs would race with expected messages
+	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	return &testServer{hub: hub, svc: svc, world: w, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	return &testServer{hub: hub, svc: svc, world: w, herd: herd, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

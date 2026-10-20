@@ -14,6 +14,7 @@ import (
 	"scabbage/internal/art"
 	"scabbage/internal/crafting"
 	"scabbage/internal/drops"
+	"scabbage/internal/mobs"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
 )
@@ -25,6 +26,7 @@ type Config struct {
 	Art            *art.Service
 	World          *world.World
 	Recipes        []crafting.Recipe // crafting.Default() when nil
+	Mobs           *mobs.Herd        // a new herd when nil; guarded by the gateway's mu
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -43,6 +45,7 @@ type Gateway struct {
 	art     artCache             // guarded by mu
 	drops   drops.Field          // guarded by mu
 	savedAt time.Time            // when changed inventories were last saved; guarded by mu
+	mobsAt  time.Time            // when the herd last stepped; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.
@@ -52,6 +55,9 @@ func New(cfg Config) (*Gateway, error) {
 	}
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
+	}
+	if cfg.Mobs == nil {
+		cfg.Mobs = mobs.New(uint64(time.Now().UnixNano()), true)
 	}
 	if cfg.Recipes == nil {
 		cfg.Recipes = crafting.Default()

@@ -40,7 +40,8 @@ type session struct {
 	talk     *rate.Bucket        // chat and emotes
 	carried  inventory.Inventory // as loaded on admit; the avatar's copy is the live one
 
-	cancel context.CancelFunc // ends the session, e.g. when it can't keep up
+	cancel  context.CancelFunc // ends the session, e.g. when it can't keep up
+	fainted chan struct{}      // a mob knocked the player out; respawn on the run goroutine
 }
 
 type inbound struct {
@@ -59,7 +60,7 @@ func (e rejectError) Error() string { return e.reason }
 func reject(code pb.DisconnectCode, reason string) rejectError { return rejectError{code, reason} }
 
 func newSession(g *Gateway, c *websocket.Conn, ip string, log *slog.Logger, cancel context.CancelFunc) *session {
-	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
+	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
 }
 
 func (s *session) run(ctx context.Context) error {
@@ -114,6 +115,8 @@ func (s *session) serve(ctx context.Context) error {
 			if err := s.write(ctx, msg); err != nil {
 				return err
 			}
+		case <-s.fainted:
+			s.respawn()
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -150,6 +153,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.moveItem(body.MoveItem)
 	case *pb.ClientMessage_Craft:
 		return s.craft(body.Craft)
+	case *pb.ClientMessage_HitMob:
+		return s.hitMob(body.HitMob)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:
@@ -172,6 +177,14 @@ func (s *session) push(msg *pb.ServerMessage) {
 	default:
 		s.log.Warn("disconnecting slow client")
 		s.cancel()
+	}
+}
+
+// faint asks the run goroutine to respawn the player; one request is enough.
+func (s *session) faint() {
+	select {
+	case s.fainted <- struct{}{}:
+	default:
 	}
 }
 

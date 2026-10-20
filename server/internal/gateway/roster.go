@@ -21,6 +21,7 @@ type avatar struct {
 	inv        inventory.Inventory
 	invDirty   bool // changed since it was last saved
 	digger     edit.Digger
+	hitAt      time.Time // when they last hit a mob
 }
 
 func (a *avatar) pose() *pb.PlayerPose {
@@ -53,8 +54,10 @@ func (g *Gateway) addPlayer(s *session) {
 	if len(g.players) > 0 {
 		s.push(present)
 	}
-	if msg := g.itemsLyingAroundLocked(); msg != nil {
-		s.push(msg)
+	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked()} {
+		if msg != nil {
+			s.push(msg)
+		}
 	}
 	g.players[s] = a
 }
@@ -82,6 +85,9 @@ func (g *Gateway) dropPlayer(s *session) (pendingSave, bool) {
 		return pendingSave{}, false
 	}
 	delete(g.players, s)
+	if len(g.players) == 0 {
+		g.cfg.Mobs.Clear() // no one left to see them
+	}
 	left := &pb.ServerMessage{Body: &pb.ServerMessage_PlayerLeft{PlayerLeft: &pb.PlayerLeft{Entity: a.entity}}}
 	for o := range g.players {
 		o.push(left)
@@ -94,12 +100,13 @@ func (g *Gateway) Tick() {
 	g.save(g.step(time.Now()))
 }
 
-// step heals players, hands out items and sends each the others that moved since the last tick.
+// step heals players, hands out items, runs mobs and sends each the others that moved since the last tick.
 func (g *Gateway) step(now time.Time) []pendingSave {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.healLocked(now)
 	g.collectLocked(now)
+	g.stepMobsLocked(now)
 	saves := g.unsavedLocked(now)
 	var moved []*avatar
 	for _, a := range g.players {

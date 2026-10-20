@@ -6,6 +6,7 @@ import { parseInvite } from "./join/invite";
 import { screenForRejection, type Action, type Screen } from "./join/outcome";
 import {
   encodeEditBlock,
+  encodeHitMob,
   encodeEmote,
   encodeMove,
   encodeCraft,
@@ -44,6 +45,7 @@ import {
 import { Hotbar, hotbarBlocks } from "./player/hotbar";
 import { Inventory } from "./player/inventory";
 import { Miner } from "./player/mining";
+import { MOB_REACH, MOB_STEP_MS, type MobState, Mobs, pickMob } from "./player/mobs";
 import { GamepadControls } from "./player/gamepad";
 import { combineIntents, type BuildActions } from "./player/input";
 import { KeyboardMouse } from "./player/keyboard-mouse";
@@ -53,6 +55,7 @@ import { Player } from "./player/player";
 import { RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
 import { Drops } from "./render/drops";
+import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
 import { TEXTURE_NAMES } from "./render/textures";
 import { startScene } from "./render/scene";
@@ -80,7 +83,7 @@ import {
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
 import { collisionBoxes, FULL_BLOCK, heldBlock, type Box } from "./world/shapes";
-import type { RayHit } from "./world/raycast";
+import { lookDirection, type RayHit } from "./world/raycast";
 import { solidQuery } from "./world/solid";
 import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
@@ -145,8 +148,10 @@ const audio = new GameAudio(settings.sound, settings.music);
 const footsteps = new Footsteps();
 const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
 const drops = new Drops(gameScene.scene);
+const mobView = new MobView(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
+let mobs: Mobs | undefined; // set while in the world
 let solid: BoxesAt = () => FULL_BLOCK;
 let building: BuildWorld | undefined;
 let bounds: WorldBounds | undefined; // set while in the world
@@ -165,7 +170,9 @@ gameScene.onFrame((timeMs) => {
   gameScene.camera.position.set(eye.x, eye.y, eye.z);
   gameScene.camera.rotation.set(player.look.pitch, player.look.yaw, 0, "YXZ");
   world.tick(eye.x, eye.z, settings.viewDistance);
-  build(intent.build, [eye.x, eye.y, eye.z], dt);
+  const near = mobs?.sample(performance.now()) ?? [];
+  mobView.update(near, dt * 1000);
+  build(intent.build, [eye.x, eye.y, eye.z], dt, near);
   drops.update(timeMs);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
@@ -220,6 +227,7 @@ function connect(join?: JoinInit): void {
         if (status !== "connected") {
           pingEl.textContent = "";
           others = undefined;
+          mobs = undefined;
         }
       },
       onRtt: (ms) => (pingEl.textContent = `ping ${Math.round(ms)} ms`),
@@ -239,6 +247,8 @@ function connect(join?: JoinInit): void {
           if (inventory.set(msg.body.value.slots)) audio.play("pop", 0.5);
         } else if (msg.body.case === "itemsChanged")
           drops.change(msg.body.value.drops, msg.body.value.gone);
+        else if (msg.body.case === "mobsChanged")
+          mobs?.change(msg.body.value.mobs, msg.body.value.gone, performance.now());
         else if (msg.body.case === "chat") {
           chat.add(msg.body.value);
           audio.play("pop", 0.6);
@@ -321,6 +331,7 @@ function enterWorld(info: WorldInfo, tickRateHz: number): void {
   player.place(spawn?.x ?? 0, spawn?.y ?? 0, spawn?.z ?? 0);
   moves = new MoveSync(1000 / Math.max(1, tickRateHz));
   others = new RemotePlayers(1000 / Math.max(1, tickRateHz));
+  mobs = new Mobs(MOB_STEP_MS); // the server lists every mob again on joining
   hintEl.hidden = document.pointerLockElement !== null || touch;
   $("#touch").hidden = !touch;
   chat.enabled = true;
@@ -375,9 +386,21 @@ function teleport(t: Teleport): void {
   moves?.teleported(t.id);
 }
 
-/** Outlines the block in reach and carries out this frame's building actions. */
-function build(act: BuildActions, eye: [number, number, number], dt: number): void {
+/** Outlines the block in reach and carries out this frame's building actions, or hits a mob. */
+function build(
+  act: BuildActions,
+  eye: [number, number, number],
+  dt: number,
+  near: readonly MobState[],
+): void {
   const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
+  const mob = pickMob(eye, lookDirection(player.look.yaw, player.look.pitch), near, MOB_REACH);
+  if (mob && (!hit || mob.distance < hit.distance)) {
+    miner.stop();
+    selection.show(undefined);
+    if (act.breaking) hitMob(mob.id);
+    return;
+  }
   const dug = survival ? dig(act.digging, hit, dt) : 0;
   selection.show(hit, dug);
   if (!hit || !building) return;
@@ -402,6 +425,14 @@ function dig(held: boolean, hit: RayHit | undefined, dt: number): number {
     return 0;
   }
   return miner.dig(dt, hit, building.mineMs[block] ?? 0);
+}
+
+function hitMob(id: number): void {
+  if (!conn || !moves) return;
+  const pose = moves.flush(player.pose()); // the server checks reach from our latest position
+  if (pose) conn.send(encodeMove(pose, moves.teleport));
+  conn.send(encodeHitMob(id));
+  audio.play("bonk");
 }
 
 /** Shows the edit straight away; the server confirms it or sends back what is really there. */

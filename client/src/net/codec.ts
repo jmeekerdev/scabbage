@@ -89,6 +89,10 @@ export function encodeCraft(recipe: number): Bytes {
   return encode({ case: "craft", value: { recipe } });
 }
 
+export function encodeHitMob(mob: number): Bytes {
+  return encode({ case: "hitMob", value: { mob } });
+}
+
 export function encodeSendChat(text: string): Bytes {
   return encode({ case: "sendChat", value: { text } });
 }

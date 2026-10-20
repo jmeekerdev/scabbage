@@ -1,0 +1,142 @@
+package mobs
+
+import (
+	"math"
+	"time"
+
+	"scabbage/internal/drops"
+	"scabbage/internal/motion"
+	"scabbage/internal/world"
+)
+
+type kind struct {
+	height, halfWidth float64
+	health            int
+	walk              float64 // blocks per second while wandering or chasing
+	chases            bool
+}
+
+var kinds = map[Kind]kind{
+	Sheep: {height: 1.3, halfWidth: 0.45, health: 1, walk: 1},
+	Slime: {height: 0.8, halfWidth: 0.4, health: 3, walk: 2.5, chases: true},
+}
+
+const (
+	chaseRange = 16.0
+	biteReach  = 0.9 // horizontally, between the slime's and the player's centers
+	biteEvery  = 1500 * time.Millisecond
+	BiteDamage = 2
+	stepUp     = 1.0 // highest ledge a mob hops onto
+	maxDrop    = 3.0 // deepest it will jump down
+)
+
+// think picks what the mob does next: chase prey in sight, or keep wandering and resting.
+func (h *Herd) think(m *Mob, now time.Time, players []Player) {
+	if m.fleeing && now.Before(m.until) {
+		return
+	}
+	m.fleeing = false
+	if p, ok := m.prey(players); ok {
+		m.Yaw, m.speed = math.Atan2(p.X-m.Pos.X, p.Z-m.Pos.Z), kinds[m.Kind].walk
+		return
+	}
+	if now.Before(m.until) {
+		return
+	}
+	if m.speed > 0 {
+		m.speed, m.until = 0, now.Add(h.between(2*time.Second, 6*time.Second))
+		return
+	}
+	m.Yaw, m.speed = h.rng.Float64()*2*math.Pi, kinds[m.Kind].walk
+	m.until = now.Add(h.between(time.Second, 3*time.Second))
+}
+
+func (h *Herd) between(lo, hi time.Duration) time.Duration {
+	return lo + time.Duration(h.rng.Int64N(int64(hi-lo)))
+}
+
+// prey is the nearest survival player a slime can see.
+func (m *Mob) prey(players []Player) (motion.Vec, bool) {
+	if !kinds[m.Kind].chases {
+		return motion.Vec{}, false
+	}
+	best, found := chaseRange, false
+	var at motion.Vec
+	for _, p := range players {
+		if d := distance(p.Pos, m.Pos); p.Prey && d < best {
+			best, at, found = d, p.Pos, true
+		}
+	}
+	return at, found
+}
+
+// flee runs away from `from` at speed for d.
+func (m *Mob) flee(from motion.Vec, now time.Time, speed float64, d time.Duration) {
+	m.Yaw = math.Atan2(m.Pos.X-from.X, m.Pos.Z-from.Z)
+	m.speed, m.until, m.fleeing = speed, now.Add(d), true
+}
+
+// walk moves the mob along its heading, hopping up ledges and stopping at walls, water and cliffs.
+func (m *Mob) walk(dt float64, now time.Time, g Ground) {
+	dx, dz := math.Sin(m.Yaw), math.Cos(m.Yaw)
+	to := motion.Vec{X: m.Pos.X + dx*m.speed*dt, Y: m.Pos.Y, Z: m.Pos.Z + dz*m.speed*dt}
+	w := kinds[m.Kind].halfWidth
+	ahead := [2]int32{cell(to.X + dx*w), cell(to.Z + dz*w)}
+	if m.speed > 0 && ahead != [2]int32{cell(m.Pos.X), cell(m.Pos.Z)} {
+		if _, ok := m.footing(ahead[0], ahead[1], g); !ok {
+			m.speed, m.until = 0, now // try another way
+			return
+		}
+	}
+	if top, ok := m.footing(cell(to.X), cell(to.Z), g); ok || m.speed == 0 {
+		to.Y = top
+		m.Pos = to
+	}
+}
+
+// footing is where the mob would stand in column x,z, if it can get there from where it is.
+func (m *Mob) footing(x, z int32, g Ground) (float64, bool) {
+	top := ground(x, z, m.Pos.Y, g)
+	if top-m.Pos.Y > stepUp+0.01 || m.Pos.Y-top > maxDrop || top >= world.MaxY {
+		return top, false
+	}
+	if b, _ := g.Block(x, cell(top), z); b == world.Water {
+		return top, false
+	}
+	return top, clear(x, z, top, m.height(), g)
+}
+
+// ground is the top of whatever lies under feet at y in column x,z, looking from one ledge up.
+func ground(x, z int32, y float64, g Ground) float64 {
+	return drops.Rest(x, cell(y+stepUp-0.01), z, g.Boxes).Y
+}
+
+// clear reports whether nothing solid fills column x,z between bottom and bottom+height.
+func clear(x, z int32, bottom, height float64, g Ground) bool {
+	lo, hi := bottom+0.01, bottom+height-0.01
+	for y := cell(lo); y <= cell(hi); y++ {
+		for _, b := range g.Boxes(x, y, z) {
+			if float64(y)+b.Min[1] < hi && float64(y)+b.Max[1] > lo {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// bite lets a slime touching prey hurt them, now and then; it returns whom.
+func (m *Mob) bite(now time.Time, players []Player) (int, bool) {
+	if !kinds[m.Kind].chases || now.Before(m.biteAt) {
+		return 0, false
+	}
+	for i, p := range players {
+		dy := p.Pos.Y - m.Pos.Y
+		if p.Prey && math.Hypot(p.Pos.X-m.Pos.X, p.Pos.Z-m.Pos.Z) <= biteReach && dy > -motion.Height && dy < m.height() {
+			m.biteAt = now.Add(biteEvery)
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+func cell(v float64) int32 { return int32(math.Floor(v)) }

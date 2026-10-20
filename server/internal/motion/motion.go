@@ -15,6 +15,7 @@ type Vec struct{ X, Y, Z float64 }
 const (
 	HalfWidth = 0.3
 	Height    = 1.8
+	EyeHeight = 1.62
 )
 
 // slack shrinks the body when checking overlap, absorbing float32 rounding on the wire.

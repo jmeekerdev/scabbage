@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 13;
+  PROTOCOL_VERSION_CURRENT = 14;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -28,6 +28,7 @@ message ClientMessage {
     SetGameMode set_game_mode = 13;
     MoveItem move_item = 14;
     Craft craft = 15;
+    HitMob hit_mob = 16;
   }
 }
 
@@ -55,6 +56,7 @@ message ServerMessage {
     Vitals vitals = 19;
     Inventory inventory = 20;
     ItemsChanged items_changed = 21;
+    MobsChanged mobs_changed = 22;
   }
 }
 
@@ -282,6 +284,7 @@ enum GameMode {
 enum Harm {
   HARM_UNSPECIFIED = 0;
   HARM_FALL = 1;
+  HARM_MOB = 2;
 }
 
 // Your own health (0 to 20) and game mode; in Welcome, then sent whenever either changes.
@@ -336,6 +339,32 @@ message ItemDrop {
 message ItemsChanged {
   repeated ItemDrop drops = 1;
   repeated uint64 gone = 2;
+}
+
+enum MobKind {
+  MOB_KIND_UNSPECIFIED = 0;
+  MOB_KIND_SHEEP = 1; // hitting it drops its wool, which grows back
+  MOB_KIND_SLIME = 2; // comes out at night and bites survival players; pops after three hits
+}
+
+message Mob {
+  uint32 id = 1;
+  MobKind kind = 2;
+  Vec3 pos = 3; // feet center
+  float yaw = 4; // faces (sin yaw, cos yaw) in x,z
+  bool sheared = 5;
+  bool hurt = 6; // just got hit
+}
+
+// Mobs that appeared or moved, and the ids of ones gone; all of them on join.
+message MobsChanged {
+  repeated Mob mobs = 1;
+  repeated uint32 gone = 2;
+}
+
+// Hits a mob within reach.
+message HitMob {
+  uint32 mob = 1;
 }
 
 // The join request is waiting for an admin; the connection stays open until a decision.

@@ -2,7 +2,7 @@ import { BAR_BEATS, chordAt, midiHz } from "./chords";
 import { melody } from "./melody";
 import { noise, noiseBuffer, tone } from "./synth";
 
-export type Cue = "step" | "break" | "place" | "pop" | "hurt";
+export type Cue = "step" | "break" | "place" | "pop" | "hurt" | "bonk";
 
 const BEAT = 0.45; // seconds
 const PHRASE_BEATS = 24; // the three-chord progression, twice
@@ -25,6 +25,10 @@ const CUES: Record<Cue, Recipe> = {
   },
   pop: (ctx, out, _buf, t, g) =>
     tone(ctx, out, { freq: 660, endFreq: 990, start: t, dur: 0.12, gain: 0.25 * g }),
+  bonk: (ctx, out, buf, t, g) => {
+    tone(ctx, out, { freq: 320, endFreq: 200, start: t, dur: 0.08, gain: 0.4 * g });
+    noise(ctx, out, buf, { start: t, dur: 0.05, gain: 0.25 * g, filter: "lowpass", freq: 800 });
+  },
   hurt: (ctx, out, _buf, t, g) =>
     tone(ctx, out, { freq: 260, endFreq: 140, start: t, dur: 0.2, gain: 0.45 * g }),
 };

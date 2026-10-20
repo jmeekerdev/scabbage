@@ -11,7 +11,7 @@ export interface RemoteState extends RemoteInfo {
   pose: Pose;
 }
 
-interface Snapshot {
+export interface Snapshot {
   atMs: number;
   pose: Pose;
 }
@@ -59,7 +59,7 @@ export class RemotePlayers {
 }
 
 /** The pose at time `at`, dropping snapshots that are no longer needed. */
-function sampleAt(snaps: Snapshot[], at: number): Pose {
+export function sampleAt(snaps: Snapshot[], at: number): Pose {
   while (snaps.length > 1 && (snaps[1] as Snapshot).atMs <= at) snaps.shift();
   const [a, b] = snaps as [Snapshot, Snapshot | undefined];
   if (!b || at <= a.atMs) return a.pose;

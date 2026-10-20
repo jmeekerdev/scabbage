@@ -10,9 +10,6 @@ import (
 // plus up to a block's half-diagonal and the eye lag between physics steps.
 const Reach = 6.5
 
-// eyeHeight must match client/src/player/physics.ts.
-const eyeHeight = 1.62
-
 // Request asks to set the block at X,Y,Z; Air breaks it.
 type Request struct {
 	X, Y, Z int32
@@ -36,7 +33,7 @@ func Allowed(feet motion.Vec, r Request, current world.Block, bodies []motion.Ve
 
 func inReach(feet motion.Vec, r Request) bool {
 	dx := float64(r.X) + 0.5 - feet.X
-	dy := float64(r.Y) + 0.5 - (feet.Y + eyeHeight)
+	dy := float64(r.Y) + 0.5 - (feet.Y + motion.EyeHeight)
 	dz := float64(r.Z) + 0.5 - feet.Z
 	return dx*dx+dy*dy+dz*dz <= Reach*Reach
 }

@@ -18,6 +18,7 @@ import {
   encodeEmote,
   encodeMove,
   encodeCraft,
+  encodeHitMob,
   encodeMoveItem,
   encodePing,
   encodeRequestChunks,
@@ -62,6 +63,11 @@ describe("codec", () => {
   it("encodes crafting a recipe by its index", () => {
     const body = decodeClient(encodeCraft(7));
     expect(body.case === "craft" && body.value.recipe).toBe(7);
+  });
+
+  it("encodes hitting a mob", () => {
+    const body = decodeClient(encodeHitMob(2 ** 31 + 5));
+    expect(body.case === "hitMob" && body.value.mob).toBe(2 ** 31 + 5);
   });
 
   it("encodes a move with pose and teleport id", () => {
