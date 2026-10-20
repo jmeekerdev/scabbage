@@ -61,12 +61,13 @@ export function encodeRequestChunks(chunks: readonly { x: number; y: number; z: 
 }
 
 export function encodeMove(
-  p: { x: number; y: number; z: number; yaw: number; pitch: number },
+  p: { x: number; y: number; z: number; yaw: number; pitch: number; flying?: boolean },
   teleport: number,
 ): Bytes {
+  const { yaw, pitch, flying = false } = p;
   return encode({
     case: "move",
-    value: { pos: { x: p.x, y: p.y, z: p.z }, yaw: p.yaw, pitch: p.pitch, teleport },
+    value: { pos: { x: p.x, y: p.y, z: p.z }, yaw, pitch, teleport, flying },
   });
 }
 

@@ -93,31 +93,34 @@ func (g *Gateway) land(s *session, y float64, f vitals.Footing) bool {
 func (s *session) respawn() {
 	if !s.gw.fallInRound(s) {
 		x, y, z := s.gw.cfg.World.Spawn()
-		s.teleportTo(motion.Vec{X: x, Y: y, Z: z})
+		s.teleportTo(motion.Vec{X: x, Y: y, Z: z}, nil)
 	}
 	s.gw.revive(s)
 }
 
-// teleportTo moves the player to at and tells their client.
-func (s *session) teleportTo(at motion.Vec) {
+// teleportTo moves the player to at and tells their client, with how they were facing when restoring a save.
+func (s *session) teleportTo(at motion.Vec, restore *pb.Restore) {
 	s.teleport++
 	s.pad = blockAt(at) // arriving on a pad doesn't step on it
 	s.body.Reset(at, time.Now())
-	s.gw.place(s, at, s.teleport)
+	s.gw.place(s, &pb.Teleport{Id: s.teleport, Pos: vec3(at), Restore: restore})
 }
 
-func (g *Gateway) place(s *session, at motion.Vec, teleport uint32) {
+func (g *Gateway) place(s *session, t *pb.Teleport) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	a := g.players[s]
 	if a == nil {
 		return
 	}
-	a.pos, a.moved = at, true
-	s.push(&pb.ServerMessage{Body: &pb.ServerMessage_Teleport{Teleport: &pb.Teleport{
-		Id: teleport, Pos: &pb.Vec3{X: float32(at.X), Y: float32(at.Y), Z: float32(at.Z)},
-	}}})
+	a.pos, a.moved = motion.Vec{X: float64(t.Pos.X), Y: float64(t.Pos.Y), Z: float64(t.Pos.Z)}, true
+	if t.Restore != nil {
+		a.yaw, a.pitch, a.flying = t.Restore.Yaw, t.Restore.Pitch, t.Restore.Flying
+	}
+	s.push(&pb.ServerMessage{Body: &pb.ServerMessage_Teleport{Teleport: t}})
 }
+
+func vec3(v motion.Vec) *pb.Vec3 { return &pb.Vec3{X: float32(v.X), Y: float32(v.Y), Z: float32(v.Z)} }
 
 func (g *Gateway) revive(s *session) {
 	g.mu.Lock()

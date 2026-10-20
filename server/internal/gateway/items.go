@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"errors"
 	"time"
 
 	"scabbage/internal/drops"
@@ -10,23 +9,6 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/world"
 )
-
-// saveEvery is how often changed inventories are written while their players stay online.
-const saveEvery = 30 * time.Second
-
-// loadInventory reads what the player carries; a damaged save starts them empty-handed.
-func (s *session) loadInventory() error {
-	data, err := s.gw.cfg.Access.Inventory(s.player.ID)
-	if err != nil {
-		return err
-	}
-	s.carried, err = inventory.Decode(data)
-	if errors.Is(err, inventory.ErrCorrupt) {
-		s.log.Warn("inventory unreadable, starting empty", "player", s.player.Name)
-		return nil
-	}
-	return err
-}
 
 func inventoryProto(inv *inventory.Inventory) *pb.Inventory {
 	out := &pb.Inventory{Slots: make([]*pb.ItemStack, len(inv))}
@@ -75,7 +57,6 @@ func (g *Gateway) spend(s *session, r edit.Request, current world.Block, slot ui
 	if !a.inv.Take(int(slot), r.Block.Item()) {
 		return false
 	}
-	a.invDirty = true
 	s.push(inventoryMessage(&a.inv))
 	return true
 }
@@ -106,7 +87,6 @@ func (g *Gateway) collectLocked(now time.Time) {
 		}
 		took := g.drops.Collect(a.pos, now, func(d drops.Drop) bool { return a.inv.Add(d.Block, 1) == 0 })
 		if len(took) > 0 {
-			a.invDirty = true
 			s.push(inventoryMessage(&a.inv))
 			gone = append(gone, took...)
 		}
@@ -117,43 +97,6 @@ func (g *Gateway) collectLocked(now time.Time) {
 // itemsLyingAroundLocked is every drop, for a player who just arrived; nil when there are none.
 func (g *Gateway) itemsLyingAroundLocked() *pb.ServerMessage {
 	return itemsChanged(g.drops.All(), nil)
-}
-
-type pendingSave struct {
-	player int64
-	data   []byte
-}
-
-// unsavedLocked collects changed inventories when it's time to save them; call with g.mu held.
-func (g *Gateway) unsavedLocked(now time.Time) []pendingSave {
-	if now.Sub(g.savedAt) < saveEvery {
-		return nil
-	}
-	g.savedAt = now
-	var out []pendingSave
-	for s, a := range g.players {
-		if p, ok := a.unsaved(s.player.ID); ok {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-func (a *avatar) unsaved(player int64) (pendingSave, bool) {
-	if !a.invDirty {
-		return pendingSave{}, false
-	}
-	a.invDirty = false
-	return pendingSave{player, a.inv.Encode()}, true
-}
-
-// save writes inventories outside g.mu, since the database can be slow.
-func (g *Gateway) save(saves []pendingSave) {
-	for _, p := range saves {
-		if err := g.cfg.Access.SaveInventory(p.player, p.data); err != nil {
-			g.cfg.Logger.Error("saving inventory", "player", p.player, "err", err)
-		}
-	}
 }
 
 // moveItem rearranges the player's inventory.
@@ -167,7 +110,6 @@ func (s *session) moveItem(m *pb.MoveItem) error {
 	if a == nil || m.From >= inventory.Slots || m.To >= inventory.Slots || !a.inv.Move(int(m.From), int(m.To)) {
 		return nil
 	}
-	a.invDirty = true
 	s.push(inventoryMessage(&a.inv))
 	return nil
 }

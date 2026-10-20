@@ -2,6 +2,7 @@ package access
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -93,19 +94,20 @@ func TestSetModeRejectsUnknownModes(t *testing.T) {
 	}
 }
 
-func TestInventoryIsRemembered(t *testing.T) {
+func TestSavesAreRemembered(t *testing.T) {
 	f := newFixture(t)
 	p := f.approved(t, secret(1), "Amy")
-	if got, err := f.svc.Inventory(p.ID); err != nil || len(got) != 0 {
-		t.Fatalf("new player carries %v, %v", got, err)
+	if got, err := f.svc.Saved(p.ID); err != nil || got.Placed || got.Health != 20 || len(got.Inventory) != 0 {
+		t.Fatalf("new player has %+v, %v", got, err)
 	}
-	if err := f.svc.SaveInventory(p.ID, []byte{1, 2, 3}); err != nil {
+	want := Save{Placed: true, X: 1.5, Y: 70, Z: -3.25, Yaw: 0.5, Pitch: -0.25, Flying: true, Health: 7, Inventory: []byte{1, 2, 3}}
+	if err := f.svc.Store(p.ID, want); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := f.svc.Inventory(p.ID); string(got) != "\x01\x02\x03" {
-		t.Fatalf("got %v", got)
+	if got, _ := f.svc.Saved(p.ID); !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v", got)
 	}
-	if _, err := f.svc.Inventory(99); !errors.Is(err, ErrNoPlayer) {
+	if _, err := f.svc.Saved(99); !errors.Is(err, ErrNoPlayer) {
 		t.Fatalf("err = %v, want ErrNoPlayer", err)
 	}
 }

@@ -92,6 +92,8 @@ message Welcome {
   WorldInfo world = 5;
   Vitals vitals = 6; // unset for admin console connections
   Inventory inventory = 7; // unset for admin console connections
+  // Where the player was last saved, with id 0; unset to start at the world spawn.
+  Teleport start = 8;
 }
 
 message WorldInfo {
@@ -175,12 +177,21 @@ message Move {
   float pitch = 3;
   // The last Teleport id applied; moves made before the latest teleport are ignored.
   uint32 teleport = 4;
+  bool flying = 5;
 }
 
 // Puts the player at pos, e.g. when the server rejects a move. Ids count up from 1.
 message Teleport {
   uint32 id = 1;
   Vec3 pos = 2;
+  Restore restore = 3; // set when returning the player to a save
+}
+
+// How the player was facing and moving when saved.
+message Restore {
+  float yaw = 1;
+  float pitch = 2;
+  bool flying = 3;
 }
 
 message BlockPos {

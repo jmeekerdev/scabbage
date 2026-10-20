@@ -221,5 +221,5 @@ func (s *session) stepOnPad(feet motion.Vec) {
 	if !ok {
 		return
 	}
-	s.teleportTo(motion.Vec{X: float64(to.X) + 0.5, Y: float64(to.Y), Z: float64(to.Z) + 0.5})
+	s.teleportTo(motion.Vec{X: float64(to.X) + 0.5, Y: float64(to.Y), Z: float64(to.Z) + 0.5}, nil)
 }

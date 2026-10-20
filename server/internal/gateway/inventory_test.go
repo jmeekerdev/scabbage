@@ -6,6 +6,7 @@ import (
 
 	"github.com/coder/websocket"
 
+	"scabbage/internal/access"
 	"scabbage/internal/inventory"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/world"
@@ -64,7 +65,7 @@ func TestWelcomeCarriesTheSavedInventory(t *testing.T) {
 	_ = ts.joinAdmin(t).Close(websocket.StatusNormalClosure, "")
 	var inv inventory.Inventory
 	inv[4] = inventory.Stack{Block: world.Log, Count: 9}
-	if err := ts.svc.SaveInventory(1, inv.Encode()); err != nil {
+	if err := ts.svc.Store(1, access.Save{Health: 20, Inventory: inv.Encode()}); err != nil {
 		t.Fatal(err)
 	}
 	c := dial(t, ts.url)
@@ -103,8 +104,8 @@ func TestNearbyDropsArePickedUpAndRemembered(t *testing.T) {
 	_ = c.Close(websocket.StatusNormalClosure, "")
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		data, _ := ts.svc.Inventory(1)
-		if inv, _ := inventory.Decode(data); inv[0].Block == world.Cobblestone {
+		v, _ := ts.svc.Saved(1)
+		if inv, _ := inventory.Decode(v.Inventory); inv[0].Block == world.Cobblestone {
 			return
 		}
 		if time.Now().After(deadline) {

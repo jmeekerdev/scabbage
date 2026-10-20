@@ -61,6 +61,11 @@ describe("codec", () => {
     expect(body.case === "useBlock" && body.value.pos).toMatchObject({ x: 1, y: -2, z: 3 });
   });
 
+  it("encodes a move with whether we fly", () => {
+    const body = decodeClient(encodeMove({ x: 1, y: 2, z: 3, yaw: 0, pitch: 0, flying: true }, 4));
+    expect(body.case === "move" && [body.value.flying, body.value.teleport]).toEqual([true, 4]);
+  });
+
   it("encodes moving an item", () => {
     const body = decodeClient(encodeMoveItem(3, 30));
     expect(body.case === "moveItem" && [body.value.from, body.value.to]).toEqual([3, 30]);

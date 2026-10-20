@@ -64,17 +64,34 @@ func (s *Service) SetMode(id int64, m Mode) (Player, error) {
 	return p, err
 }
 
-// Inventory returns what a player carries, as inventory.Encode stored it.
-func (s *Service) Inventory(id int64) ([]byte, error) {
-	var data []byte
-	err := s.db.QueryRow(`SELECT inventory FROM players WHERE id = ?`, id).Scan(&data)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNoPlayer
-	}
-	return data, err
+// Save is where a player was and what they had when last saved; Placed is false until then.
+type Save struct {
+	Placed     bool
+	X, Y, Z    float64
+	Yaw, Pitch float32
+	Flying     bool
+	Health     int
+	Inventory  []byte // as inventory.Encode stored it
 }
 
-func (s *Service) SaveInventory(id int64, data []byte) error {
-	_, err := s.db.Exec(`UPDATE players SET inventory = ? WHERE id = ?`, data, id)
+func (s *Service) Saved(id int64) (Save, error) {
+	var v Save
+	err := s.db.QueryRow(`SELECT placed, x, y, z, yaw, pitch, flying, health, inventory FROM players WHERE id = ?`, id).
+		Scan(&v.Placed, &v.X, &v.Y, &v.Z, &v.Yaw, &v.Pitch, &v.Flying, &v.Health, &v.Inventory)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Save{}, ErrNoPlayer
+	}
+	if len(v.Inventory) == 0 {
+		v.Inventory = nil
+	}
+	return v, err
+}
+
+func (s *Service) Store(id int64, v Save) error {
+	if v.Inventory == nil {
+		v.Inventory = []byte{} // an empty blob, not NULL
+	}
+	_, err := s.db.Exec(`UPDATE players SET placed = ?, x = ?, y = ?, z = ?, yaw = ?, pitch = ?, flying = ?, health = ?, inventory = ?
+		WHERE id = ?`, v.Placed, v.X, v.Y, v.Z, v.Yaw, v.Pitch, v.Flying, v.Health, v.Inventory, id)
 	return err
 }

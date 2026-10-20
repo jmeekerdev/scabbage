@@ -85,6 +85,14 @@ var migrations = []string{
 		zone_id INTEGER PRIMARY KEY REFERENCES zones(id) ON DELETE CASCADE,
 		setup   TEXT NOT NULL
 	);`,
+	`ALTER TABLE players ADD COLUMN placed INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN x REAL NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN y REAL NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN z REAL NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN yaw REAL NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN pitch REAL NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN flying INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN health INTEGER NOT NULL DEFAULT 20;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

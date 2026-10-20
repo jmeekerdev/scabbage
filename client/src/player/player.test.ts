@@ -46,6 +46,15 @@ describe("Player", () => {
     expect(p.body.vy).toBe(0);
   });
 
+  it("restores how it faced and whether it flew, if flying is allowed", () => {
+    const p = new Player();
+    p.restore({ yaw: 1, pitch: -0.5, flying: true });
+    expect(p.pose()).toMatchObject({ yaw: 1, pitch: -0.5, flying: true });
+    p.allowFlying(false);
+    p.restore({ yaw: 0, pitch: 0, flying: true });
+    expect(p.body.flying).toBe(false);
+  });
+
   it("only flies when allowed", () => {
     const p = new Player();
     p.toggleFly();

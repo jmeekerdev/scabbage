@@ -329,6 +329,7 @@ function enterGame(w: Welcome): void {
   if (w.world) enterWorld(w.world, w.tickRateHz);
   if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
+  if (w.start) teleport(w.start); // after vitals, which decide whether we may fly
 }
 
 /** Our own health and game mode: survival walks, carries its blocks and shows hearts. */
@@ -407,9 +408,10 @@ function submitArt(s: Submission): void {
   if (me && s.kind === ArtKind.SKIN) me.skin = s.pixels; // keep editing from the latest look
 }
 
-/** The server put us back somewhere, usually after rejecting a move. */
+/** The server put us back somewhere, usually after rejecting a move, or where we were saved. */
 function teleport(t: Teleport): void {
   player.place(t.pos?.x ?? 0, t.pos?.y ?? 0, t.pos?.z ?? 0);
+  if (t.restore) player.restore(t.restore);
   moves?.teleported(t.id);
 }
 

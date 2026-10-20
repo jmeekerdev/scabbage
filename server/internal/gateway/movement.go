@@ -10,11 +10,10 @@ import (
 	"scabbage/internal/rate"
 )
 
-// startMotion tracks the player from the world spawn.
+// startMotion tracks the player from where they start.
 func (s *session) startMotion() {
-	x, y, z := s.gw.cfg.World.Spawn()
 	now := time.Now()
-	s.body = motion.NewTracker(motion.DefaultLimits, motion.Vec{X: x, Y: y, Z: z}, now)
+	s.body = motion.NewTracker(motion.DefaultLimits, s.saved.pos, now)
 	s.edits = rate.New(now, edit.PerSecond, edit.Burst)
 }
 
@@ -29,7 +28,7 @@ func (s *session) move(ctx context.Context, m *pb.Move) error {
 	p := m.GetPos()
 	to := motion.Vec{X: float64(p.GetX()), Y: float64(p.GetY()), Z: float64(p.GetZ())}
 	if s.body.Move(to, time.Now(), s.gw.cfg.World.Boxes) {
-		s.gw.movePlayer(s, to, m.Yaw, m.Pitch)
+		s.gw.movePlayer(s, to, m)
 		if s.gw.land(s, to.Y, s.gw.footing(to)) {
 			s.respawn()
 			return nil

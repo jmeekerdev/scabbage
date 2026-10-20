@@ -20,8 +20,10 @@ type avatar struct {
 	own        pb.GameMode // the player's mode, which a zone may override
 	mode       pb.GameMode // the mode they play right now
 	vitals     *vitals.State
+	flying     bool
 	inv        inventory.Inventory
-	invDirty   bool // changed since it was last saved
+	saved      snapshot  // what the database holds
+	stash      *snapshot // the save from before joining a game, restored on leaving it
 	digger     edit.Digger
 	hitAt      time.Time     // when they last hit a mob or player
 	round      *rounds.Round // the minigame they joined, if any
@@ -47,9 +49,8 @@ func (g *Gateway) addPlayer(s *session) {
 	defer g.mu.Unlock()
 	g.arenas = arenas
 	g.entity++
-	a := &avatar{
-		entity: g.entity, pos: s.body.Pos(), own: g.modeOf(s.player), vitals: vitals.New(time.Now()), inv: s.carried,
-	}
+	a := &avatar{entity: g.entity, own: g.modeOf(s.player), vitals: vitals.New(time.Now())}
+	a.load(s.saved)
 	arrived := playersJoined(s.other(a))
 	present := playersJoined()
 	for o, oa := range g.players {
@@ -68,11 +69,11 @@ func (g *Gateway) addPlayer(s *session) {
 	g.players[s] = a
 }
 
-func (g *Gateway) movePlayer(s *session, at motion.Vec, yaw, pitch float32) {
+func (g *Gateway) movePlayer(s *session, at motion.Vec, m *pb.Move) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if a := g.players[s]; a != nil {
-		a.pos, a.yaw, a.pitch, a.moved = at, yaw, pitch, true
+		a.pos, a.yaw, a.pitch, a.flying, a.moved = at, m.Yaw, m.Pitch, m.Flying, true
 		g.refreshModeLocked(s, a, false)
 		g.followLocked(a)
 	}

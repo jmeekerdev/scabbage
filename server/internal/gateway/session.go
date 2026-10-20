@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
-	"scabbage/internal/inventory"
 	"scabbage/internal/logic"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
@@ -39,12 +38,13 @@ type session struct {
 	teleport uint32          // id of the last Teleport sent
 	pad      logic.Pos       // the block the player last stood in, so teleporters fire once per step
 	edits    *rate.Bucket
-	talk     *rate.Bucket        // chat and emotes
-	carried  inventory.Inventory // as loaded on admit; the avatar's copy is the live one
+	talk     *rate.Bucket // chat and emotes
+	saved    snapshot     // as loaded on admit; the avatar holds the live state
+	resumed  bool         // saved is where they left off, not the spawn
 
 	cancel   context.CancelFunc // ends the session, e.g. when it can't keep up
 	fainted  chan struct{}      // a mob knocked the player out; respawn on the run goroutine
-	relocate chan motion.Vec    // where a minigame sends the player; moved on the run goroutine
+	relocate chan spot          // where a minigame sends the player; moved on the run goroutine
 }
 
 type inbound struct {
@@ -63,7 +63,7 @@ func (e rejectError) Error() string { return e.reason }
 func reject(code pb.DisconnectCode, reason string) rejectError { return rejectError{code, reason} }
 
 func newSession(g *Gateway, c *websocket.Conn, ip string, log *slog.Logger, cancel context.CancelFunc) *session {
-	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), relocate: make(chan motion.Vec, 1), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
+	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), relocate: make(chan spot, 1), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
 }
 
 func (s *session) run(ctx context.Context) error {
@@ -120,8 +120,8 @@ func (s *session) serve(ctx context.Context) error {
 			}
 		case <-s.fainted:
 			s.respawn()
-		case at := <-s.relocate:
-			s.teleportTo(at)
+		case to := <-s.relocate:
+			s.teleportTo(to.at, to.restore)
 		case <-ctx.Done():
 			return ctx.Err()
 		}

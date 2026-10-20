@@ -27,6 +27,13 @@ export class Player {
     this.body.vy = 0;
   }
 
+  /** Faces and flies as the player did when the server saved them. */
+  restore(r: { yaw: number; pitch: number; flying: boolean }): void {
+    Object.assign(this.look, { yaw: r.yaw, pitch: r.pitch });
+    this.body.flying = r.flying && this.canFly;
+    this.body.vy = 0;
+  }
+
   /** Survival players walk; turning flying off drops anyone in the air. */
   allowFlying(on: boolean): void {
     this.canFly = on;
@@ -53,6 +60,6 @@ export class Player {
 
   pose(): Pose {
     const { x, y, z } = this.body;
-    return { x, y, z, yaw: this.look.yaw, pitch: this.look.pitch };
+    return { x, y, z, yaw: this.look.yaw, pitch: this.look.pitch, flying: this.body.flying };
   }
 }

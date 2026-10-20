@@ -33,7 +33,6 @@ func (s *session) craft(m *pb.Craft) error {
 	if a == nil || a.mode != survival || m.Recipe >= uint32(len(book)) || !book[m.Recipe].Craft(&a.inv) {
 		return nil
 	}
-	a.invDirty = true
 	s.push(inventoryMessage(&a.inv))
 	return nil
 }

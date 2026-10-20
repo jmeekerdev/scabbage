@@ -4,10 +4,16 @@ export interface Pose {
   z: number;
   yaw: number;
   pitch: number;
+  flying?: boolean;
 }
 
 const same = (a: Pose, b: Pose) =>
-  a.x === b.x && a.y === b.y && a.z === b.z && a.yaw === b.yaw && a.pitch === b.pitch;
+  a.x === b.x &&
+  a.y === b.y &&
+  a.z === b.z &&
+  a.yaw === b.yaw &&
+  a.pitch === b.pitch &&
+  a.flying === b.flying;
 
 /** Decides when to report the player's pose to the server: on change, at most once per interval. */
 export class MoveSync {

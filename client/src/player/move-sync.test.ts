@@ -25,6 +25,12 @@ describe("MoveSync", () => {
     expect(s.due(100, pose(1, 0.5))).toEqual(pose(1, 0.5));
   });
 
+  it("sends taking off on the spot", () => {
+    const s = new MoveSync(50);
+    s.due(0, pose(1));
+    expect(s.due(100, { ...pose(1), flying: true })).toEqual({ ...pose(1), flying: true });
+  });
+
   it("remembers the latest teleport and forgets what it sent before", () => {
     const s = new MoveSync(50);
     s.due(0, pose(1));

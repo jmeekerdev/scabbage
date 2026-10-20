@@ -13,14 +13,21 @@ import (
 	"scabbage/internal/rounds"
 )
 
-// enterPortal joins the player to the round of the arena whose portal they stepped on, if any.
+// enterPortal joins the player to the round of the arena whose portal they stepped on, if any,
+// saving them as they were so leaving the game puts them back.
 func (g *Gateway) enterPortal(s *session, p logic.Pos) {
+	if save, ok := g.joinPortal(s, p); ok {
+		g.save([]pendingSave{save})
+	}
+}
+
+func (g *Gateway) joinPortal(s *session, p logic.Pos) (pendingSave, bool) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	a := g.players[s]
 	arena, portal, ok := g.portalAtLocked(p)
 	if a == nil || !ok || a.round != nil {
-		return
+		return pendingSave{}, false
 	}
 	key := strings.ToLower(arena.Zone)
 	r := g.rounds[key]
@@ -31,8 +38,11 @@ func (g *Gateway) enterPortal(s *session, p logic.Pos) {
 	effects := r.Join(a.entity, s.player.Name, portal, time.Now())
 	if r.Has(a.entity) {
 		a.round = r
+		before := a.snapshot()
+		a.stash = &before
 	}
 	g.playLocked(r, effects)
+	return a.unsaved(s.player.ID)
 }
 
 // portalAtLocked finds the arena with a portal at p.
@@ -58,7 +68,7 @@ func (g *Gateway) playLocked(r *rounds.Round, effects []rounds.Effect) {
 			s.push(noticeMessage(e.Say))
 		}
 		if e.Move != nil {
-			s.relocateLocked(motion.Vec{X: float64(e.Move.X) + 0.5, Y: float64(e.Move.Y), Z: float64(e.Move.Z) + 0.5})
+			s.relocateLocked(spot{at: motion.Vec{X: float64(e.Move.X) + 0.5, Y: float64(e.Move.Y), Z: float64(e.Move.Z) + 0.5}})
 		}
 	}
 	board := boardMessage(r.Board(time.Now()))
@@ -69,6 +79,7 @@ func (g *Gateway) playLocked(r *rounds.Round, effects []rounds.Effect) {
 			s.push(board)
 		default:
 			a.round = nil
+			s.restoreLocked(a)
 			s.push(&pb.ServerMessage{Body: &pb.ServerMessage_Scoreboard{Scoreboard: &pb.Scoreboard{}}})
 		}
 	}
@@ -136,6 +147,7 @@ func (g *Gateway) leaveRoundLocked(a *avatar) bool {
 	}
 	g.playLocked(r, r.Leave(a.entity))
 	a.round = nil // in case they already left the world
+	a.unstash()
 	return true
 }
 
@@ -154,10 +166,10 @@ func (s *session) leaveRound(ctx context.Context) error {
 
 // relocateLocked asks the run goroutine to move the player; a newer move replaces one not yet made.
 // Every caller holds gw.mu, so after the drain there is room.
-func (s *session) relocateLocked(at motion.Vec) {
+func (s *session) relocateLocked(to spot) {
 	select {
 	case <-s.relocate:
 	default:
 	}
-	s.relocate <- at
+	s.relocate <- to
 }

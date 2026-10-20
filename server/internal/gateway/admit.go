@@ -10,7 +10,6 @@ import (
 	"scabbage/internal/chat"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/rate"
-	"scabbage/internal/vitals"
 )
 
 const protocolVersion = uint32(pb.ProtocolVersion_PROTOCOL_VERSION_CURRENT)
@@ -59,11 +58,12 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 	}
 	if !s.console {
 		welcome.World = s.gw.worldInfo()
-		welcome.Vitals = &pb.Vitals{Mode: s.gw.modeOf(s.player), Health: vitals.Max}
-		if err := s.loadInventory(); err != nil {
+		if err := s.loadSave(); err != nil {
 			return err
 		}
-		welcome.Inventory = inventoryProto(&s.carried)
+		welcome.Vitals = &pb.Vitals{Mode: s.gw.modeOf(s.player), Health: uint32(s.saved.health)}
+		welcome.Inventory = inventoryProto(&s.saved.inv)
+		welcome.Start = s.start()
 		s.startMotion()
 		s.talk = rate.New(time.Now(), chat.PerSecond, chat.Burst)
 	}
