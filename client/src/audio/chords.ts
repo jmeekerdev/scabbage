@@ -10,10 +10,10 @@ export interface Chord {
 
 export const BAR_BEATS = 4;
 
-/** G♭maj9 → F7♯5 → A♭/B♭, one bar each, looping. */
+/** G♭maj9 → D♭maj7 → A♭/B♭, one bar each, looping. */
 export const PROGRESSION: readonly Chord[] = [
   { name: "Gbmaj9", bass: 42, voicing: [58, 61, 65, 68], tones: [6, 10, 1, 5, 8] },
-  { name: "F7#5", bass: 41, voicing: [57, 61, 63, 69], tones: [5, 9, 1, 3] },
+  { name: "Dbmaj7", bass: 37, voicing: [56, 60, 65, 68], tones: [1, 5, 8, 0] },
   { name: "Ab/Bb", bass: 46, voicing: [56, 60, 63, 68], tones: [10, 0, 3, 5, 8] },
 ];
 

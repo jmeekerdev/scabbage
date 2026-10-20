@@ -9,17 +9,17 @@ describe("chords", () => {
     expect(midiHz(57)).toBeCloseTo(220);
   });
 
-  it("plays G♭maj9, F7♯5, A♭/B♭ a bar each, then loops", () => {
+  it("plays G♭maj9, D♭maj7, A♭/B♭ a bar each, then loops", () => {
     const names = [0, 1, 2, 3].map((bar) => chordAt(bar * BAR_BEATS + 1).name);
-    expect(names).toEqual(["Gbmaj9", "F7#5", "Ab/Bb", "Gbmaj9"]);
+    expect(names).toEqual(["Gbmaj9", "Dbmaj7", "Ab/Bb", "Gbmaj9"]);
   });
 
   it("spells each chord correctly over its bass", () => {
-    const [gb, f, ab] = PROGRESSION;
+    const [gb, db, ab] = PROGRESSION;
     expect(gb?.bass).toBe(42); // G♭2
     expect(pitchClasses(gb?.voicing ?? [])).toEqual([1, 10, 5, 8].sort()); // B♭ D♭ F A♭
-    expect(f?.bass).toBe(41); // F2
-    expect(pitchClasses(f?.voicing ?? [])).toEqual([9, 1, 3].sort()); // A C♯ E♭
+    expect(db?.bass).toBe(37); // D♭2
+    expect(pitchClasses(db?.voicing ?? [])).toEqual([5, 8, 0].sort()); // F A♭ C
     expect(ab?.bass).toBe(46); // B♭2
     expect(pitchClasses(ab?.voicing ?? [])).toEqual([8, 0, 3].sort()); // A♭ C E♭
   });

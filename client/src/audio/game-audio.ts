@@ -1,13 +1,14 @@
 import { BAR_BEATS, chordAt, midiHz } from "./chords";
-import { melody } from "./melody";
-import { noise, noiseBuffer, tone } from "./synth";
+import { arpeggioNotes, type Section, sectionNotes, SONG } from "./song";
+import { echo, noise, noiseBuffer, tone, voice } from "./synth";
 
 export type Cue = "step" | "break" | "place" | "pop" | "hurt" | "bonk";
 
-const BEAT = 0.45; // seconds
-const PHRASE_BEATS = 24; // the three-chord progression, twice
-const PAD_GAIN = 0.12; // per voice, under the melody
-const GAP_MS = { min: 6000, max: 16000 }; // quiet between phrases
+const BEAT = 0.65; // seconds; slow and calm
+const PAD_GAIN = 0.1; // per voice, under the melody
+const MUSIC_GAIN = 0.12;
+const LOOKAHEAD = 0.5; // seconds a section is queued before it plays
+const GAP_MS = { min: 10000, max: 20000 }; // quiet between plays of the song
 // Touch only counts as a gesture on pointerup, a mouse on pointerdown.
 const GESTURES = ["pointerdown", "pointerup", "keydown"];
 const IDLE_SUSPEND_MS = 3000; // lets the audio thread sleep when nothing is playing
@@ -39,7 +40,8 @@ export class GameAudio {
   private sfx?: GainNode;
   private music?: GainNode;
   private noise?: AudioBuffer;
-  private nextPhrase?: number;
+  private nextSection?: number;
+  private run?: GainNode; // this play of the song, so stopping silences its queued notes
   private idle?: number;
 
   constructor(
@@ -88,9 +90,9 @@ export class GameAudio {
     this.noise = noiseBuffer(ctx);
     this.sfx = ctx.createGain();
     this.music = ctx.createGain();
-    this.music.gain.value = 0.12;
+    this.music.gain.value = 1;
     this.sfx.connect(ctx.destination);
-    this.music.connect(ctx.destination);
+    this.music.connect(echo(ctx, ctx.destination));
     return ctx;
   }
 
@@ -99,43 +101,85 @@ export class GameAudio {
     const ctx = this.ctx;
     if (!ctx) return;
     const playing = this.musicOn && !document.hidden;
-    if (playing && this.nextPhrase === undefined) this.phrase();
-    if (!playing) {
-      clearTimeout(this.nextPhrase);
-      this.nextPhrase = undefined;
-      this.music?.gain.setTargetAtTime(0, ctx.currentTime, 0.2); // fades out notes already queued
-    }
+    if (playing && this.nextSection === undefined) this.playSection(0, ctx.currentTime + 0.1);
+    if (!playing) this.stopSong(ctx);
     if (playing) this.wake();
     else this.sleepSoon();
   }
 
-  private phrase(): void {
+  /** Queues section `i` of the song at `start`, then the next one just before this ends. */
+  private playSection(i: number, start: number): void {
     const { ctx, music } = this;
     if (!ctx || !music) return;
     this.wake();
-    const start = ctx.currentTime + 0.1;
-    music.gain.setTargetAtTime(0.12, ctx.currentTime, 0.1);
-    for (const n of melody(Math.random, PHRASE_BEATS))
-      tone(ctx, music, {
-        freq: n.freq,
-        start: start + n.beat * BEAT,
-        dur: n.beats * BEAT,
-        gain: 0.8,
-        type: "triangle",
-      });
-    for (let beat = 0; beat < PHRASE_BEATS; beat += BAR_BEATS)
-      this.chord(ctx, music, beat, start + beat * BEAT);
-    const gap = GAP_MS.min + Math.random() * (GAP_MS.max - GAP_MS.min);
-    this.nextPhrase = window.setTimeout(() => this.phrase(), PHRASE_BEATS * BEAT * 1000 + gap);
+    if (i === 0) {
+      this.run = ctx.createGain();
+      this.run.gain.value = MUSIC_GAIN;
+      this.run.connect(music);
+    }
+    const section = SONG[i];
+    if (!section || !this.run) {
+      const gap = GAP_MS.min + Math.random() * (GAP_MS.max - GAP_MS.min);
+      this.nextSection = window.setTimeout(() => this.playSection(0, ctx.currentTime + 0.1), gap);
+      return;
+    }
+    start = Math.max(start, ctx.currentTime + 0.05); // a throttled timer may run late
+    this.section(ctx, this.run, section, start);
+    const end = start + section.bars * BAR_BEATS * BEAT;
+    const wait = (end - ctx.currentTime - LOOKAHEAD) * 1000;
+    this.nextSection = window.setTimeout(() => this.playSection(i + 1, end), wait);
   }
 
-  /** One bar of the progression: a bass note under a soft pad. */
-  private chord(ctx: AudioContext, music: AudioNode, beat: number, start: number): void {
+  /** Fades out whatever is queued and forgets the song's place. */
+  private stopSong(ctx: AudioContext): void {
+    clearTimeout(this.nextSection);
+    this.nextSection = undefined;
+    const run = this.run;
+    this.run = undefined;
+    run?.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
+    window.setTimeout(() => run?.disconnect(), 2000);
+  }
+
+  /** One section: chords every bar, then the tune and, in choruses, the arpeggio. */
+  private section(ctx: AudioContext, out: AudioNode, s: Section, start: number): void {
+    const at = (beat: number) => start + beat * BEAT;
+    for (let bar = 0; bar < s.bars; bar++)
+      this.chord(ctx, out, bar * BAR_BEATS, at(bar * BAR_BEATS), s.level);
+    for (const n of sectionNotes(s))
+      voice(ctx, out, {
+        freq: midiHz(n.midi),
+        start: at(n.beat),
+        dur: n.beats * BEAT,
+        gain: 0.55 * s.level,
+        attack: 0.12,
+        release: 0.9,
+        type: "triangle",
+      });
+    if (!s.arpeggio) return;
+    for (const n of arpeggioNotes(s.bars))
+      voice(ctx, out, {
+        freq: midiHz(n.midi),
+        start: at(n.beat),
+        dur: n.beats * BEAT,
+        gain: 0.16 * s.level,
+        attack: 0.03,
+        release: 0.7,
+      });
+  }
+
+  /** One bar of the progression: a bass note under a soft pad, crossfading into the next bar. */
+  private chord(
+    ctx: AudioContext,
+    out: AudioNode,
+    beat: number,
+    start: number,
+    level: number,
+  ): void {
     const { bass, voicing } = chordAt(beat);
-    const dur = BAR_BEATS * BEAT;
-    tone(ctx, music, { freq: midiHz(bass), start, dur, gain: 0.6 });
+    const bar = { start, dur: BAR_BEATS * BEAT, attack: 1.2, release: 1.6 };
+    voice(ctx, out, { ...bar, freq: midiHz(bass), gain: 0.45 * level });
     for (const note of voicing)
-      tone(ctx, music, { freq: midiHz(note), start, dur, gain: PAD_GAIN });
+      voice(ctx, out, { ...bar, freq: midiHz(note), gain: PAD_GAIN * level });
   }
 
   private wake(): void {

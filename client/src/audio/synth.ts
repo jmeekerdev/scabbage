@@ -1,3 +1,5 @@
+import { swell, type SwellSpec } from "./envelope";
+
 /** Tiny sound makers built from oscillators and noise, so the game ships no audio files. */
 
 export interface ToneSpec {
@@ -22,6 +24,41 @@ export function tone(ctx: AudioContext, out: AudioNode, t: ToneSpec): void {
   osc.connect(env).connect(out);
   osc.start(t.start);
   osc.stop(t.start + t.dur + 0.05);
+}
+
+export interface VoiceSpec extends SwellSpec {
+  freq: number;
+  type?: OscillatorType;
+}
+
+/** A sustained music note that swells in and fades slowly, overlapping its neighbours. */
+export function voice(ctx: AudioContext, out: AudioNode, v: VoiceSpec): void {
+  const osc = ctx.createOscillator();
+  const env = ctx.createGain();
+  osc.type = v.type ?? "sine";
+  osc.frequency.value = v.freq;
+  const [first, ...rest] = swell(v);
+  env.gain.setValueAtTime(first![1], first![0]);
+  for (const [t, g] of rest) env.gain.linearRampToValueAtTime(g, t);
+  osc.connect(env).connect(out);
+  osc.start(v.start);
+  osc.stop(v.start + v.dur + v.release + 0.05);
+}
+
+/** A soft echo that blurs notes together, built once per music bus. */
+export function echo(ctx: AudioContext, out: AudioNode): AudioNode {
+  const input = ctx.createGain();
+  const delay = ctx.createDelay(1);
+  const feedback = ctx.createGain();
+  const damp = ctx.createBiquadFilter();
+  delay.delayTime.value = 0.42;
+  feedback.gain.value = 0.38;
+  damp.type = "lowpass";
+  damp.frequency.value = 1400;
+  input.connect(out);
+  input.connect(delay).connect(damp).connect(feedback).connect(delay);
+  damp.connect(out);
+  return input;
 }
 
 export interface NoiseSpec {
