@@ -196,7 +196,9 @@ gameScene.onFrame((timeMs) => {
   avatars.update(others?.sample(performance.now()) ?? [], performance.now());
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
-  const lighter = moves && autoQuality.frame(timeMs, settings);
+});
+gameScene.onDrawn((timeMs, steady) => {
+  const lighter = moves && autoQuality.frame(timeMs, settings, steady);
   if (lighter) {
     changeSettings(lighter);
     settingsView.show(lighter);

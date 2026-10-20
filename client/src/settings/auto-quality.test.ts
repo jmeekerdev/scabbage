@@ -35,6 +35,14 @@ describe("AutoQuality", () => {
     expect(run(new AutoQuality(), high, 20, 30)).toEqual(lighter(high));
   });
 
+  it("only judges frames drawn back to back", () => {
+    const auto = new AutoQuality();
+    for (let i = 0; i <= 20 * 30; i++) {
+      const next = auto.frame((i * 1000) / 20, high, i % 3 === 0);
+      expect(next).toBeUndefined();
+    }
+  });
+
   it("ignores the slow first seconds while the world loads", () => {
     expect(run(new AutoQuality(), high, 20, 9)).toBeUndefined();
   });

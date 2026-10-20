@@ -56,6 +56,7 @@ export function createWorldRenderer(
       old?.dispose();
       mesher.setTable(table);
       world.setLights(table.light);
+      game.invalidate(); // the frame check can't see textures inside shader uniforms
       return { atlas, table };
     },
     receive(batch) {

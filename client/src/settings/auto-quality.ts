@@ -20,13 +20,16 @@ export class AutoQuality {
   private frames = 0;
   private warmup = true;
 
-  /** Call once per drawn frame; returns new settings when it is time to lighten. */
-  frame(nowMs: number, s: Settings): Settings | undefined {
+  /**
+   * Call once per drawn frame, with steady false when the frame before it went undrawn because
+   * nothing changed; returns new settings when it is time to lighten.
+   */
+  frame(nowMs: number, s: Settings, steady = true): Settings | undefined {
     if (!s.auto) return undefined;
     const paused = nowMs - this.last > PAUSE_MS;
     this.last = nowMs;
-    if (paused) {
-      this.restart(nowMs, true);
+    if (paused || !steady) {
+      this.restart(nowMs, paused || this.warmup);
       return undefined;
     }
     this.frames++;
