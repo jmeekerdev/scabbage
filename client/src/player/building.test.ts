@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { aim, breakEdit, buildWorldFor, placeEdit, PressFilter, type BuildWorld } from "./building";
+import {
+  aim,
+  breakEdit,
+  buildWorldFor,
+  placeEdit,
+  PressFilter,
+  usesBlock,
+  type BuildWorld,
+} from "./building";
 import { newBody } from "./physics";
 import { Shape } from "../world/shapes";
 
@@ -144,6 +152,15 @@ describe("torches and stairs", () => {
       PISTON + 2,
     );
     expect(placeEdit(hit, PISTON, body, { yaw: 0, pitch: down }, world())?.block).toBe(PISTON + 10);
+  });
+});
+
+describe("usesBlock", () => {
+  it("presses usable blocks unless sneaking, so doors can be stacked", () => {
+    const w = { ...world(), usable: new Set([TORCH]) };
+    expect(usesBlock(TORCH, false, w)).toBe(true);
+    expect(usesBlock(TORCH, true, w)).toBe(false);
+    expect(usesBlock(STONE, false, w)).toBe(false);
   });
 });
 

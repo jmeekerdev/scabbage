@@ -81,6 +81,11 @@ export function breakEdit(hit: RayHit, w: BuildWorld): Edit | undefined {
   return { x: hit.x, y: hit.y, z: hit.z, block: AIR };
 }
 
+/** Whether placing at `target` presses it instead; sneaking builds against it, e.g. to stack doors. */
+export function usesBlock(target: number | undefined, sneaking: boolean, w: BuildWorld): boolean {
+  return !sneaking && target !== undefined && w.usable.has(target);
+}
+
 /**
  * Places `block` against the face that was hit, if that spot is free and clear of the body.
  * Stairs turn to rise away from the player and pistons to push where they look.

@@ -42,6 +42,7 @@ import {
   buildWorldFor,
   placeEdit,
   PressFilter,
+  usesBlock,
   type BuildWorld,
   type Edit,
 } from "./player/building";
@@ -182,7 +183,7 @@ gameScene.onFrame((timeMs) => {
   world.tick(eye.x, eye.z, settings.viewDistance);
   const near = mobs?.sample(performance.now()) ?? [];
   mobView.update(near, dt * 1000);
-  build(intent.build, [eye.x, eye.y, eye.z], dt, near);
+  build(intent.build, intent.move.descend, [eye.x, eye.y, eye.z], dt, near);
   drops.update(timeMs);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
@@ -404,6 +405,7 @@ function teleport(t: Teleport): void {
 /** Outlines the block in reach and carries out this frame's building actions, or hits a mob. */
 function build(
   act: BuildActions,
+  sneaking: boolean,
   eye: [number, number, number],
   dt: number,
   near: readonly MobState[],
@@ -417,7 +419,7 @@ function build(
     return;
   }
   const target = hit && building?.blockAt(hit.x, hit.y, hit.z);
-  if (hit && act.placing && target !== undefined && building?.usable.has(target)) {
+  if (hit && act.placing && building && usesBlock(target, sneaking, building)) {
     miner.stop();
     selection.show(hit);
     if (presses.fresh(performance.now())) sendUse(hit);
