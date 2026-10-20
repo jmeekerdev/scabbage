@@ -14,7 +14,8 @@ import (
 	"scabbage/internal/zones"
 )
 
-const arenaHelp = "Arenas: /arena spawn ZONE [TEAM], /arena goal ZONE [TEAM], /arena timer ZONE SECONDS, " +
+const arenaHelp = "Arenas: /arena spawn ZONE [TEAM], /arena goal ZONE [TEAM], " +
+	"/arena game ZONE race|flags|tag|spleef|last|custom, /arena timer ZONE SECONDS, " +
 	"/arena win ZONE last|goal|points N, /arena clear ZONE, /arena list"
 
 // arenaCommand runs an admin's /arena command, which sets up a minigame in a zone.
@@ -53,6 +54,15 @@ func (s *session) arenaChange(verb string, zone zones.Zone, args []string) (func
 		}
 		m := s.feetMark(team)
 		return func(a *arenas.Arena) error { return a.Mark(kind, zone, m) }, true
+	case verb == "game" && len(args) == 1:
+		g, known := arenas.ParseGame(args[0])
+		return func(a *arenas.Arena) error {
+			if !known {
+				return arenas.ErrBadGame
+			}
+			a.Play(g)
+			return nil
+		}, true
 	case verb == "timer" && len(args) == 1:
 		n, err := strconv.Atoi(args[0])
 		if err != nil {
@@ -131,7 +141,8 @@ func (s *session) listArenas(ctx context.Context) error {
 	return s.notice(ctx, strings.Join(lines, "; "))
 }
 
-// describeArena is an arena in a line, e.g. "Field: first to a goal, 90 seconds, 2 spawns (red, blue), 1 goal".
+// describeArena is an arena in a line, e.g. "Field (race): first to a goal, 90 seconds, 1 spawn, 1 goal",
+// followed by anything it still needs.
 func describeArena(a arenas.Arena) string {
 	win := "last one standing"
 	switch a.Win {
@@ -152,7 +163,15 @@ func describeArena(a arenas.Arena) string {
 		}
 		spawns += " (" + strings.Join(names, ", ") + ")"
 	}
-	return fmt.Sprintf("%s: %s, %s, %s, %s", a.Zone, win, timer, spawns, count(len(a.Goals), "goal"))
+	name := a.Zone
+	if a.Game != arenas.Custom {
+		name += " (" + a.Game.String() + ")"
+	}
+	line := fmt.Sprintf("%s: %s, %s, %s, %s", name, win, timer, spawns, count(len(a.Goals), "goal"))
+	if err := a.Ready(); err != nil {
+		line += ". " + sentence(err)
+	}
+	return line
 }
 
 // count is "no goals", "1 goal" or "3 goals".

@@ -255,7 +255,10 @@ Each phase ends with something the family can play. Compact the model context be
       admins run `/arena spawn|goal ZONE [red|blue|green|yellow]` to mark where they stand,
       `timer ZONE SECONDS`, `win ZONE last|goal|points N`, `clear ZONE` and `list`; teams are the
       colors that have spawns)
-- [ ] Built-in templates: race, capture-the-flag, tag, spleef, last-one-standing
+- [x] Built-in templates: race, capture-the-flag, tag, spleef, last-one-standing
+      (`/arena game ZONE race|flags|tag|spleef|last|custom` sets the game, its win condition and
+      timer, keeping the marks; arena descriptions say what a game still needs, such as a goal
+      or a flag for every team; the rules themselves play out with round flow)
 - [ ] PVP enabled **only** inside minigames or opt-in arenas
 - [ ] Lobby/portal blocks, scoreboards, round flow
 

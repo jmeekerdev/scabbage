@@ -58,6 +58,22 @@ func TestArenaTimers(t *testing.T) {
 	}
 }
 
+func TestArenasPlayBuiltInGames(t *testing.T) {
+	ts := startServer(t)
+	arenaCommand(t, ts, "/arena game field race", "Field (race): first to a goal, 300 seconds, no spawns, no goals. It needs a spawn.")
+	if a := field(t, ts); a.Game != arenas.Race || a.Win != arenas.WinGoal {
+		t.Fatalf("arena %+v", a)
+	}
+}
+
+func TestReadyArenasSayNothingMissing(t *testing.T) {
+	ts := startServer(t)
+	arenaCommand(t, ts, "/arena spawn field", "Field: last one standing, no time limit, 1 spawn, no goals")
+	if a := field(t, ts); a.Ready() != nil {
+		t.Fatalf("arena %+v", a)
+	}
+}
+
 func TestArenaMistakesAreExplained(t *testing.T) {
 	cases := map[string]string{
 		"/arena spawn nowhere":     `No zone is called "nowhere"`,
@@ -66,6 +82,7 @@ func TestArenaMistakesAreExplained(t *testing.T) {
 		"/arena timer field soon":  "Timers run 0 to 3600 seconds.",
 		"/arena clear field":       "Field is not an arena.",
 		"/arena jump":              "Arenas: /arena spawn",
+		"/arena game field chess":  "Games are race, flags, tag, spleef, last or custom.",
 	}
 	for cmd, reply := range cases {
 		t.Run(cmd, func(t *testing.T) { arenaCommand(t, startServer(t), cmd, reply) })
