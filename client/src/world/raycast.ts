@@ -44,3 +44,22 @@ export function raycast(
     }
   }
 }
+
+/** Distance along a unit ray to where it enters the box, by the slab method. */
+export function rayBox(o: Vec3, dir: Vec3, lo: Vec3, hi: Vec3): number | undefined {
+  let near = 0;
+  let far = Infinity;
+  for (let a = 0; a < 3; a++) {
+    const d = dir[a] as number;
+    const [l, h, p] = [lo[a] as number, hi[a] as number, o[a] as number];
+    if (d === 0) {
+      if (p < l || p > h) return undefined;
+      continue;
+    }
+    const t1 = (l - p) / d;
+    const t2 = (h - p) / d;
+    near = Math.max(near, Math.min(t1, t2));
+    far = Math.min(far, Math.max(t1, t2));
+  }
+  return near <= far ? near : undefined;
+}

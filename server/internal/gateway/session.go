@@ -157,6 +157,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.craft(body.Craft)
 	case *pb.ClientMessage_HitMob:
 		return s.hitMob(body.HitMob)
+	case *pb.ClientMessage_HitPlayer:
+		return s.hitPlayer(body.HitPlayer)
 	case *pb.ClientMessage_UseBlock:
 		return s.useBlock(ctx, body.UseBlock)
 	case *pb.ClientMessage_Hello:

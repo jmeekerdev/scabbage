@@ -14,6 +14,7 @@ export function hearts(health: number): Heart[] {
 
 const FAINT_TEXT: Partial<Record<Harm, string>> = {
   [Harm.FALL]: "You fell from too high up. Back to the start!",
+  [Harm.PLAYER]: "You got tagged out. Back to the start!",
 };
 
 export function faintText(cause: Harm): string {

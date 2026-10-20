@@ -78,8 +78,9 @@ type Arena struct {
 	Zone    string `json:"-"`
 	Game    Game
 	Win     Win
-	Points  int // the score that wins, with WinPoints
-	Seconds int // how long a round lasts; 0 for no limit
+	Points  int  // the score that wins, with WinPoints
+	Seconds int  // how long a round lasts; 0 for no limit
+	PVP     bool // survival players inside may hit each other
 	Spawns  []Mark
 	Goals   []Mark
 }

@@ -15,7 +15,7 @@ import (
 )
 
 const arenaHelp = "Arenas: /arena spawn ZONE [TEAM], /arena goal ZONE [TEAM], " +
-	"/arena game ZONE race|flags|tag|spleef|last|custom, /arena timer ZONE SECONDS, " +
+	"/arena game ZONE race|flags|tag|spleef|last|custom, /arena pvp ZONE on|off, /arena timer ZONE SECONDS, " +
 	"/arena win ZONE last|goal|points N, /arena clear ZONE, /arena list"
 
 // arenaCommand runs an admin's /arena command, which sets up a minigame in a zone.
@@ -61,6 +61,15 @@ func (s *session) arenaChange(verb string, zone zones.Zone, args []string) (func
 				return arenas.ErrBadGame
 			}
 			a.Play(g)
+			return nil
+		}, true
+	case verb == "pvp" && len(args) == 1:
+		on, off := args[0] == "on", args[0] == "off"
+		return func(a *arenas.Arena) error {
+			if !on && !off {
+				return arenas.ErrBadPVP
+			}
+			a.PVP = on
 			return nil
 		}, true
 	case verb == "timer" && len(args) == 1:
@@ -168,6 +177,9 @@ func describeArena(a arenas.Arena) string {
 		name += " (" + a.Game.String() + ")"
 	}
 	line := fmt.Sprintf("%s: %s, %s, %s, %s", name, win, timer, spawns, count(len(a.Goals), "goal"))
+	if a.PVP {
+		line += ", pvp"
+	}
 	if err := a.Ready(); err != nil {
 		line += ". " + sentence(err)
 	}
@@ -192,21 +204,28 @@ func sentence(err error) string {
 	return string(r) + "."
 }
 
-// arenaMarks is every arena's spawns and goals for the wire, by lowercased zone name.
-func (g *Gateway) arenaMarks() map[string][]*pb.ArenaMark {
+// arenaView is what play needs of an arena: its marks for the wire and whether players hit each other.
+type arenaView struct {
+	marks []*pb.ArenaMark
+	pvp   bool
+}
+
+// arenaViews is every arena by lowercased zone name.
+func (g *Gateway) arenaViews() map[string]arenaView {
 	all, err := g.cfg.Arenas.All()
 	if err != nil {
 		g.cfg.Logger.Error("reading arenas", "err", err)
 	}
-	out := make(map[string][]*pb.ArenaMark, len(all))
+	out := make(map[string]arenaView, len(all))
 	for _, a := range all {
-		key := strings.ToLower(a.Zone)
+		v := arenaView{pvp: a.PVP}
 		for _, m := range a.Spawns {
-			out[key] = append(out[key], wireMark(m, false))
+			v.marks = append(v.marks, wireMark(m, false))
 		}
 		for _, m := range a.Goals {
-			out[key] = append(out[key], wireMark(m, true))
+			v.marks = append(v.marks, wireMark(m, true))
 		}
+		out[strings.ToLower(a.Zone)] = v
 	}
 	return out
 }

@@ -83,6 +83,7 @@ func TestArenaMistakesAreExplained(t *testing.T) {
 		"/arena clear field":       "Field is not an arena.",
 		"/arena jump":              "Arenas: /arena spawn",
 		"/arena game field chess":  "Games are race, flags, tag, spleef, last or custom.",
+		"/arena pvp field maybe":   "Say pvp on or off.",
 	}
 	for cmd, reply := range cases {
 		t.Run(cmd, func(t *testing.T) { arenaCommand(t, startServer(t), cmd, reply) })

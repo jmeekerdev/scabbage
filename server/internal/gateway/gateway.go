@@ -52,6 +52,7 @@ type Gateway struct {
 	drops    drops.Field          // guarded by mu
 	savedAt  time.Time            // when changed inventories were last saved; guarded by mu
 	mobsAt   time.Time            // when the herd last stepped; guarded by mu
+	arenas   map[string]arenaView // by lowercased zone name; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.

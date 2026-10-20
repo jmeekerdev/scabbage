@@ -6,6 +6,7 @@ export interface ZoneInfo {
   x1: number;
   z1: number;
   build: boolean; // whether we may change blocks here
+  pvp: boolean; // survival players may hit each other here
 }
 
 const area = (z: ZoneInfo) => (z.x1 - z.x0 + 1) * (z.z1 - z.z0 + 1);
@@ -33,6 +34,8 @@ export class Zones {
 }
 
 export function zoneGreeting(zone: ZoneInfo): string {
-  const welcome = `Welcome to ${zone.name}!`;
-  return zone.build ? welcome : `${welcome} Only its builders can change blocks here.`;
+  const lines = [`Welcome to ${zone.name}!`];
+  if (!zone.build) lines.push("Only its builders can change blocks here.");
+  if (zone.pvp) lines.push("Players can tag each other here.");
+  return lines.join(" ");
 }

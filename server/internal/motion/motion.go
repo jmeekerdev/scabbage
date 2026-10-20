@@ -155,3 +155,9 @@ const footTolerance = 0.05
 func Standing(p Vec, solid BoxesFunc) bool {
 	return Blocked(Vec{p.X, p.Y - footTolerance, p.Z}, solid)
 }
+
+// Distance is how far apart two points are.
+func Distance(a, b Vec) float64 {
+	dx, dy, dz := a.X-b.X, a.Y-b.Y, a.Z-b.Z
+	return math.Sqrt(dx*dx + dy*dy + dz*dz)
+}

@@ -259,7 +259,10 @@ Each phase ends with something the family can play. Compact the model context be
       (`/arena game ZONE race|flags|tag|spleef|last|custom` sets the game, its win condition and
       timer, keeping the marks; arena descriptions say what a game still needs, such as a goal
       or a flag for every team; the rules themselves play out with round flow)
-- [ ] PVP enabled **only** inside minigames or opt-in arenas
+- [x] PVP enabled **only** inside minigames or opt-in arenas
+      (flags, tag and last-one-standing turn it on, race and spleef off; `/arena pvp ZONE on|off`
+      opts any arena in or out; a hit counts only between survival players in reach inside the
+      same PVP arena, and takes a heart; the zone greeting says players can tag each other)
 - [ ] Lobby/portal blocks, scoreboards, round flow
 
 ### Phase 6 — Kid-Friendly Scripting

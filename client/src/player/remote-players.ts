@@ -1,4 +1,6 @@
+import { rayBox, type Vec3 } from "../world/raycast";
 import type { Pose } from "./move-sync";
+import { HALF_WIDTH, HEIGHT } from "./physics";
 
 export interface RemoteInfo {
   entity: number;
@@ -80,4 +82,21 @@ function lerpPose(a: Pose, b: Pose, t: number): Pose {
 function shortestTurn(from: number, to: number): number {
   const d = (to - from) % (2 * Math.PI);
   return d > Math.PI ? d - 2 * Math.PI : d < -Math.PI ? d + 2 * Math.PI : d;
+}
+
+/** The nearest other player whose body the ray enters within reach. */
+export function pickPlayer(
+  eye: Vec3,
+  dir: Vec3,
+  players: readonly RemoteState[],
+  reach: number,
+): { entity: number; distance: number } | undefined {
+  let best: { entity: number; distance: number } | undefined;
+  for (const { entity, pose: p } of players) {
+    const lo: Vec3 = [p.x - HALF_WIDTH, p.y, p.z - HALF_WIDTH];
+    const d = rayBox(eye, dir, lo, [p.x + HALF_WIDTH, p.y + HEIGHT, p.z + HALF_WIDTH]);
+    if (d !== undefined && d <= reach && (!best || d < best.distance))
+      best = { entity, distance: d };
+  }
+  return best;
 }

@@ -30,6 +30,7 @@ message ClientMessage {
     Craft craft = 15;
     HitMob hit_mob = 16;
     UseBlock use_block = 17;
+    HitPlayer hit_player = 18;
   }
 }
 
@@ -301,6 +302,7 @@ enum Harm {
   HARM_UNSPECIFIED = 0;
   HARM_FALL = 1;
   HARM_MOB = 2;
+  HARM_PLAYER = 3;
 }
 
 // Your own health (0 to 20) and game mode; in Welcome, then sent whenever either changes.
@@ -388,6 +390,7 @@ message Zone {
   bool build = 6; // whether the recipient may change blocks here
   GameMode mode = 7; // unspecified keeps each player's own
   repeated ArenaMark marks = 8; // spawns and goals, when the zone is an arena
+  bool pvp = 9; // survival players inside may hit each other
 }
 
 // A block in an arena where a team spawns or scores.
@@ -407,6 +410,11 @@ message ZonesChanged {
 // Hits a mob within reach.
 message HitMob {
   uint32 mob = 1;
+}
+
+// Hits another player within reach; only counts where both stand in the same PVP zone.
+message HitPlayer {
+  uint32 entity = 1;
 }
 
 // The join request is waiting for an admin; the connection stays open until a decision.

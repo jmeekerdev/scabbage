@@ -30,18 +30,19 @@ func wireMode(m access.Mode) pb.GameMode {
 	return pb.GameMode_GAME_MODE_UNSPECIFIED
 }
 
-// zonesMessage is every zone as s sees it, with marks from arenaMarks; nil when there are none and skipEmpty is set.
-func (g *Gateway) zonesMessage(s *session, marks map[string][]*pb.ArenaMark, skipEmpty bool) *pb.ServerMessage {
+// zonesMessage is every zone as s sees it, with its arena; nil when there are none and skipEmpty is set.
+func (g *Gateway) zonesMessage(s *session, skipEmpty bool) *pb.ServerMessage {
 	all := g.cfg.Zones.All()
 	if len(all) == 0 && skipEmpty {
 		return nil
 	}
 	out := &pb.ZonesChanged{Zones: make([]*pb.Zone, 0, len(all))}
 	for _, z := range all {
+		arena := g.arenas[strings.ToLower(z.Name)]
 		out.Zones = append(out.Zones, &pb.Zone{
 			Name: z.Name, X0: z.X0, Z0: z.Z0, X1: z.X1, Z1: z.Z1,
 			Build: s.player.Admin || z.Lets(s.player.ID), Mode: wireMode(z.Mode),
-			Marks: marks[strings.ToLower(z.Name)],
+			Marks: arena.marks, Pvp: arena.pvp,
 		})
 	}
 	return &pb.ServerMessage{Body: &pb.ServerMessage_ZonesChanged{ZonesChanged: out}}
@@ -49,11 +50,12 @@ func (g *Gateway) zonesMessage(s *session, marks map[string][]*pb.ArenaMark, ski
 
 // zonesChanged sends everyone the zones and puts each player in the mode where they stand.
 func (g *Gateway) zonesChanged() {
-	marks := g.arenaMarks()
+	arenas := g.arenaViews()
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	g.arenas = arenas
 	for s, a := range g.players {
-		s.push(g.zonesMessage(s, marks, false))
+		s.push(g.zonesMessage(s, false))
 		g.refreshModeLocked(s, a, false)
 	}
 }

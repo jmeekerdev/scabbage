@@ -8,6 +8,7 @@ const zone = (name: string, half: number, build = false): ZoneInfo => ({
   x1: half,
   z1: half,
   build,
+  pvp: false,
 });
 
 describe("Zones", () => {
@@ -39,6 +40,12 @@ describe("zoneGreeting", () => {
     expect(zoneGreeting(zone("Home", 2, true))).toBe("Welcome to Home!");
     expect(zoneGreeting(zone("Spawn", 2))).toBe(
       "Welcome to Spawn! Only its builders can change blocks here.",
+    );
+  });
+
+  it("warns that players can hit each other", () => {
+    expect(zoneGreeting({ ...zone("Field", 2, true), pvp: true })).toBe(
+      "Welcome to Field! Players can tag each other here.",
     );
   });
 });

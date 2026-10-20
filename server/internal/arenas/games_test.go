@@ -69,3 +69,14 @@ func TestReadyExplainsWhatIsMissing(t *testing.T) {
 		}
 	}
 }
+
+func TestOnlyFightingGamesLetPlayersHit(t *testing.T) {
+	fights := map[Game]bool{Custom: false, Race: false, Spleef: false, Flags: true, Tag: true, Last: true}
+	for g, want := range fights {
+		a := Arena{PVP: !want}
+		a.Play(g)
+		if a.PVP != want {
+			t.Errorf("%v: pvp %v", g, a.PVP)
+		}
+	}
+}

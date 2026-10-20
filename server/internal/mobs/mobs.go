@@ -153,7 +153,7 @@ func (h *Herd) Hit(id uint32, from motion.Vec, now time.Time) (Hit, bool) {
 	}
 	m := h.mobs[i]
 	middle := motion.Vec{X: m.Pos.X, Y: m.Pos.Y + m.height()/2, Z: m.Pos.Z}
-	if distance(from, middle) > reach {
+	if motion.Distance(from, middle) > reach {
 		return Hit{}, false
 	}
 	var out Hit
@@ -173,11 +173,6 @@ func (h *Herd) Hit(id uint32, from motion.Vec, now time.Time) (Hit, bool) {
 	out.Mob = *m
 	out.Mob.Hurt = true
 	return out, true
-}
-
-func distance(a, b motion.Vec) float64 {
-	dx, dy, dz := a.X-b.X, a.Y-b.Y, a.Z-b.Z
-	return math.Sqrt(dx*dx + dy*dy + dz*dz)
 }
 
 // Night mirrors client/src/render/sky.ts: one day lasts DayLength, starting at sunrise.

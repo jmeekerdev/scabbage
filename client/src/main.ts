@@ -8,6 +8,7 @@ import { screenForRejection, type Action, type Screen } from "./join/outcome";
 import {
   encodeEditBlock,
   encodeHitMob,
+  encodeHitPlayer,
   encodeUseBlock,
   encodeEmote,
   encodeMove,
@@ -16,6 +17,7 @@ import {
   encodeRequestChunks,
   encodeSendChat,
   encodeSubmitArt,
+  type Bytes,
   type JoinInit,
 } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
@@ -56,7 +58,7 @@ import { KeyboardMouse } from "./player/keyboard-mouse";
 import { MoveSync, type Pose } from "./player/move-sync";
 import type { BoxesAt } from "./player/physics";
 import { Player } from "./player/player";
-import { RemotePlayers } from "./player/remote-players";
+import { pickPlayer, RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
 import { ArenaMarks } from "./render/arena-marks";
 import { Drops } from "./render/drops";
@@ -88,7 +90,7 @@ import {
 import { settingsPanel } from "./ui/settings-panel";
 import { TouchControls } from "./ui/touch-controls";
 import { collisionBoxes, FULL_BLOCK, type Box } from "./world/shapes";
-import { lookDirection, type RayHit } from "./world/raycast";
+import { lookDirection, type RayHit, type Vec3 } from "./world/raycast";
 import { solidQuery } from "./world/solid";
 import { zoneGreeting, Zones } from "./world/zones";
 import type { WorldBounds } from "./world/streamer";
@@ -407,7 +409,7 @@ function teleport(t: Teleport): void {
   moves?.teleported(t.id);
 }
 
-/** Outlines the block in reach and carries out this frame's building actions, or hits a mob. */
+/** Outlines the block in reach and carries out this frame's building actions, or hits a mob or player. */
 function build(
   act: BuildActions,
   sneaking: boolean,
@@ -416,11 +418,11 @@ function build(
   near: readonly MobState[],
 ): void {
   const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
-  const mob = pickMob(eye, lookDirection(player.look.yaw, player.look.pitch), near, MOB_REACH);
-  if (mob && (!hit || mob.distance < hit.distance)) {
+  const aimed = aimedAt(eye, near);
+  if (aimed && (!hit || aimed.distance < hit.distance)) {
     miner.stop();
     selection.show(undefined);
-    if (act.breaking) hitMob(mob.id);
+    if (act.breaking) strike(aimed.hit);
     return;
   }
   const target = hit && building?.blockAt(hit.x, hit.y, hit.z);
@@ -478,11 +480,31 @@ function greetZone(): void {
   if (zone) chat.note(zoneGreeting(zone));
 }
 
-function hitMob(id: number): void {
+/** The nearest mob, or player we may tag, in reach along our look, with the message that hits it. */
+function aimedAt(
+  eye: Vec3,
+  near: readonly MobState[],
+): { distance: number; hit: Bytes } | undefined {
+  const dir = lookDirection(player.look.yaw, player.look.pitch);
+  const mob = pickMob(eye, dir, near, MOB_REACH);
+  const rival = mayTag()
+    ? pickPlayer(eye, dir, others?.sample(performance.now()) ?? [], MOB_REACH)
+    : undefined;
+  if (rival && (!mob || rival.distance < mob.distance))
+    return { distance: rival.distance, hit: encodeHitPlayer(rival.entity) };
+  return mob && { distance: mob.distance, hit: encodeHitMob(mob.id) };
+}
+
+/** Whether we stand where survival players may hit each other. */
+function mayTag(): boolean {
+  return survival && (zones.at(Math.floor(player.body.x), Math.floor(player.body.z))?.pvp ?? false);
+}
+
+function strike(hit: Bytes): void {
   if (!conn || !moves) return;
   const pose = moves.flush(player.pose()); // the server checks reach from our latest position
   if (pose) conn.send(encodeMove(pose, moves.teleport));
-  conn.send(encodeHitMob(id));
+  conn.send(hit);
   audio.play("bonk");
 }
 

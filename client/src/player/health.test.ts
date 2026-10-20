@@ -19,6 +19,7 @@ describe("hearts", () => {
 describe("faintText", () => {
   it("names the cause kindly", () => {
     expect(faintText(Harm.FALL)).toMatch(/fell/i);
+    expect(faintText(Harm.PLAYER)).toMatch(/tagged/i);
     expect(faintText(Harm.UNSPECIFIED)).not.toBe("");
   });
 });

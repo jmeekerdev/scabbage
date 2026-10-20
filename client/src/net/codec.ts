@@ -97,6 +97,10 @@ export function encodeHitMob(mob: number): Bytes {
   return encode({ case: "hitMob", value: { mob } });
 }
 
+export function encodeHitPlayer(entity: number): Bytes {
+  return encode({ case: "hitPlayer", value: { entity } });
+}
+
 export function encodeSendChat(text: string): Bytes {
   return encode({ case: "sendChat", value: { text } });
 }

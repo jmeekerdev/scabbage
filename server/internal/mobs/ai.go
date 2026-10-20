@@ -63,7 +63,7 @@ func (m *Mob) prey(players []Player) (motion.Vec, bool) {
 	best, found := chaseRange, false
 	var at motion.Vec
 	for _, p := range players {
-		if d := distance(p.Pos, m.Pos); p.Prey && d < best {
+		if d := motion.Distance(p.Pos, m.Pos); p.Prey && d < best {
 			best, at, found = d, p.Pos, true
 		}
 	}

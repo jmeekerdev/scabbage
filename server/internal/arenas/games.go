@@ -11,6 +11,7 @@ var (
 	ErrTwoTeams  = errors.New("it needs spawns for two teams")
 	ErrTeamGoals = errors.New("every team needs a goal for its flag")
 	ErrBadGame   = errors.New("games are race, flags, tag, spleef, last or custom")
+	ErrBadPVP    = errors.New("say pvp on or off")
 )
 
 // Game is a built-in minigame whose rules an arena plays by; Custom has no special rules.
@@ -39,24 +40,26 @@ func ParseGame(s string) (Game, bool) {
 	return Game(i), i >= 0
 }
 
-// template is how a game is won and how long its rounds last.
+// template is how a game is won, how long its rounds last and whether players hit each other.
 type template struct {
 	win     Win
 	points  int
 	seconds int
+	pvp     bool
 }
 
 var templates = map[Game]template{
-	Race:   {WinGoal, 0, 300},
-	Flags:  {WinPoints, 3, 600},
-	Tag:    {WinLast, 0, 180},
-	Spleef: {WinLast, 0, 300},
+	Race:   {WinGoal, 0, 300, false},
+	Flags:  {WinPoints, 3, 600, true},
+	Tag:    {WinLast, 0, 180, true},
+	Spleef: {WinLast, 0, 300, false},
+	Last:   {WinLast, 0, 0, true},
 }
 
-// Play switches the arena to a game, resetting the win and timer to the game's own.
+// Play switches the arena to a game, resetting the win, timer and PVP to the game's own.
 func (a *Arena) Play(g Game) {
 	t := templates[g]
-	a.Game, a.Win, a.Points, a.Seconds = g, t.win, t.points, t.seconds
+	a.Game, a.Win, a.Points, a.Seconds, a.PVP = g, t.win, t.points, t.seconds, t.pvp
 }
 
 // Ready is nil when the arena has the marks its game needs, or says what is missing.

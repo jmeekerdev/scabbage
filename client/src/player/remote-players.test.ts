@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Pose } from "./move-sync";
-import { RemotePlayers } from "./remote-players";
+import { pickPlayer, RemotePlayers } from "./remote-players";
 
 const pose = (x: number, yaw = 0): Pose => ({ x, y: 10, z: 0, yaw, pitch: 0 });
 const mom = { entity: 1, name: "Mom", color: 0xff0000, skin: new Uint8Array() };
@@ -62,5 +62,21 @@ describe("RemotePlayers", () => {
     r.move(9, pose(1), 50);
     r.leave(1);
     expect(r.sample(100).map((p) => p.name)).toEqual(["Kid"]);
+  });
+});
+
+describe("pickPlayer", () => {
+  const players = [{ ...mom, pose: { x: 0, y: 10, z: -3, yaw: 0, pitch: 0 } }];
+
+  it("finds the player the ray points at, with their distance", () => {
+    const hit = pickPlayer([0, 11, 0], [0, 0, -1], players, 4);
+    expect(hit?.entity).toBe(1);
+    expect(hit?.distance).toBeCloseTo(3 - 0.3);
+  });
+
+  it("misses players off to the side, above or out of reach", () => {
+    expect(pickPlayer([1, 11, 0], [0, 0, -1], players, 4)).toBeUndefined();
+    expect(pickPlayer([0, 12, 0], [0, 0, -1], players, 4)).toBeUndefined();
+    expect(pickPlayer([0, 11, 0], [0, 0, -1], players, 2)).toBeUndefined();
   });
 });
