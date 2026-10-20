@@ -61,6 +61,7 @@ message ServerMessage {
     MobsChanged mobs_changed = 22;
     ZonesChanged zones_changed = 23;
     BlockBatch block_batch = 24;
+    Scoreboard scoreboard = 25;
   }
 }
 
@@ -520,4 +521,21 @@ enum DisconnectCode {
 message Disconnect {
   string reason = 1;
   DisconnectCode code = 2;
+}
+
+// The minigame round the recipient is in, sent when it changes; an empty zone hides it.
+message Scoreboard {
+  string zone = 1;
+  string status = 2; // e.g. "Waiting for 1 more", "Starting" or "Playing"
+  uint32 seconds = 3; // left on the clock when sent; 0 for none
+  repeated Score scores = 4;
+}
+
+// One player in a round.
+message Score {
+  string name = 1;
+  string team = 2;
+  uint32 points = 3;
+  bool out = 4;
+  string flag = 5; // the team whose flag they carry
 }

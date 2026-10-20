@@ -89,16 +89,19 @@ func (g *Gateway) land(s *session, y float64, f vitals.Footing) bool {
 	return fainted
 }
 
-// respawn puts a player who fainted back at the world spawn with full health.
+// respawn puts a player who fainted back where their minigame says, or at the world spawn, with full health.
 func (s *session) respawn() {
-	x, y, z := s.gw.cfg.World.Spawn()
-	s.teleportTo(motion.Vec{X: x, Y: y, Z: z})
+	if !s.gw.fallInRound(s) {
+		x, y, z := s.gw.cfg.World.Spawn()
+		s.teleportTo(motion.Vec{X: x, Y: y, Z: z})
+	}
 	s.gw.revive(s)
 }
 
 // teleportTo moves the player to at and tells their client.
 func (s *session) teleportTo(at motion.Vec) {
 	s.teleport++
+	s.pad = blockAt(at) // arriving on a pad doesn't step on it
 	s.body.Reset(at, time.Now())
 	s.gw.place(s, at, s.teleport)
 }

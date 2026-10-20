@@ -11,11 +11,12 @@ import (
 
 	"scabbage/internal/arenas"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/world"
 	"scabbage/internal/zones"
 )
 
 const arenaHelp = "Arenas: /arena spawn ZONE [TEAM], /arena goal ZONE [TEAM], " +
-	"/arena game ZONE race|flags|tag|spleef|last|custom, /arena pvp ZONE on|off, /arena timer ZONE SECONDS, " +
+	"/arena game ZONE race|flags|tag|spleef|last|custom, /arena pvp ZONE on|off, /arena portal ZONE, /arena timer ZONE SECONDS, " +
 	"/arena win ZONE last|goal|points N, /arena clear ZONE, /arena list"
 
 // arenaCommand runs an admin's /arena command, which sets up a minigame in a zone.
@@ -54,6 +55,14 @@ func (s *session) arenaChange(verb string, zone zones.Zone, args []string) (func
 		}
 		m := s.feetMark(team)
 		return func(a *arenas.Arena) error { return a.Mark(kind, zone, m) }, true
+	case verb == "portal" && len(args) == 0:
+		m, onPortal := s.feetMark(arenas.NoTeam), s.onPortal()
+		return func(a *arenas.Arena) error {
+			if !onPortal {
+				return errNotOnPortal
+			}
+			return a.Mark(arenas.Portals, zone, m)
+		}, true
 	case verb == "game" && len(args) == 1:
 		g, known := arenas.ParseGame(args[0])
 		return func(a *arenas.Arena) error {
@@ -92,6 +101,15 @@ func (s *session) arenaChange(verb string, zone zones.Zone, args []string) (func
 		}, true
 	}
 	return nil, false
+}
+
+var errNotOnPortal = errors.New("stand on a portal block first")
+
+// onPortal reports whether the admin stands in a portal block.
+func (s *session) onPortal() bool {
+	p := blockAt(s.body.Pos())
+	b, err := s.gw.cfg.World.Block(p.X, p.Y, p.Z)
+	return err == nil && b == world.Portal
 }
 
 // feetMark is a mark for the block the admin stands in.
@@ -177,6 +195,9 @@ func describeArena(a arenas.Arena) string {
 		name += " (" + a.Game.String() + ")"
 	}
 	line := fmt.Sprintf("%s: %s, %s, %s, %s", name, win, timer, spawns, count(len(a.Goals), "goal"))
+	if len(a.Portals) > 0 {
+		line += ", " + count(len(a.Portals), "portal")
+	}
 	if a.PVP {
 		line += ", pvp"
 	}
@@ -204,10 +225,10 @@ func sentence(err error) string {
 	return string(r) + "."
 }
 
-// arenaView is what play needs of an arena: its marks for the wire and whether players hit each other.
+// arenaView is an arena and its marks for the wire.
 type arenaView struct {
+	arena arenas.Arena
 	marks []*pb.ArenaMark
-	pvp   bool
 }
 
 // arenaViews is every arena by lowercased zone name.
@@ -218,7 +239,7 @@ func (g *Gateway) arenaViews() map[string]arenaView {
 	}
 	out := make(map[string]arenaView, len(all))
 	for _, a := range all {
-		v := arenaView{pvp: a.PVP}
+		v := arenaView{arena: a}
 		for _, m := range a.Spawns {
 			v.marks = append(v.marks, wireMark(m, false))
 		}

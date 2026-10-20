@@ -64,6 +64,7 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   ),
   ...Object.fromEntries(numbered("counter", "counter", 10)),
   teleporter: same("teleporter"),
+  portal: same("portal"),
   ...Object.fromEntries(numbered("note_block", "note", 8)),
   ...Object.fromEntries(WOOL_COLORS.map((c) => [`${c}_wool`, same(`${c}_wool`)])),
 };

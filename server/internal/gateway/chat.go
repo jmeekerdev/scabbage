@@ -10,7 +10,7 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 )
 
-const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /zone, /arena"
+const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /zone, /arena; anyone can /leave a game"
 
 // sendChat runs a command or shares a line with everyone in the world.
 func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
@@ -49,6 +49,9 @@ func (s *session) sendEmote(m *pb.SendEmote) error {
 }
 
 func (s *session) command(ctx context.Context, c chat.Command) error {
+	if c.Name == "leave" {
+		return s.leaveRound(ctx)
+	}
 	if !s.player.Admin {
 		return s.notice(ctx, "Only admins can use commands.")
 	}
@@ -98,7 +101,11 @@ func (s *session) decideByName(ctx context.Context, name string, approve bool) e
 
 // notice sends a server message to this player only.
 func (s *session) notice(ctx context.Context, text string) error {
-	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Chat{Chat: &pb.Chat{Text: text, Notice: true}}})
+	return s.write(ctx, noticeMessage(text))
+}
+
+func noticeMessage(text string) *pb.ServerMessage {
+	return &pb.ServerMessage{Body: &pb.ServerMessage_Chat{Chat: &pb.Chat{Text: text, Notice: true}}}
 }
 
 // emote shows s's emote above its avatar for everyone else.

@@ -32,6 +32,10 @@ func (s *session) hitPlayer(m *pb.HitPlayer) error {
 		return nil
 	}
 	a.hitAt = now
+	if r := a.round; r != nil && r == b.round && r.Tagging() {
+		g.fallLocked(b) // one tag and you're out
+		return nil
+	}
 	fainted := b.vitals.Hurt(playerDamage, now)
 	target.push(vitalsMessage(b, pb.Harm_HARM_PLAYER))
 	if fainted {
@@ -61,5 +65,5 @@ func (g *Gateway) mayHitLocked(a, b *avatar) bool {
 	}
 	za, inA := g.cfg.Zones.At(int32(math.Floor(a.pos.X)), int32(math.Floor(a.pos.Z)))
 	zb, inB := g.cfg.Zones.At(int32(math.Floor(b.pos.X)), int32(math.Floor(b.pos.Z)))
-	return inA && inB && za.Name == zb.Name && g.arenas[strings.ToLower(za.Name)].pvp
+	return inA && inB && za.Name == zb.Name && g.arenas[strings.ToLower(za.Name)].arena.PVP
 }

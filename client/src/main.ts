@@ -73,6 +73,7 @@ import { deviceTier, readDevice } from "./settings/device";
 import { defaultSettings, loadSettings, saveSettings, type Settings } from "./settings/settings";
 import { emojiFor } from "./social/emotes";
 import { HealthView } from "./ui/health-view";
+import { ScoreboardView } from "./ui/scoreboard-view";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { BlockPicker } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
@@ -160,6 +161,7 @@ const avatars = new Avatars(gameScene.scene);
 const audio = new GameAudio(settings.sound, settings.music);
 const footsteps = new Footsteps();
 const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
+const scoreboard = new ScoreboardView($("#scoreboard"));
 const drops = new Drops(gameScene.scene);
 const mobView = new MobView(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
@@ -243,6 +245,7 @@ function connect(join?: JoinInit): void {
           pingEl.textContent = "";
           others = undefined;
           mobs = undefined;
+          scoreboard.hide();
         }
       },
       onRtt: (ms) => (pingEl.textContent = `ping ${Math.round(ms)} ms`),
@@ -257,6 +260,7 @@ function connect(join?: JoinInit): void {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "vitals") applyVitals(msg.body.value);
+        else if (msg.body.case === "scoreboard") scoreboard.show(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
         else if (msg.body.case === "blockBatch") msg.body.value.blocks.forEach(blockChanged);
         else if (msg.body.case === "inventory") {

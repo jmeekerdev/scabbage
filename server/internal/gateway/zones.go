@@ -42,7 +42,7 @@ func (g *Gateway) zonesMessage(s *session, skipEmpty bool) *pb.ServerMessage {
 		out.Zones = append(out.Zones, &pb.Zone{
 			Name: z.Name, X0: z.X0, Z0: z.Z0, X1: z.X1, Z1: z.Z1,
 			Build: s.player.Admin || z.Lets(s.player.ID), Mode: wireMode(z.Mode),
-			Marks: arena.marks, Pvp: arena.pvp,
+			Marks: arena.marks, Pvp: arena.arena.PVP,
 		})
 	}
 	return &pb.ServerMessage{Body: &pb.ServerMessage_ZonesChanged{ZonesChanged: out}}

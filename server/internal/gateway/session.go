@@ -42,8 +42,9 @@ type session struct {
 	talk     *rate.Bucket        // chat and emotes
 	carried  inventory.Inventory // as loaded on admit; the avatar's copy is the live one
 
-	cancel  context.CancelFunc // ends the session, e.g. when it can't keep up
-	fainted chan struct{}      // a mob knocked the player out; respawn on the run goroutine
+	cancel   context.CancelFunc // ends the session, e.g. when it can't keep up
+	fainted  chan struct{}      // a mob knocked the player out; respawn on the run goroutine
+	relocate chan motion.Vec    // where a minigame sends the player; moved on the run goroutine
 }
 
 type inbound struct {
@@ -62,7 +63,7 @@ func (e rejectError) Error() string { return e.reason }
 func reject(code pb.DisconnectCode, reason string) rejectError { return rejectError{code, reason} }
 
 func newSession(g *Gateway, c *websocket.Conn, ip string, log *slog.Logger, cancel context.CancelFunc) *session {
-	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
+	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), relocate: make(chan motion.Vec, 1), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
 }
 
 func (s *session) run(ctx context.Context) error {
@@ -119,6 +120,8 @@ func (s *session) serve(ctx context.Context) error {
 			}
 		case <-s.fainted:
 			s.respawn()
+		case at := <-s.relocate:
+			s.teleportTo(at)
 		case <-ctx.Done():
 			return ctx.Err()
 		}

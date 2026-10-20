@@ -65,12 +65,16 @@ type Mark struct {
 	X, Y, Z int32
 }
 
+// At reports whether the mark is the block at x, y, z.
+func (m Mark) At(x, y, z int32) bool { return m.X == x && m.Y == y && m.Z == z }
+
 // Kind picks which marks to add to.
 type Kind uint8
 
 const (
-	Spawns Kind = iota
-	Goals
+	Spawns  Kind = iota
+	Goals        // where players score or finish
+	Portals      // lobby pads that join the arena's round; they may lie outside the zone
 )
 
 // Arena is a zone's minigame setup.
@@ -83,18 +87,16 @@ type Arena struct {
 	PVP     bool // survival players inside may hit each other
 	Spawns  []Mark
 	Goals   []Mark
+	Portals []Mark
 }
 
-// Mark adds a spawn or goal, which must lie inside the zone.
+// Mark adds a spawn or goal, which must lie inside the zone, or a portal anywhere.
 func (a *Arena) Mark(k Kind, z zones.Zone, m Mark) error {
-	marks := &a.Spawns
-	if k == Goals {
-		marks = &a.Goals
-	}
+	marks := map[Kind]*[]Mark{Spawns: &a.Spawns, Goals: &a.Goals, Portals: &a.Portals}[k]
 	switch {
 	case !m.Team.Valid():
 		return ErrBadTeam
-	case !z.Contains(m.X, m.Z):
+	case k != Portals && !z.Contains(m.X, m.Z):
 		return ErrOutside
 	case len(*marks) >= MaxMarks:
 		return ErrTooMany

@@ -817,3 +817,42 @@ body.page .requests {
   width: auto;
   flex: 1;
 }
+
+#scoreboard {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  min-width: 120px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+#scoreboard .title {
+  font-weight: bold;
+}
+
+#scoreboard .out {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+#scoreboard [data-team="red"] {
+  color: #f77;
+}
+
+#scoreboard [data-team="blue"] {
+  color: #7af;
+}
+
+#scoreboard [data-team="green"] {
+  color: #7e7;
+}
+
+#scoreboard [data-team="yellow"] {
+  color: #fe6;
+}

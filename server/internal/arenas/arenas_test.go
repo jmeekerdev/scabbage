@@ -156,3 +156,14 @@ func TestWinNames(t *testing.T) {
 		t.Error("fastest is not a win condition")
 	}
 }
+
+func TestPortalsMayStandOutsideTheZone(t *testing.T) {
+	var a Arena
+	must(t, a.Mark(Portals, field, Mark{X: 999, Z: 999}))
+	if len(a.Portals) != 1 || len(a.Spawns)+len(a.Goals) != 0 {
+		t.Fatalf("arena %+v", a)
+	}
+	if !a.Portals[0].At(999, 0, 999) || a.Portals[0].At(999, 1, 999) {
+		t.Fatal("a mark is at its own block only")
+	}
+}

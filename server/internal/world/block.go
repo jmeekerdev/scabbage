@@ -43,6 +43,7 @@ const (
 	Counter     = Timer + 2 // counts 0 to 9, each followed by its state with power coming in
 	Teleporter  = Counter + 20
 	NoteBlock   = Teleporter + 1 // eight pitches, each followed by its sounding state
+	Portal      = NoteBlock + 16 // a lobby pad that joins an arena's round
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block.
@@ -149,7 +150,8 @@ func machines() []BlockInfo {
 	out = append(out, withOn(BlockInfo{Name: "timer", Solid: true, MineMs: 300, Ticks: true}, "_on", 0)...)
 	out = append(out, numbered(BlockInfo{Name: "counter", Solid: true, Usable: true, MineMs: 300}, 10)...)
 	out = append(out, BlockInfo{Name: "teleporter", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
-	return append(out, numbered(BlockInfo{Name: "note_block", Solid: true, Usable: true, MineMs: 300}, 8)...)
+	out = append(out, numbered(BlockInfo{Name: "note_block", Solid: true, Usable: true, MineMs: 300}, 8)...)
+	return append(out, BlockInfo{Name: "portal", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
 }
 
 // withOn is b and its powered state, both `variant` IDs past their item.

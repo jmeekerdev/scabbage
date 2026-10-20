@@ -206,17 +206,20 @@ func (g *Gateway) partner(p logic.Pos) (logic.Pos, bool) {
 	return to, ok && err == nil
 }
 
-// stepOnPad sends a player who just stepped onto a teleporter to its partner.
+// stepOnPad sends a player who just stepped onto a teleporter to its partner, or a portal to its game.
 func (s *session) stepOnPad(feet motion.Vec) {
 	p := blockAt(feet)
 	if p == s.pad {
 		return
 	}
 	s.pad = p
+	if b, err := s.gw.cfg.World.Block(p.X, p.Y, p.Z); err == nil && b == world.Portal {
+		s.gw.enterPortal(s, p)
+		return
+	}
 	to, ok := s.gw.partner(p)
 	if !ok {
 		return
 	}
-	s.pad = to
 	s.teleportTo(motion.Vec{X: float64(to.X) + 0.5, Y: float64(to.Y), Z: float64(to.Z) + 0.5})
 }

@@ -7,6 +7,7 @@ import (
 	"scabbage/internal/inventory"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/rounds"
 	"scabbage/internal/vitals"
 )
 
@@ -22,7 +23,8 @@ type avatar struct {
 	inv        inventory.Inventory
 	invDirty   bool // changed since it was last saved
 	digger     edit.Digger
-	hitAt      time.Time // when they last hit a mob
+	hitAt      time.Time     // when they last hit a mob or player
+	round      *rounds.Round // the minigame they joined, if any
 }
 
 func (a *avatar) pose() *pb.PlayerPose {
@@ -72,6 +74,7 @@ func (g *Gateway) movePlayer(s *session, at motion.Vec, yaw, pitch float32) {
 	if a := g.players[s]; a != nil {
 		a.pos, a.yaw, a.pitch, a.moved = at, yaw, pitch, true
 		g.refreshModeLocked(s, a, false)
+		g.followLocked(a)
 	}
 }
 
@@ -90,6 +93,7 @@ func (g *Gateway) dropPlayer(s *session) (pendingSave, bool) {
 		return pendingSave{}, false
 	}
 	delete(g.players, s)
+	g.leaveRoundLocked(a)
 	if len(g.players) == 0 {
 		g.cfg.Mobs.Clear() // no one left to see them
 	}
@@ -116,6 +120,7 @@ func (g *Gateway) step(now time.Time) []pendingSave {
 	g.healLocked(now)
 	g.collectLocked(now)
 	g.stepMobsLocked(now)
+	g.stepRoundsLocked(now)
 	saves := g.unsavedLocked(now)
 	var moved []*avatar
 	for _, a := range g.players {

@@ -17,6 +17,7 @@ import (
 	"scabbage/internal/drops"
 	"scabbage/internal/logic"
 	"scabbage/internal/mobs"
+	"scabbage/internal/rounds"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
 	"scabbage/internal/zones"
@@ -44,15 +45,16 @@ type Gateway struct {
 	cfg      Config
 	mu       sync.Mutex
 	admins   map[*session]struct{}
-	players  map[*session]*avatar // in-world sessions
-	entity   uint32               // last entity id handed out
-	editMu   sync.Mutex           // makes each edit's check, change and broadcast atomic
-	circuits circuits             // guarded by editMu
-	art      artCache             // guarded by mu
-	drops    drops.Field          // guarded by mu
-	savedAt  time.Time            // when changed inventories were last saved; guarded by mu
-	mobsAt   time.Time            // when the herd last stepped; guarded by mu
-	arenas   map[string]arenaView // by lowercased zone name; guarded by mu
+	players  map[*session]*avatar     // in-world sessions
+	entity   uint32                   // last entity id handed out
+	editMu   sync.Mutex               // makes each edit's check, change and broadcast atomic
+	circuits circuits                 // guarded by editMu
+	art      artCache                 // guarded by mu
+	drops    drops.Field              // guarded by mu
+	savedAt  time.Time                // when changed inventories were last saved; guarded by mu
+	mobsAt   time.Time                // when the herd last stepped; guarded by mu
+	arenas   map[string]arenaView     // by lowercased zone name; guarded by mu
+	rounds   map[string]*rounds.Round // games being played, by lowercased zone name; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.
@@ -69,7 +71,7 @@ func New(cfg Config) (*Gateway, error) {
 	if cfg.Recipes == nil {
 		cfg.Recipes = crafting.Default()
 	}
-	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{},
+	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}, rounds: map[string]*rounds.Round{},
 		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}}
 	return g, g.loadArt()
 }

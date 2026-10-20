@@ -1,4 +1,4 @@
-/** Textures for the logic machines: doors, pistons, timers, counters, teleporters, note blocks. */
+/** Textures for the logic machines: doors, pistons, timers, counters, teleporters, note blocks, portals. */
 import type { Painter, RGB } from "./textures";
 
 const shade = ([r, g, b]: RGB, k: number): [number, number, number, number] => [
@@ -80,6 +80,12 @@ const teleporter: Painter = (x, y, n) => {
   return shade(ring ? [170, 80, 230] : [90, 30, 140], 0.9 + n() * 0.2);
 };
 
+/** A gold frame around a shimmering green middle. */
+const portal: Painter = (x, y, n) => {
+  if (edge(x, y, 2)) return shade([220, 180, 60], edge(x, y) ? 0.7 : 0.95 + n() * 0.1);
+  return shade([60, 220, 140], 0.7 + ((x + y) % 4) * 0.08 + n() * 0.1);
+};
+
 // One color per pitch, low to high, like a rainbow xylophone.
 const PITCH_COLORS: RGB[] = [
   [230, 60, 60],
@@ -113,5 +119,6 @@ export const MACHINE_PAINTERS: Record<string, Painter> = {
   timer_on: timer([255, 240, 150]),
   ...Object.fromEntries(DIGITS.map((_, d) => [`counter_${d}`, counter(d)])),
   teleporter,
+  portal,
   ...Object.fromEntries(PITCH_COLORS.map((c, i) => [`note_${i}`, noteBlock(c)])),
 };

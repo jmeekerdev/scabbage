@@ -263,7 +263,13 @@ Each phase ends with something the family can play. Compact the model context be
       (flags, tag and last-one-standing turn it on, race and spleef off; `/arena pvp ZONE on|off`
       opts any arena in or out; a hit counts only between survival players in reach inside the
       same PVP arena, and takes a heart; the zone greeting says players can tag each other)
-- [ ] Lobby/portal blocks, scoreboards, round flow
+- [x] Lobby/portal blocks, scoreboards, round flow
+      (admins place a portal block, stand on it and run `/arena portal ZONE`; stepping on it joins
+      that arena's round, which counts down 10 seconds once it has a player per team, two for
+      fights, else one; players are dealt teams in turn and sent to their spawns; goals win races,
+      score points or take and bring home flags; fainting, a tag or walking out sends players back
+      to spawn, or out to their portal in fights; the round ends on a win or when time runs out;
+      a scoreboard in the corner shows status, clock, points and flags; anyone can `/leave`)
 
 ### Phase 6 — Kid-Friendly Scripting
 - [ ] Blockly (visual blocks) in the browser, generating Lua

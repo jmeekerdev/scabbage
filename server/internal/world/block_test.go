@@ -52,14 +52,14 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 		WhiteWool: "white_wool", WhiteWool + 15: "black_wool", Lamp: "lamp", Torch: "torch",
 		StoneSlab: "stone_slab", StoneStairs: "stone_stairs", StoneStairs + 15: "brick_stairs_west",
 		Wire: "wire", SignalLamp + 1: "signal_lamp_on", Door + 1: "door_open", Piston + 9: "piston_up_on",
-		Timer: "timer", Counter + 19: "counter_9_on", Teleporter: "teleporter", NoteBlock + 15: "note_block_7_on",
+		Timer: "timer", Counter + 19: "counter_9_on", Teleporter: "teleporter", NoteBlock + 15: "note_block_7_on", Portal: "portal",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(NoteBlock)+16 {
+	if len(blocks) != int(Portal)+1 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
