@@ -273,9 +273,13 @@ Each phase ends with something the family can play. Compact the model context be
 
 ### Phase 6 — Kid-Friendly Scripting
 - [ ] Blockly (visual blocks) in the browser, generating Lua
-- [ ] Sandboxed `gopher-lua` on the server: CPU/memory/instruction limits, a whitelisted API
+- [x] Sandboxed `gopher-lua` on the server: CPU/memory/instruction limits, a whitelisted API
       (`on_touch`, `say`, `set_block`, `give_item`, `teleport`, timers)
+      (`internal/script`: base, string, table and math only; 10 ms per run, and a script that overruns
+      stops; 64 world calls per run, 16 waiting timers; no `string.rep` and capped format widths)
 - [ ] Script blocks attach to logic blocks and minigames; text-mode Lua for older kids/adults
+      (done: a script block runs `on_touch` when used and `on_power` from circuits, with a text editor
+      on R / 📜 / Back; scripts act for whoever saved them, within 16 blocks. Still to do: minigame hooks)
 
 ### Phase 7 — Adventure
 - [ ] Quests (data + scripts), NPCs with dialogue

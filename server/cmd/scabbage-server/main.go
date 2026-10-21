@@ -71,7 +71,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 				go saveWorld(w, logger) // keeps disk writes off the tick loop
 			}
 		},
-		OnIdle: unloadWorld(w, logger),
+		OnIdle: func() {
+			gw.ForgetScripts()
+			unloadWorld(w, logger)()
+		},
 	})
 	defer hub.Close()
 
@@ -93,6 +96,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Recipes:        recipes,
 		Zones:          areas,
 		Arenas:         arenas.New(db),
+		ScriptDB:       db,
 		ServerName:     cfg.ServerName,
 		Mode:           access.Mode(cfg.Mode),
 		OriginPatterns: cfg.Origins,

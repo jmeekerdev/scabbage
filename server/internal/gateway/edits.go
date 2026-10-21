@@ -43,6 +43,11 @@ func (g *Gateway) edit(s *session, r edit.Request, slot uint32) (bool, error) {
 	if r.Block == world.Air {
 		g.broke(s, r, current, now)
 	}
+	if current.Item() == world.ScriptBlock {
+		if err := g.scripts.Delete(world.Pos{X: r.X, Y: r.Y, Z: r.Z}); err != nil {
+			return true, err
+		}
+	}
 	if logic.Involves(current) || logic.Involves(r.Block) {
 		return true, g.powerLocked(logic.Pos{X: r.X, Y: r.Y, Z: r.Z})
 	}

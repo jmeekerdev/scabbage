@@ -4,7 +4,7 @@ import { Emote } from "../pb/scabbage/v1/net_pb";
 import { Hotbar } from "./hotbar";
 import { Player } from "./player";
 
-const BUTTONS = { a: 0, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, up: 12, right: 15 };
+const BUTTONS = { a: 0, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8, up: 12, right: 15 };
 
 function pad(axes: number[] = [0, 0, 0, 0], held: (keyof typeof BUTTONS)[] = []): PadState {
   const pressed = new Set(held.map((b) => BUTTONS[b]));
@@ -78,8 +78,16 @@ describe("GamepadControls", () => {
       digging: false,
       placing: true,
       picking: true,
+      scripting: false,
     });
     expect(controls.poll(450).build.picking).toBe(false);
+  });
+
+  it("opens a script block's script with the back button", () => {
+    const { state, controls } = setup();
+    state.current = pad(undefined, ["back"]);
+    expect(controls.poll(0).build.scripting).toBe(true);
+    expect(controls.poll(50).build.scripting).toBe(false);
   });
 
   it("steps through the hotbar once per bumper press", () => {

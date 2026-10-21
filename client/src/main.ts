@@ -10,6 +10,8 @@ import {
   encodeHitMob,
   encodeHitPlayer,
   encodeUseBlock,
+  encodeOpenScript,
+  encodeSaveScript,
   encodeEmote,
   encodeMove,
   encodeCraft,
@@ -74,6 +76,7 @@ import { defaultSettings, loadSettings, saveSettings, type Settings } from "./se
 import { emojiFor } from "./social/emotes";
 import { HealthView } from "./ui/health-view";
 import { ScoreboardView } from "./ui/scoreboard-view";
+import { ScriptEditor } from "./ui/script-editor";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { BlockPicker } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
@@ -163,6 +166,16 @@ const footsteps = new Footsteps();
 const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
 const scoreboard = new ScoreboardView($("#scoreboard"));
 const drops = new Drops(gameScene.scene);
+const scriptEditor = new ScriptEditor(
+  (at, source) => conn?.send(encodeSaveScript(at, source)),
+  () =>
+    !touch &&
+    $("#game")
+      .requestPointerLock()
+      .catch(() => undefined),
+);
+let scriptBlocks = new Set<number>(); // ids of the script block and its powered state
+let toldAboutScripts = false; // whether we said how to open a script block
 const mobView = new MobView(gameScene.scene);
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
@@ -270,6 +283,7 @@ function connect(join?: JoinInit): void {
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "vitals") applyVitals(msg.body.value);
         else if (msg.body.case === "scoreboard") scoreboard.show(msg.body.value);
+        else if (msg.body.case === "scriptShown") scriptEditor.show(msg.body.value);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
         else if (msg.body.case === "blockBatch") msg.body.value.blocks.forEach(blockChanged);
         else if (msg.body.case === "inventory") {
@@ -390,6 +404,7 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   solid = solidQuery(bounds, boxesById, blockAt);
   building = buildWorldFor({ ...bounds, blocks }, blockAt);
   notes = noteTable(blocks);
+  scriptBlocks = new Set(blocks.filter((b) => b.name.startsWith("script_block")).map((b) => b.id));
   const name = (id: number) => blocks.find((b) => b.id === id)?.name ?? "missing";
   const icon = blockIconPainter(atlas, table);
   mountHotbar($("#hotbar"), hotbar, name, icon);
@@ -441,6 +456,10 @@ function build(
     return;
   }
   const target = hit && building?.blockAt(hit.x, hit.y, hit.z);
+  const onScript = target !== undefined && scriptBlocks.has(target);
+  touchControls?.aimingAtScript(!!onScript);
+  if (onScript) tellAboutScripts();
+  if (hit && onScript && act.scripting) conn?.send(encodeOpenScript(hit));
   if (hit && act.placing && building && usesBlock(target, sneaking, building)) {
     miner.stop();
     selection.show(hit);
@@ -467,6 +486,14 @@ function build(
       ? placeEdit(hit, hotbar.current(), player.body, player.look, building)
       : undefined;
   if (edit) sendEdit(edit);
+}
+
+/** Says once how to open a script block, the first time we aim at one. */
+function tellAboutScripts(): void {
+  if (toldAboutScripts) return;
+  toldAboutScripts = true;
+  const how = touch ? "Tap 📜" : gamepad.active ? "Press Back" : "Press R";
+  chat.note(`${how} to read or write this script block's script. Using it runs on_touch.`);
 }
 
 /** Survival mining: how far the held block is dug, from 0 to 1 when it breaks. */

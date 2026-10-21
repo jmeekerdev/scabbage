@@ -50,10 +50,12 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   lamp: same("lamp"),
   torch: same("torch"),
   ...Object.fromEntries(
-    ["wire", "switch", "button", "pressure_plate", "signal_lamp", "timer"].flatMap((b) => [
-      [b, same(b)],
-      [`${b}_on`, same(`${b}_on`)],
-    ]),
+    ["wire", "switch", "button", "pressure_plate", "signal_lamp", "timer", "script_block"].flatMap(
+      (b) => [
+        [b, same(b)],
+        [`${b}_on`, same(`${b}_on`)],
+      ],
+    ),
   ),
   door: same("door"),
   door_open: same("door_open"),

@@ -75,7 +75,7 @@ func switched(b world.Block, on bool) world.Block {
 func Involves(b world.Block) bool {
 	switch b.Item() {
 	case world.Wire, world.Switch, world.Button, world.Plate, world.SignalLamp,
-		world.Door, world.Piston, world.Timer, world.Counter, world.NoteBlock:
+		world.Door, world.Piston, world.Timer, world.Counter, world.NoteBlock, world.ScriptBlock:
 		return true
 	}
 	return false
@@ -339,7 +339,7 @@ func (u *updater) run(p Pos) error {
 		return err
 	}
 	switch b.Item() {
-	case world.SignalLamp, world.NoteBlock, world.Piston, world.Counter:
+	case world.SignalLamp, world.NoteBlock, world.Piston, world.Counter, world.ScriptBlock:
 	case world.Door:
 		on, err := u.doorPowered(p)
 		if err != nil {

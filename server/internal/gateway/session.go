@@ -164,6 +164,10 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.hitPlayer(body.HitPlayer)
 	case *pb.ClientMessage_UseBlock:
 		return s.useBlock(ctx, body.UseBlock)
+	case *pb.ClientMessage_OpenScript:
+		return s.openScript(ctx, body.OpenScript)
+	case *pb.ClientMessage_SaveScript:
+		return s.saveScript(ctx, body.SaveScript)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

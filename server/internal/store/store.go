@@ -93,6 +93,15 @@ var migrations = []string{
 	ALTER TABLE players ADD COLUMN pitch REAL NOT NULL DEFAULT 0;
 	ALTER TABLE players ADD COLUMN flying INTEGER NOT NULL DEFAULT 0;
 	ALTER TABLE players ADD COLUMN health INTEGER NOT NULL DEFAULT 20;`,
+	`CREATE TABLE scripts (
+		x          INTEGER NOT NULL,
+		y          INTEGER NOT NULL,
+		z          INTEGER NOT NULL,
+		source     TEXT NOT NULL,
+		owner_id   INTEGER REFERENCES players(id) ON DELETE SET NULL,
+		updated_ms INTEGER NOT NULL,
+		PRIMARY KEY (x, y, z)
+	) WITHOUT ROWID;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

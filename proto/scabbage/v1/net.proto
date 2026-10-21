@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 17;
+  PROTOCOL_VERSION_CURRENT = 18;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -31,6 +31,8 @@ message ClientMessage {
     HitMob hit_mob = 16;
     UseBlock use_block = 17;
     HitPlayer hit_player = 18;
+    OpenScript open_script = 19;
+    SaveScript save_script = 20;
   }
 }
 
@@ -62,6 +64,7 @@ message ServerMessage {
     ZonesChanged zones_changed = 23;
     BlockBatch block_batch = 24;
     Scoreboard scoreboard = 25;
+    ScriptShown script_shown = 26;
   }
 }
 
@@ -549,4 +552,24 @@ message Score {
   uint32 points = 3;
   bool out = 4;
   string flag = 5; // the team whose flag they carry
+}
+
+// Asks to see the Lua in the script block at pos.
+message OpenScript {
+  BlockPos pos = 1;
+}
+
+// Replaces the Lua in the script block at pos; only players who may build there can.
+message SaveScript {
+  BlockPos pos = 1;
+  string source = 2;
+}
+
+// A script block's Lua, sent after OpenScript or SaveScript.
+message ScriptShown {
+  BlockPos pos = 1;
+  string source = 2;
+  bool editable = 3; // the recipient may build here, so may save
+  string error = 4;  // the last error loading or running it, if any
+  bool saved = 5;    // this answers a save that was stored
 }

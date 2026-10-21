@@ -86,6 +86,14 @@ export function encodeUseBlock(p: { x: number; y: number; z: number }): Bytes {
   return encode({ case: "useBlock", value: { pos: { x: p.x, y: p.y, z: p.z } } });
 }
 
+export function encodeOpenScript(p: { x: number; y: number; z: number }): Bytes {
+  return encode({ case: "openScript", value: { pos: { x: p.x, y: p.y, z: p.z } } });
+}
+
+export function encodeSaveScript(p: { x: number; y: number; z: number }, source: string): Bytes {
+  return encode({ case: "saveScript", value: { pos: { x: p.x, y: p.y, z: p.z }, source } });
+}
+
 export function encodeMoveItem(from: number, to: number): Bytes {
   return encode({ case: "moveItem", value: { from, to } });
 }

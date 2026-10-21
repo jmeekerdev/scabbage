@@ -23,6 +23,7 @@ export class KeyboardMouse {
   private readonly breaking = new HoldRepeat(BUILD_REPEAT_MS);
   private readonly placing = new HoldRepeat(BUILD_REPEAT_MS);
   private picking = false;
+  private scripting = false;
   private locked = false;
 
   constructor(
@@ -56,8 +57,8 @@ export class KeyboardMouse {
 
   /** Movement and what to build now; held buttons repeat. */
   poll(nowMs: number): Intent {
-    const picking = this.picking;
-    this.picking = false;
+    const { picking, scripting } = this;
+    this.picking = this.scripting = false;
     return {
       move: this.locked ? moveInputFromKeys(this.keys) : NO_INPUT,
       build: {
@@ -65,6 +66,7 @@ export class KeyboardMouse {
         digging: this.breaking.held,
         placing: this.placing.due(nowMs),
         picking,
+        scripting,
       },
     };
   }
@@ -95,6 +97,7 @@ export class KeyboardMouse {
     const flyTap = e.code === "Space" && this.flyTap.press(e.timeStamp);
     if (flyTap || e.code === "KeyF") this.player.toggleFly();
     if (e.code === "KeyE") this.wheel.open();
+    if (e.code === "KeyR") this.scripting = true;
   }
 
   private keyUp(e: KeyboardEvent): void {

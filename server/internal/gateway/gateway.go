@@ -3,6 +3,7 @@ package gateway
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"scabbage/internal/logic"
 	"scabbage/internal/mobs"
 	"scabbage/internal/rounds"
+	"scabbage/internal/scripts"
 	"scabbage/internal/sim"
 	"scabbage/internal/world"
 	"scabbage/internal/zones"
@@ -33,6 +35,7 @@ type Config struct {
 	Mobs           *mobs.Herd        // a new herd when nil; guarded by the gateway's mu
 	Zones          *zones.Service
 	Arenas         *arenas.Service
+	ScriptDB       *sql.DB // where script blocks keep their Lua
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -42,19 +45,21 @@ type Config struct {
 
 // Gateway is an http.Handler for the game WebSocket endpoint.
 type Gateway struct {
-	cfg      Config
-	mu       sync.Mutex
-	admins   map[*session]struct{}
-	players  map[*session]*avatar     // in-world sessions
-	entity   uint32                   // last entity id handed out
-	editMu   sync.Mutex               // makes each edit's check, change and broadcast atomic
-	circuits circuits                 // guarded by editMu
-	art      artCache                 // guarded by mu
-	drops    drops.Field              // guarded by mu
-	savedAt  time.Time                // when changed inventories were last saved; guarded by mu
-	mobsAt   time.Time                // when the herd last stepped; guarded by mu
-	arenas   map[string]arenaView     // by lowercased zone name; guarded by mu
-	rounds   map[string]*rounds.Round // games being played, by lowercased zone name; guarded by mu
+	cfg         Config
+	mu          sync.Mutex
+	admins      map[*session]struct{}
+	players     map[*session]*avatar     // in-world sessions
+	entity      uint32                   // last entity id handed out
+	editMu      sync.Mutex               // makes each edit's check, change and broadcast atomic
+	circuits    circuits                 // guarded by editMu
+	scripts     *scripts.Service         // guarded by editMu
+	scriptErrAt map[world.Pos]time.Time  // when each script block may next report an error; guarded by editMu
+	art         artCache                 // guarded by mu
+	drops       drops.Field              // guarded by mu
+	savedAt     time.Time                // when changed inventories were last saved; guarded by mu
+	mobsAt      time.Time                // when the herd last stepped; guarded by mu
+	arenas      map[string]arenaView     // by lowercased zone name; guarded by mu
+	rounds      map[string]*rounds.Round // games being played, by lowercased zone name; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.
@@ -72,7 +77,8 @@ func New(cfg Config) (*Gateway, error) {
 		cfg.Recipes = crafting.Default()
 	}
 	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}, rounds: map[string]*rounds.Round{},
-		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}}
+		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}, scriptErrAt: map[world.Pos]time.Time{}}
+	g.scripts = scripts.New(cfg.ScriptDB, g.scriptHost)
 	return g, g.loadArt()
 }
 

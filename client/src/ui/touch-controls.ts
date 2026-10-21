@@ -17,6 +17,8 @@ export class TouchControls {
   private readonly knob = el("div", { class: "knob" });
   private readonly stick = el("div", { class: "stick", hidden: true }, this.knob);
   private readonly down: HTMLButtonElement;
+  private readonly script: HTMLButtonElement;
+  private scripting = false;
   private jumping = false;
   private descending = false;
 
@@ -26,6 +28,8 @@ export class TouchControls {
     private readonly player: Player,
   ) {
     this.down = this.button("down", "⬇", (on) => (this.descending = on));
+    this.script = this.button("script", "📜", (on) => (this.scripting ||= on));
+    this.script.hidden = true;
     root.append(
       this.stick,
       el(
@@ -34,6 +38,7 @@ export class TouchControls {
         this.button("break", "⛏", (on) => this.hold(this.breaking, on)),
         this.button("place", "🧱", (on) => this.hold(this.placing, on)),
         this.down,
+        this.script,
         this.button("jump", "⬆", (on) => this.jump(on)),
       ),
     );
@@ -53,6 +58,7 @@ export class TouchControls {
         digging: this.breaking.held,
         placing: this.placing.due(nowMs),
         picking: false,
+        scripting: this.takeScripting(),
       },
     };
   }
@@ -86,6 +92,17 @@ export class TouchControls {
     for (const end of ["pointerup", "pointercancel"] as const)
       b.addEventListener(end, () => held(false));
     return b;
+  }
+
+  /** Shows the script button only while a script block is aimed at. */
+  aimingAtScript(on: boolean): void {
+    this.script.hidden = !on;
+  }
+
+  private takeScripting(): boolean {
+    const was = this.scripting;
+    this.scripting = false;
+    return was;
   }
 
   private jump(on: boolean): void {

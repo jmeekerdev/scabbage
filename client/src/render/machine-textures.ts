@@ -1,4 +1,4 @@
-/** Textures for the logic machines: doors, pistons, timers, counters, teleporters, note blocks, portals. */
+/** Textures for the logic machines: doors, pistons, timers, counters, teleporters, note blocks, portals, scripts. */
 import type { Painter, RGB } from "./textures";
 
 const shade = ([r, g, b]: RGB, k: number): [number, number, number, number] => [
@@ -76,6 +76,36 @@ const counter =
     return giving ? [140, 255, 120, 255] : [60, 200, 60, 255];
   };
 
+// "</>" in pixels, for script blocks.
+const CODE_SIGN = new Set(
+  [
+    [5, 5],
+    [4, 6],
+    [3, 7],
+    [4, 8],
+    [5, 9],
+    [9, 5],
+    [8, 6],
+    [8, 7],
+    [7, 8],
+    [7, 9],
+    [10, 5],
+    [11, 6],
+    [12, 7],
+    [11, 8],
+    [10, 9],
+  ].map(([x, y]) => `${x},${y}`),
+);
+
+/** A little screen in a stone frame showing "</>", lit up while powered. */
+const scriptBlock =
+  (glow: RGB): Painter =>
+  (x, y, n) => {
+    if (edge(x, y, 2)) return shade(STONE, edge(x, y) ? 0.6 : 0.85 + n() * 0.3);
+    if (CODE_SIGN.has(`${x},${y}`)) return shade(glow, 0.95 + n() * 0.1);
+    return shade([24, 32, 56], 0.9 + n() * 0.2);
+  };
+
 /** Purple rings that swirl toward the middle. */
 const teleporter: Painter = (x, y, n) => {
   const r = Math.hypot(x - 7.5, y - 7.5);
@@ -125,4 +155,6 @@ export const MACHINE_PAINTERS: Record<string, Painter> = {
   teleporter,
   portal,
   ...Object.fromEntries(PITCH_COLORS.map((c, i) => [`note_${i}`, noteBlock(c)])),
+  script_block: scriptBlock([90, 170, 220]),
+  script_block_on: scriptBlock([160, 240, 255]),
 };

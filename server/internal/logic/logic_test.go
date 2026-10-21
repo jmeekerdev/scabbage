@@ -300,6 +300,21 @@ func TestCountersCountBackDownToZero(t *testing.T) {
 	}
 }
 
+func TestScriptBlocksFollowTheirPower(t *testing.T) {
+	g := line(world.Switch, wire, world.ScriptBlock)
+	set(t, g, Pos{}, on)
+	if g[Pos{2, 0, 0}] != world.ScriptBlock+1 {
+		t.Fatalf("grid %v", g)
+	}
+	set(t, g, Pos{}, world.Switch)
+	if g[Pos{2, 0, 0}] != world.ScriptBlock {
+		t.Fatalf("grid %v", g)
+	}
+	if !Involves(world.ScriptBlock) {
+		t.Fatal("script blocks are part of circuits")
+	}
+}
+
 func TestNoteBlocksSoundWhilePowered(t *testing.T) {
 	g := line(on, world.NoteBlock+4)
 	update(t, g, Pos{})

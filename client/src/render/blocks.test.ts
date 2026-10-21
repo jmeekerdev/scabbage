@@ -65,6 +65,11 @@ describe("buildRenderTable", () => {
     expect(layer("counter_down_3")).toBeGreaterThan(layer("counter_9"));
   });
 
+  it("draws script blocks lit while powered", () => {
+    expect(BLOCK_STYLES.script_block?.side).toBe("script_block");
+    expect(BLOCK_STYLES.script_block_on?.side).toBe("script_block_on");
+  });
+
   it("shows unknown blocks with a placeholder texture instead of failing", () => {
     expect(t.layers[4 * 6]).toBe(layer("missing"));
   });

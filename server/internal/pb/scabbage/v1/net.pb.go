@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 17
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 18
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		17: "PROTOCOL_VERSION_CURRENT",
+		18: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     17,
+		"PROTOCOL_VERSION_CURRENT":     18,
 	}
 )
 
@@ -489,6 +489,8 @@ type ClientMessage struct {
 	//	*ClientMessage_HitMob
 	//	*ClientMessage_UseBlock
 	//	*ClientMessage_HitPlayer
+	//	*ClientMessage_OpenScript
+	//	*ClientMessage_SaveScript
 	Body          isClientMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -693,6 +695,24 @@ func (x *ClientMessage) GetHitPlayer() *HitPlayer {
 	return nil
 }
 
+func (x *ClientMessage) GetOpenScript() *OpenScript {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_OpenScript); ok {
+			return x.OpenScript
+		}
+	}
+	return nil
+}
+
+func (x *ClientMessage) GetSaveScript() *SaveScript {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_SaveScript); ok {
+			return x.SaveScript
+		}
+	}
+	return nil
+}
+
 type isClientMessage_Body interface {
 	isClientMessage_Body()
 }
@@ -769,6 +789,14 @@ type ClientMessage_HitPlayer struct {
 	HitPlayer *HitPlayer `protobuf:"bytes,18,opt,name=hit_player,json=hitPlayer,proto3,oneof"`
 }
 
+type ClientMessage_OpenScript struct {
+	OpenScript *OpenScript `protobuf:"bytes,19,opt,name=open_script,json=openScript,proto3,oneof"`
+}
+
+type ClientMessage_SaveScript struct {
+	SaveScript *SaveScript `protobuf:"bytes,20,opt,name=save_script,json=saveScript,proto3,oneof"`
+}
+
 func (*ClientMessage_Hello) isClientMessage_Body() {}
 
 func (*ClientMessage_Ping) isClientMessage_Body() {}
@@ -805,6 +833,10 @@ func (*ClientMessage_UseBlock) isClientMessage_Body() {}
 
 func (*ClientMessage_HitPlayer) isClientMessage_Body() {}
 
+func (*ClientMessage_OpenScript) isClientMessage_Body() {}
+
+func (*ClientMessage_SaveScript) isClientMessage_Body() {}
+
 // Every WebSocket binary frame from the server is one ServerMessage.
 type ServerMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -835,6 +867,7 @@ type ServerMessage struct {
 	//	*ServerMessage_ZonesChanged
 	//	*ServerMessage_BlockBatch
 	//	*ServerMessage_Scoreboard
+	//	*ServerMessage_ScriptShown
 	Body          isServerMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1102,6 +1135,15 @@ func (x *ServerMessage) GetScoreboard() *Scoreboard {
 	return nil
 }
 
+func (x *ServerMessage) GetScriptShown() *ScriptShown {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_ScriptShown); ok {
+			return x.ScriptShown
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Body interface {
 	isServerMessage_Body()
 }
@@ -1206,6 +1248,10 @@ type ServerMessage_Scoreboard struct {
 	Scoreboard *Scoreboard `protobuf:"bytes,25,opt,name=scoreboard,proto3,oneof"`
 }
 
+type ServerMessage_ScriptShown struct {
+	ScriptShown *ScriptShown `protobuf:"bytes,26,opt,name=script_shown,json=scriptShown,proto3,oneof"`
+}
+
 func (*ServerMessage_Welcome) isServerMessage_Body() {}
 
 func (*ServerMessage_Pong) isServerMessage_Body() {}
@@ -1255,6 +1301,8 @@ func (*ServerMessage_ZonesChanged) isServerMessage_Body() {}
 func (*ServerMessage_BlockBatch) isServerMessage_Body() {}
 
 func (*ServerMessage_Scoreboard) isServerMessage_Body() {}
+
+func (*ServerMessage_ScriptShown) isServerMessage_Body() {}
 
 // First message on every connection.
 type Hello struct {
@@ -5061,11 +5109,186 @@ func (x *Score) GetFlag() string {
 	return ""
 }
 
+// Asks to see the Lua in the script block at pos.
+type OpenScript struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *BlockPos              `protobuf:"bytes,1,opt,name=pos,proto3" json:"pos,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenScript) Reset() {
+	*x = OpenScript{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenScript) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenScript) ProtoMessage() {}
+
+func (x *OpenScript) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenScript.ProtoReflect.Descriptor instead.
+func (*OpenScript) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *OpenScript) GetPos() *BlockPos {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+// Replaces the Lua in the script block at pos; only players who may build there can.
+type SaveScript struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *BlockPos              `protobuf:"bytes,1,opt,name=pos,proto3" json:"pos,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveScript) Reset() {
+	*x = SaveScript{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveScript) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveScript) ProtoMessage() {}
+
+func (x *SaveScript) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveScript.ProtoReflect.Descriptor instead.
+func (*SaveScript) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *SaveScript) GetPos() *BlockPos {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *SaveScript) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+// A script block's Lua, sent after OpenScript or SaveScript.
+type ScriptShown struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *BlockPos              `protobuf:"bytes,1,opt,name=pos,proto3" json:"pos,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	Editable      bool                   `protobuf:"varint,3,opt,name=editable,proto3" json:"editable,omitempty"` // the recipient may build here, so may save
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`        // the last error loading or running it, if any
+	Saved         bool                   `protobuf:"varint,5,opt,name=saved,proto3" json:"saved,omitempty"`       // this answers a save that was stored
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScriptShown) Reset() {
+	*x = ScriptShown{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScriptShown) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScriptShown) ProtoMessage() {}
+
+func (x *ScriptShown) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScriptShown.ProtoReflect.Descriptor instead.
+func (*ScriptShown) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *ScriptShown) GetPos() *BlockPos {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *ScriptShown) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *ScriptShown) GetEditable() bool {
+	if x != nil {
+		return x.Editable
+	}
+	return false
+}
+
+func (x *ScriptShown) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ScriptShown) GetSaved() bool {
+	if x != nil {
+		return x.Saved
+	}
+	return false
+}
+
 var File_scabbage_v1_net_proto protoreflect.FileDescriptor
 
 const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\n" +
-	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\xf0\a\n" +
+	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\xe8\b\n" +
 	"\rClientMessage\x12*\n" +
 	"\x05hello\x18\x01 \x01(\v2\x12.scabbage.v1.HelloH\x00R\x05hello\x12'\n" +
 	"\x04ping\x18\x02 \x01(\v2\x11.scabbage.v1.PingH\x00R\x04ping\x12:\n" +
@@ -5091,8 +5314,12 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\ahit_mob\x18\x10 \x01(\v2\x13.scabbage.v1.HitMobH\x00R\x06hitMob\x124\n" +
 	"\tuse_block\x18\x11 \x01(\v2\x15.scabbage.v1.UseBlockH\x00R\buseBlock\x127\n" +
 	"\n" +
-	"hit_player\x18\x12 \x01(\v2\x16.scabbage.v1.HitPlayerH\x00R\thitPlayerB\x06\n" +
-	"\x04body\"\xfe\v\n" +
+	"hit_player\x18\x12 \x01(\v2\x16.scabbage.v1.HitPlayerH\x00R\thitPlayer\x12:\n" +
+	"\vopen_script\x18\x13 \x01(\v2\x17.scabbage.v1.OpenScriptH\x00R\n" +
+	"openScript\x12:\n" +
+	"\vsave_script\x18\x14 \x01(\v2\x17.scabbage.v1.SaveScriptH\x00R\n" +
+	"saveScriptB\x06\n" +
+	"\x04body\"\xbd\f\n" +
 	"\rServerMessage\x120\n" +
 	"\awelcome\x18\x01 \x01(\v2\x14.scabbage.v1.WelcomeH\x00R\awelcome\x12'\n" +
 	"\x04pong\x18\x02 \x01(\v2\x11.scabbage.v1.PongH\x00R\x04pong\x129\n" +
@@ -5128,7 +5355,8 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"blockBatch\x129\n" +
 	"\n" +
 	"scoreboard\x18\x19 \x01(\v2\x17.scabbage.v1.ScoreboardH\x00R\n" +
-	"scoreboardB\x06\n" +
+	"scoreboard\x12=\n" +
+	"\fscript_shown\x18\x1a \x01(\v2\x18.scabbage.v1.ScriptShownH\x00R\vscriptShownB\x06\n" +
 	"\x04body\"\xc0\x01\n" +
 	"\x05Hello\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
@@ -5393,10 +5621,23 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x04team\x18\x02 \x01(\tR\x04team\x12\x16\n" +
 	"\x06points\x18\x03 \x01(\rR\x06points\x12\x10\n" +
 	"\x03out\x18\x04 \x01(\bR\x03out\x12\x12\n" +
-	"\x04flag\x18\x05 \x01(\tR\x04flag*Q\n" +
+	"\x04flag\x18\x05 \x01(\tR\x04flag\"5\n" +
+	"\n" +
+	"OpenScript\x12'\n" +
+	"\x03pos\x18\x01 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\"M\n" +
+	"\n" +
+	"SaveScript\x12'\n" +
+	"\x03pos\x18\x01 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\"\x96\x01\n" +
+	"\vScriptShown\x12'\n" +
+	"\x03pos\x18\x01 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12\x1a\n" +
+	"\beditable\x18\x03 \x01(\bR\beditable\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x14\n" +
+	"\x05saved\x18\x05 \x01(\bR\x05saved*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x11*\xad\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x12*\xad\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -5461,7 +5702,7 @@ func file_scabbage_v1_net_proto_rawDescGZIP() []byte {
 }
 
 var file_scabbage_v1_net_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
+var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
 var file_scabbage_v1_net_proto_goTypes = []any{
 	(ProtocolVersion)(0),    // 0: scabbage.v1.ProtocolVersion
 	(Shape)(0),              // 1: scabbage.v1.Shape
@@ -5537,107 +5778,116 @@ var file_scabbage_v1_net_proto_goTypes = []any{
 	(*Disconnect)(nil),      // 71: scabbage.v1.Disconnect
 	(*Scoreboard)(nil),      // 72: scabbage.v1.Scoreboard
 	(*Score)(nil),           // 73: scabbage.v1.Score
+	(*OpenScript)(nil),      // 74: scabbage.v1.OpenScript
+	(*SaveScript)(nil),      // 75: scabbage.v1.SaveScript
+	(*ScriptShown)(nil),     // 76: scabbage.v1.ScriptShown
 }
 var file_scabbage_v1_net_proto_depIdxs = []int32{
-	10, // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
-	69, // 1: scabbage.v1.ClientMessage.ping:type_name -> scabbage.v1.Ping
-	60, // 2: scabbage.v1.ClientMessage.decide_join:type_name -> scabbage.v1.DecideJoin
-	63, // 3: scabbage.v1.ClientMessage.create_join_code:type_name -> scabbage.v1.CreateJoinCode
-	19, // 4: scabbage.v1.ClientMessage.request_chunks:type_name -> scabbage.v1.RequestChunks
-	22, // 5: scabbage.v1.ClientMessage.move:type_name -> scabbage.v1.Move
-	26, // 6: scabbage.v1.ClientMessage.edit_block:type_name -> scabbage.v1.EditBlock
-	36, // 7: scabbage.v1.ClientMessage.send_chat:type_name -> scabbage.v1.SendChat
-	38, // 8: scabbage.v1.ClientMessage.send_emote:type_name -> scabbage.v1.SendEmote
-	64, // 9: scabbage.v1.ClientMessage.submit_art:type_name -> scabbage.v1.SubmitArt
-	67, // 10: scabbage.v1.ClientMessage.decide_art:type_name -> scabbage.v1.DecideArt
-	62, // 11: scabbage.v1.ClientMessage.set_admin:type_name -> scabbage.v1.SetAdmin
-	42, // 12: scabbage.v1.ClientMessage.set_game_mode:type_name -> scabbage.v1.SetGameMode
-	45, // 13: scabbage.v1.ClientMessage.move_item:type_name -> scabbage.v1.MoveItem
-	47, // 14: scabbage.v1.ClientMessage.craft:type_name -> scabbage.v1.Craft
-	55, // 15: scabbage.v1.ClientMessage.hit_mob:type_name -> scabbage.v1.HitMob
-	27, // 16: scabbage.v1.ClientMessage.use_block:type_name -> scabbage.v1.UseBlock
-	56, // 17: scabbage.v1.ClientMessage.hit_player:type_name -> scabbage.v1.HitPlayer
-	12, // 18: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
-	70, // 19: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
-	71, // 20: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
-	57, // 21: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
-	58, // 22: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
-	68, // 23: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
-	20, // 24: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
-	23, // 25: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
-	28, // 26: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
-	33, // 27: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
-	34, // 28: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
-	35, // 29: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
-	37, // 30: scabbage.v1.ServerMessage.chat:type_name -> scabbage.v1.Chat
-	39, // 31: scabbage.v1.ServerMessage.emote_shown:type_name -> scabbage.v1.EmoteShown
-	65, // 32: scabbage.v1.ServerMessage.art_requests:type_name -> scabbage.v1.ArtRequests
-	16, // 33: scabbage.v1.ServerMessage.blocks_changed:type_name -> scabbage.v1.BlocksChanged
-	31, // 34: scabbage.v1.ServerMessage.skin_changed:type_name -> scabbage.v1.SkinChanged
-	61, // 35: scabbage.v1.ServerMessage.player_list:type_name -> scabbage.v1.PlayerList
-	41, // 36: scabbage.v1.ServerMessage.vitals:type_name -> scabbage.v1.Vitals
-	44, // 37: scabbage.v1.ServerMessage.inventory:type_name -> scabbage.v1.Inventory
-	49, // 38: scabbage.v1.ServerMessage.items_changed:type_name -> scabbage.v1.ItemsChanged
-	51, // 39: scabbage.v1.ServerMessage.mobs_changed:type_name -> scabbage.v1.MobsChanged
-	54, // 40: scabbage.v1.ServerMessage.zones_changed:type_name -> scabbage.v1.ZonesChanged
-	29, // 41: scabbage.v1.ServerMessage.block_batch:type_name -> scabbage.v1.BlockBatch
-	72, // 42: scabbage.v1.ServerMessage.scoreboard:type_name -> scabbage.v1.Scoreboard
-	11, // 43: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
-	40, // 44: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
-	13, // 45: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
-	41, // 46: scabbage.v1.Welcome.vitals:type_name -> scabbage.v1.Vitals
-	44, // 47: scabbage.v1.Welcome.inventory:type_name -> scabbage.v1.Inventory
-	23, // 48: scabbage.v1.Welcome.start:type_name -> scabbage.v1.Teleport
-	17, // 49: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
-	14, // 50: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
-	15, // 51: scabbage.v1.WorldInfo.textures:type_name -> scabbage.v1.Texture
-	46, // 52: scabbage.v1.WorldInfo.recipes:type_name -> scabbage.v1.Recipe
-	1,  // 53: scabbage.v1.BlockType.shape:type_name -> scabbage.v1.Shape
-	14, // 54: scabbage.v1.BlocksChanged.blocks:type_name -> scabbage.v1.BlockType
-	15, // 55: scabbage.v1.BlocksChanged.textures:type_name -> scabbage.v1.Texture
-	18, // 56: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
-	21, // 57: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
-	18, // 58: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
-	17, // 59: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
-	17, // 60: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
-	24, // 61: scabbage.v1.Teleport.restore:type_name -> scabbage.v1.Restore
-	25, // 62: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
-	25, // 63: scabbage.v1.UseBlock.pos:type_name -> scabbage.v1.BlockPos
-	25, // 64: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
-	28, // 65: scabbage.v1.BlockBatch.blocks:type_name -> scabbage.v1.BlockChanged
-	32, // 66: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
-	17, // 67: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
-	30, // 68: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
-	32, // 69: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
-	2,  // 70: scabbage.v1.SendEmote.emote:type_name -> scabbage.v1.Emote
-	2,  // 71: scabbage.v1.EmoteShown.emote:type_name -> scabbage.v1.Emote
-	3,  // 72: scabbage.v1.PlayerInfo.mode:type_name -> scabbage.v1.GameMode
-	3,  // 73: scabbage.v1.Vitals.mode:type_name -> scabbage.v1.GameMode
-	4,  // 74: scabbage.v1.Vitals.hurt:type_name -> scabbage.v1.Harm
-	3,  // 75: scabbage.v1.SetGameMode.mode:type_name -> scabbage.v1.GameMode
-	43, // 76: scabbage.v1.Inventory.slots:type_name -> scabbage.v1.ItemStack
-	43, // 77: scabbage.v1.Recipe.make:type_name -> scabbage.v1.ItemStack
-	43, // 78: scabbage.v1.Recipe.from:type_name -> scabbage.v1.ItemStack
-	17, // 79: scabbage.v1.ItemDrop.pos:type_name -> scabbage.v1.Vec3
-	48, // 80: scabbage.v1.ItemsChanged.drops:type_name -> scabbage.v1.ItemDrop
-	5,  // 81: scabbage.v1.Mob.kind:type_name -> scabbage.v1.MobKind
-	17, // 82: scabbage.v1.Mob.pos:type_name -> scabbage.v1.Vec3
-	50, // 83: scabbage.v1.MobsChanged.mobs:type_name -> scabbage.v1.Mob
-	3,  // 84: scabbage.v1.Zone.mode:type_name -> scabbage.v1.GameMode
-	53, // 85: scabbage.v1.Zone.marks:type_name -> scabbage.v1.ArenaMark
-	52, // 86: scabbage.v1.ZonesChanged.zones:type_name -> scabbage.v1.Zone
-	59, // 87: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
-	40, // 88: scabbage.v1.PlayerList.players:type_name -> scabbage.v1.PlayerInfo
-	6,  // 89: scabbage.v1.SubmitArt.kind:type_name -> scabbage.v1.ArtKind
-	66, // 90: scabbage.v1.ArtRequests.requests:type_name -> scabbage.v1.ArtRequest
-	6,  // 91: scabbage.v1.ArtRequest.kind:type_name -> scabbage.v1.ArtKind
-	7,  // 92: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
-	73, // 93: scabbage.v1.Scoreboard.scores:type_name -> scabbage.v1.Score
-	94, // [94:94] is the sub-list for method output_type
-	94, // [94:94] is the sub-list for method input_type
-	94, // [94:94] is the sub-list for extension type_name
-	94, // [94:94] is the sub-list for extension extendee
-	0,  // [0:94] is the sub-list for field type_name
+	10,  // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
+	69,  // 1: scabbage.v1.ClientMessage.ping:type_name -> scabbage.v1.Ping
+	60,  // 2: scabbage.v1.ClientMessage.decide_join:type_name -> scabbage.v1.DecideJoin
+	63,  // 3: scabbage.v1.ClientMessage.create_join_code:type_name -> scabbage.v1.CreateJoinCode
+	19,  // 4: scabbage.v1.ClientMessage.request_chunks:type_name -> scabbage.v1.RequestChunks
+	22,  // 5: scabbage.v1.ClientMessage.move:type_name -> scabbage.v1.Move
+	26,  // 6: scabbage.v1.ClientMessage.edit_block:type_name -> scabbage.v1.EditBlock
+	36,  // 7: scabbage.v1.ClientMessage.send_chat:type_name -> scabbage.v1.SendChat
+	38,  // 8: scabbage.v1.ClientMessage.send_emote:type_name -> scabbage.v1.SendEmote
+	64,  // 9: scabbage.v1.ClientMessage.submit_art:type_name -> scabbage.v1.SubmitArt
+	67,  // 10: scabbage.v1.ClientMessage.decide_art:type_name -> scabbage.v1.DecideArt
+	62,  // 11: scabbage.v1.ClientMessage.set_admin:type_name -> scabbage.v1.SetAdmin
+	42,  // 12: scabbage.v1.ClientMessage.set_game_mode:type_name -> scabbage.v1.SetGameMode
+	45,  // 13: scabbage.v1.ClientMessage.move_item:type_name -> scabbage.v1.MoveItem
+	47,  // 14: scabbage.v1.ClientMessage.craft:type_name -> scabbage.v1.Craft
+	55,  // 15: scabbage.v1.ClientMessage.hit_mob:type_name -> scabbage.v1.HitMob
+	27,  // 16: scabbage.v1.ClientMessage.use_block:type_name -> scabbage.v1.UseBlock
+	56,  // 17: scabbage.v1.ClientMessage.hit_player:type_name -> scabbage.v1.HitPlayer
+	74,  // 18: scabbage.v1.ClientMessage.open_script:type_name -> scabbage.v1.OpenScript
+	75,  // 19: scabbage.v1.ClientMessage.save_script:type_name -> scabbage.v1.SaveScript
+	12,  // 20: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
+	70,  // 21: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
+	71,  // 22: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
+	57,  // 23: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
+	58,  // 24: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
+	68,  // 25: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
+	20,  // 26: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
+	23,  // 27: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
+	28,  // 28: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
+	33,  // 29: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
+	34,  // 30: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
+	35,  // 31: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
+	37,  // 32: scabbage.v1.ServerMessage.chat:type_name -> scabbage.v1.Chat
+	39,  // 33: scabbage.v1.ServerMessage.emote_shown:type_name -> scabbage.v1.EmoteShown
+	65,  // 34: scabbage.v1.ServerMessage.art_requests:type_name -> scabbage.v1.ArtRequests
+	16,  // 35: scabbage.v1.ServerMessage.blocks_changed:type_name -> scabbage.v1.BlocksChanged
+	31,  // 36: scabbage.v1.ServerMessage.skin_changed:type_name -> scabbage.v1.SkinChanged
+	61,  // 37: scabbage.v1.ServerMessage.player_list:type_name -> scabbage.v1.PlayerList
+	41,  // 38: scabbage.v1.ServerMessage.vitals:type_name -> scabbage.v1.Vitals
+	44,  // 39: scabbage.v1.ServerMessage.inventory:type_name -> scabbage.v1.Inventory
+	49,  // 40: scabbage.v1.ServerMessage.items_changed:type_name -> scabbage.v1.ItemsChanged
+	51,  // 41: scabbage.v1.ServerMessage.mobs_changed:type_name -> scabbage.v1.MobsChanged
+	54,  // 42: scabbage.v1.ServerMessage.zones_changed:type_name -> scabbage.v1.ZonesChanged
+	29,  // 43: scabbage.v1.ServerMessage.block_batch:type_name -> scabbage.v1.BlockBatch
+	72,  // 44: scabbage.v1.ServerMessage.scoreboard:type_name -> scabbage.v1.Scoreboard
+	76,  // 45: scabbage.v1.ServerMessage.script_shown:type_name -> scabbage.v1.ScriptShown
+	11,  // 46: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
+	40,  // 47: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
+	13,  // 48: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
+	41,  // 49: scabbage.v1.Welcome.vitals:type_name -> scabbage.v1.Vitals
+	44,  // 50: scabbage.v1.Welcome.inventory:type_name -> scabbage.v1.Inventory
+	23,  // 51: scabbage.v1.Welcome.start:type_name -> scabbage.v1.Teleport
+	17,  // 52: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
+	14,  // 53: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
+	15,  // 54: scabbage.v1.WorldInfo.textures:type_name -> scabbage.v1.Texture
+	46,  // 55: scabbage.v1.WorldInfo.recipes:type_name -> scabbage.v1.Recipe
+	1,   // 56: scabbage.v1.BlockType.shape:type_name -> scabbage.v1.Shape
+	14,  // 57: scabbage.v1.BlocksChanged.blocks:type_name -> scabbage.v1.BlockType
+	15,  // 58: scabbage.v1.BlocksChanged.textures:type_name -> scabbage.v1.Texture
+	18,  // 59: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
+	21,  // 60: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
+	18,  // 61: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
+	17,  // 62: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
+	17,  // 63: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
+	24,  // 64: scabbage.v1.Teleport.restore:type_name -> scabbage.v1.Restore
+	25,  // 65: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 66: scabbage.v1.UseBlock.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 67: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
+	28,  // 68: scabbage.v1.BlockBatch.blocks:type_name -> scabbage.v1.BlockChanged
+	32,  // 69: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
+	17,  // 70: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
+	30,  // 71: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
+	32,  // 72: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
+	2,   // 73: scabbage.v1.SendEmote.emote:type_name -> scabbage.v1.Emote
+	2,   // 74: scabbage.v1.EmoteShown.emote:type_name -> scabbage.v1.Emote
+	3,   // 75: scabbage.v1.PlayerInfo.mode:type_name -> scabbage.v1.GameMode
+	3,   // 76: scabbage.v1.Vitals.mode:type_name -> scabbage.v1.GameMode
+	4,   // 77: scabbage.v1.Vitals.hurt:type_name -> scabbage.v1.Harm
+	3,   // 78: scabbage.v1.SetGameMode.mode:type_name -> scabbage.v1.GameMode
+	43,  // 79: scabbage.v1.Inventory.slots:type_name -> scabbage.v1.ItemStack
+	43,  // 80: scabbage.v1.Recipe.make:type_name -> scabbage.v1.ItemStack
+	43,  // 81: scabbage.v1.Recipe.from:type_name -> scabbage.v1.ItemStack
+	17,  // 82: scabbage.v1.ItemDrop.pos:type_name -> scabbage.v1.Vec3
+	48,  // 83: scabbage.v1.ItemsChanged.drops:type_name -> scabbage.v1.ItemDrop
+	5,   // 84: scabbage.v1.Mob.kind:type_name -> scabbage.v1.MobKind
+	17,  // 85: scabbage.v1.Mob.pos:type_name -> scabbage.v1.Vec3
+	50,  // 86: scabbage.v1.MobsChanged.mobs:type_name -> scabbage.v1.Mob
+	3,   // 87: scabbage.v1.Zone.mode:type_name -> scabbage.v1.GameMode
+	53,  // 88: scabbage.v1.Zone.marks:type_name -> scabbage.v1.ArenaMark
+	52,  // 89: scabbage.v1.ZonesChanged.zones:type_name -> scabbage.v1.Zone
+	59,  // 90: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
+	40,  // 91: scabbage.v1.PlayerList.players:type_name -> scabbage.v1.PlayerInfo
+	6,   // 92: scabbage.v1.SubmitArt.kind:type_name -> scabbage.v1.ArtKind
+	66,  // 93: scabbage.v1.ArtRequests.requests:type_name -> scabbage.v1.ArtRequest
+	6,   // 94: scabbage.v1.ArtRequest.kind:type_name -> scabbage.v1.ArtKind
+	7,   // 95: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
+	73,  // 96: scabbage.v1.Scoreboard.scores:type_name -> scabbage.v1.Score
+	25,  // 97: scabbage.v1.OpenScript.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 98: scabbage.v1.SaveScript.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 99: scabbage.v1.ScriptShown.pos:type_name -> scabbage.v1.BlockPos
+	100, // [100:100] is the sub-list for method output_type
+	100, // [100:100] is the sub-list for method input_type
+	100, // [100:100] is the sub-list for extension type_name
+	100, // [100:100] is the sub-list for extension extendee
+	0,   // [0:100] is the sub-list for field type_name
 }
 
 func init() { file_scabbage_v1_net_proto_init() }
@@ -5664,6 +5914,8 @@ func file_scabbage_v1_net_proto_init() {
 		(*ClientMessage_HitMob)(nil),
 		(*ClientMessage_UseBlock)(nil),
 		(*ClientMessage_HitPlayer)(nil),
+		(*ClientMessage_OpenScript)(nil),
+		(*ClientMessage_SaveScript)(nil),
 	}
 	file_scabbage_v1_net_proto_msgTypes[1].OneofWrappers = []any{
 		(*ServerMessage_Welcome)(nil),
@@ -5691,6 +5943,7 @@ func file_scabbage_v1_net_proto_init() {
 		(*ServerMessage_ZonesChanged)(nil),
 		(*ServerMessage_BlockBatch)(nil),
 		(*ServerMessage_Scoreboard)(nil),
+		(*ServerMessage_ScriptShown)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -5698,7 +5951,7 @@ func file_scabbage_v1_net_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scabbage_v1_net_proto_rawDesc), len(file_scabbage_v1_net_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   66,
+			NumMessages:   69,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

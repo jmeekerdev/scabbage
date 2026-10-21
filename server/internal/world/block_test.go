@@ -54,13 +54,14 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 		Wire: "wire", SignalLamp + 1: "signal_lamp_on", Door + 1: "door_open", Piston + 9: "piston_up_on",
 		Timer: "timer", Counter + 19: "counter_9_on", Teleporter: "teleporter", NoteBlock + 15: "note_block_7_on", Portal: "portal",
 		CountingDown: "counter_down_1", CountingDown + 15: "counter_down_8_on",
+		ScriptBlock: "script_block", ScriptBlock + 1: "script_block_on",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(CountingDown)+16 {
+	if len(blocks) != int(ScriptBlock)+2 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -177,7 +178,7 @@ func TestBuiltinFindsBlocksByName(t *testing.T) {
 func TestVariantsAreHeldAsTheirItem(t *testing.T) {
 	cases := map[Block]Block{
 		Door + 1: Door, Piston + 7: Piston, Counter + 13: Counter, NoteBlock + 9: NoteBlock, Timer + 1: Timer,
-		CountingDown + 5: Counter,
+		CountingDown + 5: Counter, ScriptBlock + 1: ScriptBlock,
 	}
 	for b, want := range cases {
 		if b.Item() != want || Drops(b) != want {
@@ -196,6 +197,12 @@ func TestOnlyItemsAndFacingsArePlaceable(t *testing.T) {
 		if Placeable(b) {
 			t.Errorf("%v is a state, not something to place", b)
 		}
+	}
+}
+
+func TestScriptBlocksAreUsedByHand(t *testing.T) {
+	if !Info(ScriptBlock).Usable || !Info(ScriptBlock+1).Usable || !Placeable(ScriptBlock) || Placeable(ScriptBlock+1) {
+		t.Fatalf("script block = %+v", Info(ScriptBlock))
 	}
 }
 

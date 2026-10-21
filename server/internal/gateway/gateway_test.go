@@ -59,7 +59,7 @@ func startServer(t *testing.T) *testServer {
 		t.Fatal(err)
 	}
 	games := arenas.New(db)
-	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, ServerName: "test", HelloTimeout: time.Second})
+	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}

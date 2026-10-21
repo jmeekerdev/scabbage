@@ -497,7 +497,7 @@ body.page .requests {
   right: max(16px, env(safe-area-inset-right));
   bottom: calc(max(8px, env(safe-area-inset-bottom)) + 64px);
   display: grid;
-  grid-template: "break place" "down jump" / 64px 64px;
+  grid-template: ". script" "break place" "down jump" / 64px 64px;
   gap: 12px;
 }
 
@@ -529,6 +529,10 @@ body.page .requests {
 
 .touch-buttons .jump {
   grid-area: jump;
+}
+
+.touch-buttons .script {
+  grid-area: script;
 }
 
 /* Chat: lines fade out after a while unless the box is open. */
@@ -855,4 +859,71 @@ body.page .requests {
 
 #scoreboard [data-team="yellow"] {
   color: #fe6;
+}
+
+/* Script editor. */
+.script-editor {
+  width: min(640px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.script-editor[open] {
+  display: grid;
+  gap: 10px;
+}
+
+.script-editor h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.script-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 16em;
+  resize: vertical;
+  border: 2px solid #3a4560;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #0f1420;
+  color: #e8f0ff;
+  font:
+    15px/1.4 ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  tab-size: 2;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.script-editor .status {
+  min-height: 1.4em;
+  margin: 0;
+  color: #9fe6a0;
+}
+
+.script-editor .status.problem {
+  color: #ffb4a8;
+}
+
+.script-editor pre {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  font-size: 13px;
+  color: #c9d4ea;
+}
+
+.script-editor .actions {
+  display: flex;
+  gap: 10px;
+}
+
+.script-editor .actions button {
+  flex: 1;
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0;
 }

@@ -11,7 +11,7 @@ export interface PadState {
 }
 
 // Standard-mapping button indices.
-const BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7 } as const;
+const BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8 } as const;
 // D-pad up, right, down, left send the emotes in those directions on the wheel.
 const DPAD_EMOTES: [number, Emote][] = [12, 15, 13, 14].map((b, i) => [b, EMOTES[i * 2].emote]);
 const DEAD_ZONE = 0.2;
@@ -55,6 +55,7 @@ export class GamepadControls {
         digging: this.breaking.held,
         placing: this.placing.due(nowMs),
         picking: pressed(BTN.x),
+        scripting: pressed(BTN.back),
       },
     };
   }

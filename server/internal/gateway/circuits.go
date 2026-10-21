@@ -45,6 +45,10 @@ func (g *Gateway) use(s *session, p logic.Pos) (bool, error) {
 	if !edit.InReach(s.body.Pos(), p.X, p.Y, p.Z) {
 		return false, nil
 	}
+	if b, _ := g.cfg.World.Block(p.X, p.Y, p.Z); b.Item() == world.ScriptBlock {
+		g.touchScriptLocked(s, p)
+		return true, nil
+	}
 	changes, used, err := logic.Use(circuitWorld{g}, p)
 	g.broadcastChanges(changes)
 	if b, _ := g.cfg.World.Block(p.X, p.Y, p.Z); used && b == world.Button+1 {
@@ -77,11 +81,13 @@ func (w circuitWorld) CanPush(piston, at logic.Pos) bool {
 	return inFrom == inTo && from.Name == to.Name
 }
 
-// broadcastChanges sends everyone a circuit's changes in one message, however many there are.
+// broadcastChanges sends everyone a circuit's changes in one message, however many there are,
+// and tells script blocks their power changed; call with editMu held.
 func (g *Gateway) broadcastChanges(changes []logic.Change) {
 	if len(changes) == 0 {
 		return
 	}
+	defer g.powerScriptsLocked(changes)
 	batch := &pb.BlockBatch{Blocks: make([]*pb.BlockChanged, 0, len(changes))}
 	for _, c := range changes {
 		batch.Blocks = append(batch.Blocks, blockChanged(c.X, c.Y, c.Z, c.Block).GetBlockChanged())
@@ -96,7 +102,7 @@ func (g *Gateway) powerLocked(p logic.Pos) error {
 	return err
 }
 
-// stepCircuits lets go of buttons whose time is up, beats timers and presses the plates players stand on.
+// stepCircuits lets go of buttons whose time is up, beats timers, runs scripts' timers and presses the plates players stand on.
 func (g *Gateway) stepCircuits(now time.Time) error {
 	feet := g.bodies()
 	g.editMu.Lock()
@@ -113,6 +119,7 @@ func (g *Gateway) stepCircuits(now time.Time) error {
 	if err := g.beatLocked(now); err != nil {
 		return err
 	}
+	g.reportScriptsLocked(g.scripts.RunTimers(now), nil)
 	if err := g.releaseDoorsLocked(feet); err != nil {
 		return err
 	}

@@ -9,6 +9,8 @@ import {
 } from "../pb/scabbage/v1/net_pb";
 import {
   PROTOCOL_VERSION,
+  encodeOpenScript,
+  encodeSaveScript,
   decodeServer,
   encodeCreateJoinCode,
   encodeDecideArt,
@@ -114,6 +116,13 @@ describe("codec", () => {
       encodeHello({ clientName: "pc", secret: new Uint8Array(32), console: true }),
     );
     expect(body.case === "hello" && body.value.console && !body.value.join).toBe(true);
+  });
+
+  it("encodes opening and saving a script block", () => {
+    const open = decodeClient(encodeOpenScript({ x: 1, y: 2, z: 3 }));
+    expect(open.case === "openScript" && open.value.pos?.z).toBe(3);
+    const save = decodeClient(encodeSaveScript({ x: 1, y: 2, z: 3 }, "x = 1"));
+    expect(save.case === "saveScript" && save.value.source).toBe("x = 1");
   });
 
   it("encodes a ping", () => {

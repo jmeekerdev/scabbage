@@ -124,7 +124,7 @@ describe("combineIntents", () => {
     };
     expect(combineIntents([a, b, still])).toEqual({
       move: { forward: 1, right: -0.5, jump: true, descend: false },
-      build: { breaking: false, placing: true, picking: false, digging: false },
+      build: { breaking: false, placing: true, picking: false, digging: false, scripting: false },
     });
   });
 
