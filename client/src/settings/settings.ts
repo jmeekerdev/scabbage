@@ -22,7 +22,7 @@ export interface Settings {
 
 const KEY = "scabbage.settings";
 
-const VIEW_DISTANCE_FOR: Record<Preset, number> = { low: 3, medium: 4, high: 8 };
+const VIEW_DISTANCE_FOR: Record<Preset, number> = { low: 4, medium: 6, high: 9 };
 
 /** Starting settings for a device tier; touch devices cap frames to save battery and heat. */
 export function defaultSettings(tier: Preset, touch: boolean): Settings {

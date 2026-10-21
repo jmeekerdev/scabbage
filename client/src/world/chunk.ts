@@ -17,7 +17,7 @@ export function blockAt(c: Chunk, x: number, y: number, z: number): number {
   return c.blocks ? c.blocks[chunkIndex(x, y, z)] : c.fill;
 }
 
-const ENCODING_VERSION = 1;
+const ENCODING_VERSION = 2; // must match the server: 2 is 32-block chunks
 
 /** Parses the server's palette + run-length chunk encoding (server/internal/world/codec.go). */
 export function decodeChunk(data: Uint8Array): Chunk {

@@ -7,11 +7,12 @@ import (
 
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/world"
 )
 
 const (
-	playerDamage = 2   // a heart
-	playerReach  = 5.5 // from the hitter's eye to the other's middle, with lag
+	playerDamage = 2                 // a heart
+	playerReach  = 5.5 * world.Metre // from the hitter's eye to the other's middle, with lag
 )
 
 // hitPlayer hurts another survival player in reach when both stand in the same PVP arena.

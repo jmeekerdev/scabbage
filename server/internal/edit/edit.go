@@ -6,9 +6,9 @@ import (
 	"scabbage/internal/world"
 )
 
-// Reach is the farthest a block's center may be from the eye: the client reaches 5 to a face,
+// Reach is the farthest a block's center may be from the eye: the client reaches 5 m to a face,
 // plus up to a block's half-diagonal and the eye lag between physics steps.
-const Reach = 6.5
+const Reach = 6.5 * world.Metre
 
 // Request asks to set the block at X,Y,Z; Air breaks it.
 type Request struct {
@@ -57,6 +57,6 @@ func Occupied(x, y, z int32, bodies []motion.Vec) bool {
 
 // Edit rate limits: a held mouse button repeats about 4 times a second.
 const (
-	PerSecond = 10
-	Burst     = 20
+	PerSecond = 30
+	Burst     = 60
 )

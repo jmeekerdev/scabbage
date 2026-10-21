@@ -42,23 +42,23 @@ func isTeleportTo(x, y, z float32) func(*pb.ServerMessage) bool {
 func checkpointFloor(t *testing.T, ts *testServer) {
 	t.Helper()
 	for x := int32(10); x <= 12; x++ {
-		setBlock(t, ts, x, 99, 10, world.Stone)
+		setBlock(t, ts, x, 299, 10, world.Stone)
 	}
-	setBlock(t, ts, 12, 100, 10, world.Checkpoint)
+	setBlock(t, ts, 12, 300, 10, world.Checkpoint)
 }
 
 func TestFaintedPlayersComeBackToTheirCheckpoint(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
 	checkpointFloor(t, ts)
-	walkOnto(t, c, tpAndWait(t, c, "10 100 10"), 12.5)
+	walkOnto(t, c, tpAndWait(t, c, "10 300 10"), 12.5)
 	recvWhere(t, c, noticeOf("Checkpoint!"))
 
-	tpAndWait(t, c, "10 100 10")
+	tpAndWait(t, c, "10 300 10")
 	ts.sessionOf(t, "Mom").faint()
-	recvWhere(t, c, isTeleportTo(12.5, 100, 10.5))
+	recvWhere(t, c, isTeleportTo(12.5, 300, 10.5))
 
-	setBlock(t, ts, 12, 100, 10, world.Air) // a broken checkpoint sends them to the spawn
+	setBlock(t, ts, 12, 300, 10, world.Air) // a broken checkpoint sends them to the spawn
 	ts.sessionOf(t, "Mom").faint()
 	x, y, z := ts.spawn()
 	recvWhere(t, c, isTeleportTo(x, y, z))
@@ -68,9 +68,9 @@ func TestCheckpointsOnlyCountInTheirOwnZone(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
 	checkpointFloor(t, ts)
-	walkOnto(t, c, tpAndWait(t, c, "10 100 10"), 12.5)
+	walkOnto(t, c, tpAndWait(t, c, "10 300 10"), 12.5)
 	recvWhere(t, c, noticeOf("Checkpoint!"))
-	tpAndWait(t, c, "40 100 40")
+	tpAndWait(t, c, "40 300 40")
 	send(t, c, sendChat("/zone add Far 8"))
 	recvWhere(t, c, noticeOf("Zones updated"))
 	ts.sessionOf(t, "Mom").faint()
@@ -82,13 +82,13 @@ func TestCheckpointsAreSaved(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
 	checkpointFloor(t, ts)
-	walkOnto(t, c, tpAndWait(t, c, "10 100 10"), 12.5)
+	walkOnto(t, c, tpAndWait(t, c, "10 300 10"), 12.5)
 	recvWhere(t, c, noticeOf("Checkpoint!"))
 	s := ts.sessionOf(t, "Mom")
 	ts.gw.mu.Lock()
 	saved := ts.gw.players[s].snapshot().record()
 	ts.gw.mu.Unlock()
-	if cp := saved.Checkpoint; cp == nil || *cp != [3]int32{12, 100, 10} {
+	if cp := saved.Checkpoint; cp == nil || *cp != [3]int32{12, 300, 10} {
 		t.Fatalf("saved checkpoint %v", cp)
 	}
 }

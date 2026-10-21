@@ -22,7 +22,7 @@ const (
 	MaxSide = 256
 	// MaxFileBytes bounds a .scabmap file; maxRawBytes bounds what it unzips to.
 	MaxFileBytes = 4 << 20
-	maxRawBytes  = 32 << 20
+	maxRawBytes  = 64 << 20
 	maxScripts   = 1024
 )
 

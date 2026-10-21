@@ -1,17 +1,18 @@
 import type { Box } from "../world/shapes";
+import { METRE } from "../world/constants";
 
 // Body size must match server/internal/motion; speeds must stay under its limits.
-export const HALF_WIDTH = 0.3;
-export const HEIGHT = 1.8;
-export const EYE_HEIGHT = 1.62;
-export const WALK_SPEED = 4.5;
-export const FLY_SPEED = 11;
-const FLY_VERTICAL_SPEED = 8;
-const GRAVITY = 28;
-const JUMP_SPEED = 8.4;
-const TERMINAL_SPEED = 50;
+export const HALF_WIDTH = 0.3 * METRE;
+export const HEIGHT = 1.8 * METRE;
+export const EYE_HEIGHT = 1.62 * METRE;
+export const WALK_SPEED = 4.5 * METRE;
+export const FLY_SPEED = 11 * METRE;
+const FLY_VERTICAL_SPEED = 8 * METRE;
+const GRAVITY = 28 * METRE;
+const JUMP_SPEED = 8.4 * METRE; // about 1.26 m high
+const TERMINAL_SPEED = 50 * METRE;
 const EPS = 1e-6;
-const STEP_HEIGHT = 0.5; // server/internal/motion allows the same
+const STEP_HEIGHT = 0.5 * METRE; // server/internal/motion allows the same
 
 /** What players collide with in the block at integer x,y,z. */
 export type BoxesAt = (x: number, y: number, z: number) => readonly Box[];

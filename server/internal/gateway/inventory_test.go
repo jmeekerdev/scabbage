@@ -30,7 +30,7 @@ func isItems(m *pb.ServerMessage) bool { return m.GetItemsChanged() != nil }
 func (ts *testServer) besideSpawn(t *testing.T, dy int32, b world.Block) (x, y, z int32) {
 	t.Helper()
 	sx, sy, sz := ts.spawn()
-	x, y, z = int32(sx)+1, int32(sy)+dy, int32(sz)
+	x, y, z = int32(sx)+2, int32(sy)+dy, int32(sz) // just clear of the body
 	for _, set := range []struct {
 		y int32
 		b world.Block

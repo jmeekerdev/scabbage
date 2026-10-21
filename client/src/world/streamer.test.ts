@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { chunkKey, type ChunkPos } from "./coords";
 import { ChunkStreamer, columnsAround, type WorldBounds } from "./streamer";
 
-const big: WorldBounds = { radius: 512, height: 128 };
+const big: WorldBounds = { radius: 1536, height: 384 };
 const columns = (batch: ChunkPos[]) => new Set(batch.map((p) => `${p.x},${p.z}`));
 
 /** Requests every batch, answering each at once, and returns all positions asked for. */
@@ -26,10 +26,10 @@ describe("columnsAround", () => {
   });
 
   it("stops at the world border", () => {
-    // A 32-block-wide world holds chunk columns -1 and 0 on each axis.
-    const cols = columnsAround(0, 0, 4, { radius: 16, height: 128 });
+    // A 64-block-wide world holds chunk columns -1 and 0 on each axis.
+    const cols = columnsAround(0, 0, 4, { radius: 32, height: 384 });
     expect(cols).toHaveLength(4);
-    expect(columnsAround(0, 0, 2, { radius: -1, height: 128 }).length).toBeGreaterThan(4);
+    expect(columnsAround(0, 0, 2, { radius: -1, height: 384 }).length).toBeGreaterThan(4);
   });
 });
 

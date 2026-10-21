@@ -1,12 +1,13 @@
 import { MobKind } from "../pb/scabbage/v1/net_pb";
 import type { MobState } from "../player/mobs";
 import { el } from "./dom";
+import { METRE } from "../world/constants";
 
 const BOSS_NAMES: Partial<Record<MobKind, string>> = {
   [MobKind.KING_SLIME]: "King Slime",
   [MobKind.GOLEM]: "Stone Golem",
 };
-const SHOW_WITHIN = 24; // blocks
+const SHOW_WITHIN = 24 * METRE; // blocks
 
 export interface BossShown {
   name: string;

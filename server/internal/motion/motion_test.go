@@ -59,36 +59,38 @@ func TestRejectsMovingTooFast(t *testing.T) {
 	tr := newTracker()
 	accepted := 0
 	for i := 1; i <= 40; i++ {
-		if tr.Move(Vec{0.5 + float64(accepted+1)*2, 10, 0.5}, at(i*50), floor) { // 40 blocks/s
+		if tr.Move(Vec{0.5 + float64(accepted+1)*2*world.Metre, 10, 0.5}, at(i*50), floor) { // 40 m/s
 			accepted++
 		}
 	}
 	// Two seconds at the limit plus one second of burst.
-	if maxSteps := int(DefaultLimits.Horizontal * 3 / 2); accepted == 0 || accepted > maxSteps {
+	if maxSteps := int(DefaultLimits.Horizontal * 3 / 2 / world.Metre); accepted == 0 || accepted > maxSteps {
 		t.Fatalf("accepted %d of 40 fast steps; want at most %d", accepted, maxSteps)
 	}
 }
 
 func TestBudgetRefillsWithTime(t *testing.T) {
 	tr := newTracker()
-	if !tr.Move(Vec{14, 10, 0.5}, at(50), floor) {
+	burst := 0.5 + DefaultLimits.Horizontal
+	if !tr.Move(Vec{burst, 10, 0.5}, at(50), floor) {
 		t.Fatal("a one-second burst should be allowed")
 	}
-	if tr.Move(Vec{20, 10, 0.5}, at(100), floor) {
+	if tr.Move(Vec{burst + 6, 10, 0.5}, at(100), floor) {
 		t.Fatal("the burst budget should be spent")
 	}
-	if !tr.Move(Vec{20, 10, 0.5}, at(1000), floor) {
+	if !tr.Move(Vec{burst + 6, 10, 0.5}, at(1000), floor) {
 		t.Fatal("budget should refill over time")
 	}
 }
 
 func TestAllowsLongFallsButNotFastRises(t *testing.T) {
-	tr := NewTracker(DefaultLimits, Vec{0.5, 80, 0.5}, t0)
-	if !tr.Move(Vec{0.5, 30, 0.5}, at(1000), floor) {
-		t.Fatal("falling 50 blocks in a second should be allowed")
+	m := float64(world.Metre)
+	tr := NewTracker(DefaultLimits, Vec{0.5, 80 * m, 0.5}, t0)
+	if !tr.Move(Vec{0.5, 30 * m, 0.5}, at(1000), floor) {
+		t.Fatal("falling 50 m in a second should be allowed")
 	}
-	if tr.Move(Vec{0.5, 60, 0.5}, at(2000), floor) {
-		t.Fatal("rising 30 blocks in a second should be rejected")
+	if tr.Move(Vec{0.5, 60 * m, 0.5}, at(2000), floor) {
+		t.Fatal("rising 30 m in a second should be rejected")
 	}
 }
 
@@ -97,17 +99,17 @@ func TestRejectsEndingInsideABlock(t *testing.T) {
 	if tr.Move(Vec{0.5, 9.5, 0.5}, at(50), floor) {
 		t.Fatal("feet inside the floor should be rejected")
 	}
-	if tr.Move(Vec{4.75, 10, 0.5}, at(1000), wallX) {
+	if tr.Move(Vec{5.05 - HalfWidth, 10, 0.5}, at(1000), wallX) {
 		t.Fatal("body overlapping the wall should be rejected")
 	}
-	if !tr.Move(Vec{4.7, 10, 0.5}, at(1000), wallX) {
+	if !tr.Move(Vec{5 - HalfWidth, 10, 0.5}, at(1000), wallX) {
 		t.Fatal("touching the wall should be allowed")
 	}
 }
 
 func TestRejectsPassingThroughAWall(t *testing.T) {
-	tr := NewTracker(DefaultLimits, Vec{4.5, 10, 0.5}, t0)
-	if tr.Move(Vec{6.5, 10, 0.5}, at(1000), wallX) {
+	tr := NewTracker(DefaultLimits, Vec{3.5, 10, 0.5}, t0)
+	if tr.Move(Vec{7.5, 10, 0.5}, at(1000), wallX) {
 		t.Fatal("jumping through the wall should be rejected")
 	}
 }
@@ -118,7 +120,7 @@ func TestRejectedMoveKeepsPositionAndBudget(t *testing.T) {
 	if tr.Pos() != (Vec{0.5, 10, 0.5}) {
 		t.Fatalf("pos = %v", tr.Pos())
 	}
-	if !tr.Move(Vec{14, 10, 0.5}, at(50), floor) {
+	if !tr.Move(Vec{0.5 + DefaultLimits.Horizontal, 10, 0.5}, at(50), floor) {
 		t.Fatal("a rejected move should not spend budget")
 	}
 }
@@ -165,5 +167,13 @@ func TestStandingNeedsSomethingUnderfoot(t *testing.T) {
 		if got := Standing(c.at, slabX); got != c.want {
 			t.Errorf("Standing(%v) = %v, want %v", c.at, got, c.want)
 		}
+	}
+}
+
+func TestStepsUpOntoAWholeBlock(t *testing.T) {
+	ledge := cubes(func(x, y, _ int32) bool { return y < 10 || (x >= 5 && y == 10) })
+	tr := NewTracker(DefaultLimits, Vec{3.5, 10, 0.5}, t0)
+	if !tr.Move(Vec{6.5, 11, 0.5}, at(1000), ledge) {
+		t.Fatal("walking onto a one-block ledge should be allowed")
 	}
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CHUNK_SIZE as S } from "./constants";
 import { Shape } from "./shapes";
 import {
   FACE_NORMALS,
@@ -98,7 +99,7 @@ describe("meshChunk", () => {
 
   it("merges a flat slab into one quad per side", () => {
     const slab: [number, number, number, number][] = [];
-    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) slab.push([x, 0, z, STONE]);
+    for (let x = 0; x < S; x++) for (let z = 0; z < S; z++) slab.push([x, 0, z, STONE]);
     expect(quads(meshChunk(volume(slab), table()).opaque)).toBe(6);
   });
 
@@ -116,8 +117,8 @@ describe("meshChunk", () => {
   it("hides faces covered by a neighboring chunk's block", () => {
     const m = meshChunk(
       volume([
-        [15, 5, 5, STONE],
-        [16, 5, 5, STONE],
+        [S - 1, 5, 5, STONE],
+        [S, 5, 5, STONE],
       ]),
       table(),
     ).opaque;
@@ -231,7 +232,7 @@ describe("meshChunk", () => {
 /** A stone floor across the whole chunk at y = 0. */
 function floor(): [number, number, number, number][] {
   const out: [number, number, number, number][] = [];
-  for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) out.push([x, 0, z, STONE]);
+  for (let x = 0; x < S; x++) for (let z = 0; z < S; z++) out.push([x, 0, z, STONE]);
   return out;
 }
 

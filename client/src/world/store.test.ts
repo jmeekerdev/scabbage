@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CHUNK_SIZE as S } from "./constants";
 import { chunkIndex, CHUNK_VOLUME, type Chunk } from "./chunk";
 import { chunkKey } from "./coords";
 import { LIGHT_MARGIN, REGION_VOLUME, regionIndex } from "./light";
@@ -49,15 +50,15 @@ describe("ChunkStore", () => {
     s.set({ x: 0, y: 0, z: 0 }, uniform(2));
     const v = s.padded(0, 0, 0);
     expect(v[paddedIndex(3, 3, 3)]).toBe(2);
-    expect(v[paddedIndex(16, 5, 6)]).toBe(7);
-    expect(v[paddedIndex(16, 5, 7)]).toBe(0);
+    expect(v[paddedIndex(S, 5, 6)]).toBe(7);
+    expect(v[paddedIndex(S, 5, 7)]).toBe(0);
     expect(v[paddedIndex(5, -1, 5)]).toBe(0); // below the world
   });
 
   it("pads corners and edges from diagonal neighbors too", () => {
     const s = new ChunkStore(bounds);
     s.set({ x: 1, y: 1, z: -1 }, uniform(4));
-    expect(s.padded(0, 0, 0)[paddedIndex(16, 16, -1)]).toBe(4);
+    expect(s.padded(0, 0, 0)[paddedIndex(S, S, -1)]).toBe(4);
   });
 
   it("copies a light region reaching LIGHT_MARGIN into every neighbor", () => {
@@ -72,11 +73,11 @@ describe("ChunkStore", () => {
   it("looks up blocks by world position", () => {
     const s = new ChunkStore(bounds);
     const blocks = new Uint16Array(CHUNK_VOLUME);
-    blocks[chunkIndex(15, 2, 0)] = 9;
+    blocks[chunkIndex(S - 1, 2, 0)] = 9;
     s.set({ x: -1, y: 1, z: 0 }, { fill: 0, blocks });
-    expect(s.blockAt(-1, 18, 0)).toBe(9);
-    expect(s.blockAt(-2, 18, 0)).toBe(0);
-    expect(s.blockAt(0, 18, 0)).toBeUndefined(); // not loaded
+    expect(s.blockAt(-1, S + 2, 0)).toBe(9);
+    expect(s.blockAt(-2, S + 2, 0)).toBe(0);
+    expect(s.blockAt(0, S + 2, 0)).toBeUndefined(); // not loaded
   });
 
   it("sets blocks in loaded chunks only, expanding uniform chunks", () => {

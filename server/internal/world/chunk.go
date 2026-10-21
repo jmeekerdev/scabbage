@@ -1,15 +1,16 @@
 package world
 
-// Size is a chunk's edge length in blocks; Volume is blocks per chunk.
+// Size is a chunk's edge length in blocks (1<<sizeBits); Volume is blocks per chunk.
 const (
-	Size   = 16
-	Volume = Size * Size * Size
+	sizeBits = 5
+	Size     = 1 << sizeBits
+	Volume   = Size * Size * Size
 )
 
 // Vertical limits in blocks (MaxY exclusive).
 const (
 	MinY = 0
-	MaxY = 128
+	MaxY = 128 * Metre
 )
 
 // ChunkPos is a chunk coordinate (block coordinate divided by Size).
@@ -17,13 +18,13 @@ type ChunkPos struct{ X, Y, Z int32 }
 
 // ChunkOf returns the chunk holding block x,y,z and the block's local position inside it.
 func ChunkOf(x, y, z int32) (pos ChunkPos, lx, ly, lz int) {
-	return ChunkPos{x >> 4, y >> 4, z >> 4}, int(x & 15), int(y & 15), int(z & 15)
+	return ChunkPos{x >> sizeBits, y >> sizeBits, z >> sizeBits}, int(x & (Size - 1)), int(y & (Size - 1)), int(z & (Size - 1))
 }
 
 // Origin returns the world coordinate of the chunk's minimum corner.
 func (p ChunkPos) Origin() (x, y, z int32) { return p.X * Size, p.Y * Size, p.Z * Size }
 
-// Chunk is a 16³ block volume. A uniform chunk stores only its fill block.
+// Chunk is a Size³ block volume. A uniform chunk stores only its fill block.
 type Chunk struct {
 	blocks *[Volume]Block
 	fill   Block
@@ -34,7 +35,7 @@ func NewChunk(b Block) *Chunk { return &Chunk{fill: b} }
 
 func index(x, y, z int) int { return (y*Size+z)*Size + x }
 
-// Get returns the block at local coordinates (each 0–15).
+// Get returns the block at local coordinates (each 0 to Size-1).
 func (c *Chunk) Get(x, y, z int) Block {
 	if c.blocks == nil {
 		return c.fill

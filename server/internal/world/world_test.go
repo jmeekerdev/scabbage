@@ -96,10 +96,10 @@ func TestUnloadFlushesAndFreesChunks(t *testing.T) {
 
 func TestBorderLimitsChunksAndEdits(t *testing.T) {
 	w := openWorld(t, openDB(t))
-	if _, err := w.Chunk(ChunkPos{3, 0, -4}); err != nil {
+	if _, err := w.Chunk(ChunkPos{1, 0, -2}); err != nil {
 		t.Fatalf("edge chunk: %v", err)
 	}
-	for _, p := range []ChunkPos{{4, 0, 0}, {0, 0, -5}, {0, -1, 0}, {0, MaxY / Size, 0}} {
+	for _, p := range []ChunkPos{{2, 0, 0}, {0, 0, -3}, {0, -1, 0}, {0, MaxY / Size, 0}} {
 		if _, err := w.Chunk(p); !errors.Is(err, ErrOutside) {
 			t.Errorf("Chunk(%v) err = %v, want ErrOutside", p, err)
 		}
@@ -163,7 +163,7 @@ func TestEncodedChunkMatchesStoredBlocks(t *testing.T) {
 	if err := w.SetBlock(1, 40, 2, Brick); err != nil {
 		t.Fatal(err)
 	}
-	data, err := w.EncodedChunk(ChunkPos{0, 2, 0})
+	data, err := w.EncodedChunk(ChunkPos{0, 1, 0})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,20 +206,20 @@ func TestWorldIsSafeForConcurrentUse(t *testing.T) {
 
 func TestSolidWallsInTheBorderAndFloor(t *testing.T) {
 	w := openWorld(t, openDB(t))
-	if err := w.SetBlock(1, 100, 1, Stone); err != nil {
+	if err := w.SetBlock(1, 300, 1, Stone); err != nil {
 		t.Fatal(err)
 	}
-	if err := w.SetBlock(2, 100, 1, Water); err != nil {
+	if err := w.SetBlock(2, 300, 1, Water); err != nil {
 		t.Fatal(err)
 	}
 	cases := []struct {
 		x, y, z int32
 		want    bool
 	}{
-		{1, 100, 1, true},   // stone
-		{2, 100, 1, false},  // water
-		{3, 100, 1, false},  // air
-		{64, 100, 0, true},  // past the border
+		{1, 300, 1, true},   // stone
+		{2, 300, 1, false},  // water
+		{3, 300, 1, false},  // air
+		{64, 300, 0, true},  // past the border
 		{0, -1, 0, true},    // below the world
 		{0, MaxY, 0, false}, // open sky
 	}
@@ -255,27 +255,20 @@ func TestTickingBlocksAreIndexedWhileLoaded(t *testing.T) {
 	}
 }
 
-func TestUpgradeAddsDungeonsToVersion1Worlds(t *testing.T) {
+func TestOldScaleWorldsRefuseToOpen(t *testing.T) {
 	db := openDB(t)
-	if _, err := db.Exec(`INSERT INTO worlds (name, seed, generator, radius, created_ms) VALUES ('main', 42, 1, 64, 0)`); err != nil {
+	if _, err := db.Exec(`INSERT INTO worlds (name, seed, generator, radius, created_ms) VALUES ('main', 42, 2, 64, 0)`); err != nil {
 		t.Fatal(err)
 	}
-	if w, err := Open(NewStore(db), "main", Defaults{}); err != nil || w.Meta().Generator != 1 {
-		t.Fatalf("without upgrade: %+v, %v", w.Meta(), err)
-	}
-	w, err := Open(NewStore(db), "main", Defaults{Upgrade: true})
-	if err != nil || w.Meta().Generator != 2 {
-		t.Fatalf("upgraded: %+v, %v", w.Meta(), err)
-	}
-	if again, _ := Open(NewStore(db), "main", Defaults{}); again.Meta().Generator != 2 {
-		t.Fatal("the upgrade wasn't kept")
+	if _, err := Open(NewStore(db), "main", Defaults{}); !errors.Is(err, ErrOldScale) {
+		t.Fatalf("err = %v", err)
 	}
 }
 
 func TestTopIsJustAboveAColumnsHighestBlock(t *testing.T) {
 	w := openWorld(t, openDB(t))
 	y, err := w.Top(5, 5)
-	if err != nil || y <= NewGenV2(42).SurfaceY(5, 5) {
+	if err != nil || y <= NewGenV3(42).SurfaceY(5, 5) {
 		t.Fatalf("top = %d, %v", y, err)
 	}
 	if err := w.SetBlock(5, y+3, 5, Stone); err != nil {
@@ -289,55 +282,10 @@ func TestTopIsJustAboveAColumnsHighestBlock(t *testing.T) {
 	}
 }
 
-func TestAddDungeonsFillsUntouchedSavedLand(t *testing.T) {
-	db := openDB(t)
-	if _, err := db.Exec(`INSERT INTO worlds (name, seed, generator, radius, created_ms) VALUES ('main', 42, 1, 256, 0)`); err != nil {
-		t.Fatal(err)
-	}
-	old, err := Open(NewStore(db), "main", Defaults{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	g := NewGenV2(42)
-	untouched, _ := g.dungeonIn(2, 0)
-	built, _ := g.dungeonIn(-3, 2)
-	for _, d := range []dungeon{untouched, built} {
-		for _, p := range d.chunks() {
-			if _, err := old.Chunk(p); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	if err := old.SetBlock(built.x0, built.floor, built.z0, Glass); err != nil {
-		t.Fatal(err)
-	}
-	if err := old.Unload(); err != nil {
-		t.Fatal(err)
-	}
-
-	w, err := Open(NewStore(db), "main", Defaults{Upgrade: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n, err := w.AddDungeons(); err != nil || n != 1 {
-		t.Fatalf("added %d dungeons, %v", n, err)
-	}
-	back := untouched.x0 + roomOuter - 2
-	if b, _ := w.Block(back, untouched.floor+1, untouched.door()); b != BossAltar {
-		t.Errorf("untouched land has %v where the altar goes", b)
-	}
-	if b, _ := w.Block(built.x0, built.floor, built.z0); b != Glass {
-		t.Errorf("a built-on dungeon was dug in: %v", b)
-	}
-	if n, _ := w.AddDungeons(); n != 0 {
-		t.Errorf("a second run added %d", n)
-	}
-}
-
 func TestWipeForgetsEditsAndCanChangeTheSeed(t *testing.T) {
 	db := openDB(t)
 	w := openWorld(t, db)
-	if err := w.SetBlock(1, 100, 1, Brick); err != nil {
+	if err := w.SetBlock(1, 300, 1, Brick); err != nil {
 		t.Fatal(err)
 	}
 	if err := w.Flush(); err != nil {
@@ -346,7 +294,7 @@ func TestWipeForgetsEditsAndCanChangeTheSeed(t *testing.T) {
 	if err := w.Wipe(42); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := w.Block(1, 100, 1); b != Air || w.Meta().Seed != 42 {
+	if b, _ := w.Block(1, 300, 1); b != Air || w.Meta().Seed != 42 {
 		t.Fatalf("after reset: block %v, seed %d", b, w.Meta().Seed)
 	}
 	fresh, _ := Open(NewStore(openDB(t)), "main", Defaults{Seed: 7, Radius: 64})

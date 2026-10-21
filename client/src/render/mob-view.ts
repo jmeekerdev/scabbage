@@ -2,6 +2,7 @@ import { BoxGeometry, Group, type Material, Mesh, type Scene } from "three";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
 import type { MobState } from "../player/mobs";
 import { daylit, shaded } from "./avatars";
+import { METRE } from "../world/constants";
 
 const box = (w: number, h: number, d: number) => shaded(new BoxGeometry(w, h, d));
 const paint = (color: number, opacity = 1) =>
@@ -102,7 +103,8 @@ const BUILDERS: Partial<Record<MobKind, () => Group>> = {
 };
 
 interface Figure {
-  group: Group;
+  group: Group; // placed in the world, squashed by hops
+  body: Group; // modelled in metres, scaled to blocks
   hopMs: number; // time spent moving, for the slime's bounce
   last?: MobState;
 }
@@ -128,7 +130,9 @@ export class MobView {
   }
 
   private add(m: MobState): Figure {
-    const f = { group: (BUILDERS[m.kind] ?? sheep)(), hopMs: 0 };
+    const body = (BUILDERS[m.kind] ?? sheep)();
+    body.scale.setScalar(METRE);
+    const f = { group: new Group().add(body), body, hopMs: 0 };
     f.group.name = `mob ${m.id}`;
     this.scene.add(f.group);
     this.figures.set(m.id, f);
@@ -143,7 +147,7 @@ export class MobView {
     f.group.rotation.y = m.yaw;
     if (m.kind === MobKind.SLIME || m.kind === MobKind.KING_SLIME) bounce(f.group, f.hopMs);
     if (m.kind === MobKind.GOLEM) f.group.rotation.z = 0.05 * Math.sin(f.hopMs / 250);
-    const wool = f.group.children[0] as Mesh;
+    const wool = f.body.children[0] as Mesh;
     if (m.kind === MobKind.SHEEP) wool.userData.paint = m.sheared ? paints.skin : paints.wool;
     f.group.traverse((c) => {
       if (c instanceof Mesh) c.material = m.hurt ? paints.hurt : (c.userData.paint as Material);
@@ -158,6 +162,6 @@ function bounce(g: Group, hopMs: number): void {
     return;
   }
   const phase = Math.abs(Math.sin((hopMs / 400) * Math.PI));
-  g.position.y += 0.3 * phase;
+  g.position.y += 0.3 * METRE * phase;
   g.scale.set(1 + 0.1 * (1 - phase), 0.85 + 0.15 * phase, 1 + 0.1 * (1 - phase));
 }

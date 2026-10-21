@@ -2,17 +2,18 @@ import { MobKind } from "../pb/scabbage/v1/net_pb";
 import { rayBox, type Vec3 } from "../world/raycast";
 import type { Pose } from "./move-sync";
 import { sampleAt, type Snapshot } from "./remote-players";
+import { METRE } from "../world/constants";
 
-export const MOB_REACH = 4;
+export const MOB_REACH = 4 * METRE;
 export const MOB_STEP_MS = 100; // how often the server moves mobs; mobs.Every on the server
 const HURT_MS = 300;
 
 /** Mob sizes; must match server/internal/mobs/ai.go. */
 export const MOB_SIZE: Record<number, { halfWidth: number; height: number }> = {
-  [MobKind.SHEEP]: { halfWidth: 0.45, height: 1.3 },
-  [MobKind.SLIME]: { halfWidth: 0.4, height: 0.8 },
-  [MobKind.KING_SLIME]: { halfWidth: 1, height: 2 },
-  [MobKind.GOLEM]: { halfWidth: 0.6, height: 2.6 },
+  [MobKind.SHEEP]: { halfWidth: 0.45 * METRE, height: 1.3 * METRE },
+  [MobKind.SLIME]: { halfWidth: 0.4 * METRE, height: 0.8 * METRE },
+  [MobKind.KING_SLIME]: { halfWidth: 1 * METRE, height: 2 * METRE },
+  [MobKind.GOLEM]: { halfWidth: 0.6 * METRE, height: 2.6 * METRE },
 };
 
 export interface MobInfo {

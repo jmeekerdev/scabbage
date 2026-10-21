@@ -1,7 +1,9 @@
-const STRIDE = 1.5; // blocks between footsteps
-const MAX_STEP = 1; // blocks per frame; more than this is a teleport
-const NEAR = 4; // blocks within which sounds play at full volume
-const FAR = 24; // blocks beyond which sounds are silent
+import { METRE } from "../world/constants";
+
+const STRIDE = 1.5 * METRE; // blocks between footsteps
+const MAX_STEP = 1 * METRE; // blocks per frame; more than this is a teleport
+const NEAR = 4 * METRE; // blocks within which sounds play at full volume
+const FAR = 24 * METRE; // blocks beyond which sounds are silent
 
 interface Walker {
   x: number;

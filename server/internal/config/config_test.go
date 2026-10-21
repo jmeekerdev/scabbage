@@ -15,7 +15,7 @@ func TestDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := Config{Addr: ":8080", WebDir: "web", DataDir: "data", ServerName: "Scabbage", TickRate: 20,
-		Backups: 7, BackupHour: 4, Mode: "creative", SpawnZone: 16}
+		Backups: 7, BackupHour: 4, Mode: "creative", SpawnZone: 48}
 	if !reflect.DeepEqual(c, want) {
 		t.Fatalf("got %+v, want %+v", c, want)
 	}
@@ -87,16 +87,5 @@ func TestGameMode(t *testing.T) {
 	}
 	if _, err := Load(nil, env(map[string]string{"SCABBAGE_MODE": "flying"})); err == nil {
 		t.Fatal("expected error for an unknown mode")
-	}
-}
-
-func TestUpgradeWorldFromFlagOrEnv(t *testing.T) {
-	byFlag, err := Load([]string{"-upgrade-world"}, env(nil))
-	if err != nil || !byFlag.Upgrade {
-		t.Fatalf("flag: %+v, %v", byFlag, err)
-	}
-	byEnv, err := Load(nil, env(map[string]string{"SCABBAGE_UPGRADE_WORLD": "1"}))
-	if err != nil || !byEnv.Upgrade {
-		t.Fatalf("env: %+v, %v", byEnv, err)
 	}
 }

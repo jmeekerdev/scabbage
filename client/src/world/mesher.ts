@@ -1,14 +1,14 @@
 import { CHUNK_SIZE as S } from "./constants";
 import { SHAPE_BOXES, Shape, type Box } from "./shapes";
 
-/** Mesh positions and uvs count eighths of a block, so shapes like slabs fit in bytes. */
+/** Mesh positions and uvs count eighths of a block, so shapes like slabs land on whole numbers. */
 export const POSITION_SCALE = 8;
 
 /** Padded volumes hold a chunk plus a one-block border copied from its neighbors. */
 export const PADDED = S + 2;
 export const PADDED_VOLUME = PADDED ** 3;
 
-/** Index into a padded volume; each coordinate runs from -1 to 16. */
+/** Index into a padded volume; each coordinate runs from -1 to CHUNK_SIZE. */
 export function paddedIndex(x: number, y: number, z: number): number {
   return ((y + 1) * PADDED + (z + 1)) * PADDED + (x + 1);
 }
@@ -33,8 +33,8 @@ export interface RenderTable {
 }
 
 export interface MeshData {
-  positions: Uint8Array; // chunk-local corners in eighths, 0–128
-  uvs: Uint8Array; // in eighths, so textures repeat once per block
+  positions: Uint16Array; // chunk-local corners in eighths, 0 to CHUNK_SIZE * 8
+  uvs: Uint16Array; // in eighths, so textures repeat once per block
   faces: Uint8Array;
   layers: Uint16Array;
   ao: Uint8Array; // 0 (tucked in a corner) to 3 (open), per vertex
@@ -71,8 +71,18 @@ export function meshChunk(blocks: Uint16Array, table: RenderTable, light?: Uint8
         const block = key & 0xffff;
         const out = table.translucent[block] ? translucent : opaque;
         const plane = (face & 1 ? slice : slice + 1) * POSITION_SCALE;
-        const rect = [i, j, i + w, j + h].map((c) => c * POSITION_SCALE);
-        out.quad(face, plane, rect, table.layers[block * 6 + face], key >>> 16, light);
+        const P = POSITION_SCALE;
+        out.quad(
+          face,
+          plane,
+          i * P,
+          j * P,
+          (i + w) * P,
+          (j + h) * P,
+          table.layers[block * 6 + face],
+          key >>> 16,
+          light,
+        );
       });
     }
   }
@@ -123,7 +133,7 @@ function emitBoxFace(
   const [d, u, v] = axes(face);
   const at = (a: number, hi: boolean) => cell[a] * POSITION_SCALE + box[hi ? a + 3 : a];
   const plane = at(d, (face & 1) === 0);
-  out.quad(face, plane, [at(u, false), at(v, false), at(u, true), at(v, true)], layer, OPEN, light);
+  out.quad(face, plane, at(u, false), at(v, false), at(u, true), at(v, true), layer, OPEN, light);
 }
 
 function lightAt(vol: Volume, x: number, y: number, z: number): number {
@@ -144,6 +154,9 @@ const CORNERS = [
   [-1, 1],
 ] as const;
 
+/** Index steps along x, y and z in a padded volume. */
+const STRIDE = [1, PADDED * PADDED, PADDED] as const;
+
 /**
  * Marks each visible cube face cell with its block and corner shading (block | ao << 16),
  * or 0, and its four corner light levels packed 4 bits each.
@@ -155,19 +168,25 @@ function fillMask(
   face: number,
   slice: number,
 ): void {
+  const { blocks, table } = vol;
   const [d, u, v] = axes(face);
-  const n = FACE_NORMALS[face];
-  const p = [0, 0, 0];
-  p[d] = slice;
+  const su = STRIDE[u];
+  const sv = STRIDE[v];
+  const toFront = FACE_NORMALS[face][d] * STRIDE[d];
+  const origin = paddedIndex(0, 0, 0) + slice * STRIDE[d];
   for (let j = 0; j < S; j++) {
     for (let i = 0; i < S; i++) {
-      p[u] = i;
-      p[v] = j;
-      const block = vol.blocks[paddedIndex(p[0], p[1], p[2])];
-      const next = vol.blocks[paddedIndex(p[0] + n[0], p[1] + n[1], p[2] + n[2])];
-      const visible = faceVisible(block, next, vol.table);
-      mask[i + j * S] = visible ? block | (cornerShades(vol, p, n, u, v) << 16) : 0;
-      lights[i + j * S] = visible && vol.light ? cornerLights(vol, p, n, u, v) : 0;
+      const at = origin + i * su + j * sv;
+      const block = blocks[at];
+      const front = at + toFront;
+      const k = i + j * S;
+      if (!faceVisible(block, blocks[front], table)) {
+        mask[k] = 0;
+        lights[k] = 0;
+        continue;
+      }
+      mask[k] = block | (cornerShades(vol, front, su, sv) << 16);
+      lights[k] = vol.light ? cornerLights(vol, vol.light, front, su, sv) : 0;
     }
   }
 }
@@ -175,50 +194,46 @@ function fillMask(
 /** Smooth light per face corner: the average of the open cells around it in front of the face. */
 function cornerLights(
   vol: Volume,
-  p: number[],
-  n: readonly number[],
-  u: number,
-  v: number,
+  light: Uint8Array,
+  front: number,
+  su: number,
+  sv: number,
 ): number {
-  const front = [p[0] + n[0], p[1] + n[1], p[2] + n[2]];
-  const cell = (du: number, dv: number) => {
-    const q = [...front];
-    q[u] += du;
-    q[v] += dv;
-    const open = vol.table.transparent[vol.blocks[paddedIndex(q[0], q[1], q[2])]] === 1;
-    return open ? lightAt(vol, q[0], q[1], q[2]) : -1;
-  };
+  const { blocks, table } = vol;
+  const open = (at: number) => (table.transparent[blocks[at]] === 1 ? light[at] : -1);
+  const center = open(front);
   let packed = 0;
-  CORNERS.forEach(([cu, cv], k) => {
-    const [a, b] = [cell(cu, 0), cell(0, cv)];
-    const around = [cell(0, 0), a, b, a < 0 && b < 0 ? -1 : cell(cu, cv)].filter((l) => l >= 0);
-    const avg = Math.round(around.reduce((s, l) => s + l, 0) / around.length);
-    packed |= avg << (k * 4);
-  });
+  for (let k = 0; k < 4; k++) {
+    const du = CORNERS[k][0] * su;
+    const dv = CORNERS[k][1] * sv;
+    const a = open(front + du);
+    const b = open(front + dv);
+    const c = a < 0 && b < 0 ? -1 : open(front + du + dv);
+    let sum = 0;
+    let count = 0;
+    for (const l of [center, a, b, c])
+      if (l >= 0) {
+        sum += l;
+        count++;
+      }
+    packed |= Math.round(sum / count) << (k * 4);
+  }
   return packed;
 }
 
 /** Packs 2-bit occlusion for each face corner, from the blocks around the cell in front. */
-function cornerShades(
-  vol: Volume,
-  p: number[],
-  n: readonly number[],
-  u: number,
-  v: number,
-): number {
-  const solid = (du: number, dv: number) => {
-    const q = [p[0] + n[0], p[1] + n[1], p[2] + n[2]];
-    q[u] += du;
-    q[v] += dv;
-    return vol.table.transparent[vol.blocks[paddedIndex(q[0], q[1], q[2])]] === 0 ? 1 : 0;
-  };
+function cornerShades(vol: Volume, front: number, su: number, sv: number): number {
+  const { blocks, table } = vol;
+  const solid = (at: number) => (table.transparent[blocks[at]] === 0 ? 1 : 0);
   let packed = 0;
-  CORNERS.forEach(([cu, cv], k) => {
-    const a = solid(cu, 0);
-    const b = solid(0, cv);
-    const ao = a && b ? 0 : 3 - a - b - solid(cu, cv);
+  for (let k = 0; k < 4; k++) {
+    const du = CORNERS[k][0] * su;
+    const dv = CORNERS[k][1] * sv;
+    const a = solid(front + du);
+    const b = solid(front + dv);
+    const ao = a && b ? 0 : 3 - a - b - solid(front + du + dv);
     packed |= ao << (k * 2);
-  });
+  }
   return packed;
 }
 
@@ -233,24 +248,25 @@ function greedy(
   lights: Int32Array,
   emit: (key: number, light: number, i: number, j: number, w: number, h: number) => void,
 ): void {
-  const same = (k: number, key: number, light: number) => mask[k] === key && lights[k] === light;
   for (let j = 0; j < S; j++) {
     for (let i = 0; i < S;) {
-      const key = mask[i + j * S];
-      const light = lights[i + j * S];
+      const k = i + j * S;
+      const key = mask[k];
       if (key === 0) {
         i++;
         continue;
       }
+      const light = lights[k];
       let w = 1;
-      while (i + w < S && same(i + w + j * S, key, light)) w++;
+      while (i + w < S && mask[k + w] === key && lights[k + w] === light) w++;
       let h = 1;
-      const rowMatches = (row: number) => {
-        for (let k = i; k < i + w; k++) if (!same(k + row * S, key, light)) return false;
-        return true;
-      };
-      while (j + h < S && rowMatches(j + h)) h++;
-      for (let y = j; y < j + h; y++) mask.fill(0, i + y * S, i + w + y * S);
+      grow: while (j + h < S) {
+        const row = k + h * S;
+        for (let x = 0; x < w; x++)
+          if (mask[row + x] !== key || lights[row + x] !== light) break grow;
+        h++;
+      }
+      for (let y = 0; y < h; y++) mask.fill(0, k + y * S, k + y * S + w);
       emit(key, light, i, j, w, h);
       i += w;
     }
@@ -270,19 +286,22 @@ const CHUNK_SPAN = S * POSITION_SCALE;
 
 /** Accumulates quads into growable typed arrays. */
 class MeshBuilder {
-  private positions = new Uint8Array(256 * 3);
-  private uvs = new Uint8Array(256 * 2);
+  private positions = new Uint16Array(256 * 3);
+  private uvs = new Uint16Array(256 * 2);
   private faces = new Uint8Array(256);
   private layers = new Uint16Array(256);
   private ao = new Uint8Array(256);
   private light = new Uint8Array(256);
   private vertices = 0;
 
-  /** One face rectangle [u0, v0, u1, v1] lying in `plane` along the face's normal axis. */
+  /** One face rectangle from (u0, v0) to (u1, v1) lying in `plane` along the face's normal axis. */
   quad(
     face: number,
     plane: number,
-    [u0, v0, u1, v1]: number[],
+    u0: number,
+    v0: number,
+    u1: number,
+    v1: number,
     layer: number,
     shades: number,
     lights: number,
@@ -290,21 +309,15 @@ class MeshBuilder {
     this.reserve(this.vertices + 4);
     const [d, u, v] = axes(face);
     const [tu, tv] = TEX_AXES[d];
-    const corners = [
-      [u0, v0],
-      [u1, v0],
-      [u1, v1],
-      [u0, v1],
-    ];
-    for (const [c, [cu, cv]] of corners.entries()) {
-      const p = [0, 0, 0];
-      p[d] = plane;
-      p[u] = cu;
-      p[v] = cv;
+    for (let c = 0; c < 4; c++) {
       const k = this.vertices++;
-      this.positions.set(p, k * 3);
-      this.uvs[k * 2] = FLIP_U[face] ? CHUNK_SPAN - p[tu] : p[tu];
-      this.uvs[k * 2 + 1] = p[tv];
+      const p = k * 3;
+      this.positions[p + d] = plane;
+      this.positions[p + u] = c === 1 || c === 2 ? u1 : u0;
+      this.positions[p + v] = c >= 2 ? v1 : v0;
+      const texU = this.positions[p + tu];
+      this.uvs[k * 2] = FLIP_U[face] ? CHUNK_SPAN - texU : texU;
+      this.uvs[k * 2 + 1] = this.positions[p + tv];
       this.faces[k] = face;
       this.layers[k] = layer;
       this.ao[k] = (shades >> (c * 2)) & 3;

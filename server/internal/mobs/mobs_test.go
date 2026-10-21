@@ -37,16 +37,6 @@ func (f field) Boxes(x, y, z int32) []world.Box {
 	return world.Info(b).Boxes()
 }
 
-func wall(x0, x1, y0, y1, z int32) field {
-	f := field{}
-	for x := x0; x <= x1; x++ {
-		for y := y0; y <= y1; y++ {
-			f[[3]int32{x, y, z}] = world.Stone
-		}
-	}
-	return f
-}
-
 func steps(h *Herd, from time.Time, n int, players []Player, g Ground) (time.Time, Changes) {
 	var all Changes
 	now := from
@@ -83,21 +73,29 @@ func TestSheepWanderAndStayOnTheGround(t *testing.T) {
 	}
 }
 
-func TestMobsClimbOneBlockButNotTwo(t *testing.T) {
-	g := wall(-5, 5, 10, 10, 2)
-	for x := int32(-5); x <= 5; x++ {
-		g[[3]int32{x, 10, 6}], g[[3]int32{x, 11, 6}] = world.Stone, world.Stone
+func TestMobsClimbOneMetreButNotTwo(t *testing.T) {
+	g := field{}
+	for x := int32(-8); x <= 8; x++ {
+		for z := int32(4); z <= 12; z++ {
+			top := int32(9 + metre) // a one-metre step...
+			if z == 12 {
+				top += 2 * metre // ...then a wall two metres above it
+			}
+			for y := int32(10); y <= top; y++ {
+				g[[3]int32{x, y, z}] = world.Stone
+			}
+		}
 	}
 	h := New(1, true)
 	h.Add(Slime, at(0.5, 10, 0.5), midnight)
-	prey := []Player{{Pos: at(0.5, 12, 9.5), Prey: true}}
+	prey := []Player{{Pos: at(0.5, 10+3*metre, 20.5), Prey: true}}
 	_, c := steps(h, midnight, 100, prey, g)
 	climbed := false
 	for _, m := range c.Moved {
-		climbed = climbed || m.Pos.Y == 11
+		climbed = climbed || m.Pos.Y == 10+metre
 	}
 	m := h.All()[0]
-	if !climbed || m.Pos.Y != 10 || m.Pos.Z < 3 || m.Pos.Z > 6 {
+	if !climbed || m.Pos.Y != 10+metre || m.Pos.Z < 4 || m.Pos.Z > 12 {
 		t.Fatalf("climbed=%v, slime at %+v, want over the step and stopped by the wall", climbed, m.Pos)
 	}
 }
@@ -179,8 +177,8 @@ func TestSlimesPopAfterThreeHits(t *testing.T) {
 func TestHitsNeedReach(t *testing.T) {
 	h := New(1, true)
 	m := h.Add(Sheep, at(0.5, 10, 0.5), noon)
-	if _, ok := h.Hit(m.ID, at(10, 11.6, 0.5), noon); ok {
-		t.Fatal("hit from 10 blocks away")
+	if _, ok := h.Hit(m.ID, at(10*metre, 11.6, 0.5), noon); ok {
+		t.Fatal("hit from 10 m away")
 	}
 	if _, ok := h.Hit(m.ID+1, at(1, 11.6, 0.5), noon); ok {
 		t.Fatal("hit a mob that isn't there")

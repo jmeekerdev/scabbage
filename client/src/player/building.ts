@@ -1,9 +1,10 @@
 import { lookDirection, raycast, type RayHit, type Vec3 } from "../world/raycast";
 import { isStairs, pistonFacing, Shape, stairsFacing } from "../world/shapes";
 import { HALF_WIDTH, HEIGHT, type Body } from "./physics";
+import { METRE } from "../world/constants";
 
 /** How far the eye reaches; server/internal/edit allows a little more. */
-export const REACH = 5;
+export const REACH = 5 * METRE;
 const AIR = 0;
 
 /** What the building rules need to know about the world; mirrors server/internal/edit. */

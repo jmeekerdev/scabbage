@@ -11,9 +11,9 @@ import (
 
 const (
 	spawnEvery      = time.Second
-	near            = 16.0 // mobs appear no closer to anyone than this...
-	spawnFar        = 32.0 // ...and no farther than this from someone
-	leaveRange      = 64.0 // and vanish beyond this from everyone
+	near            = 16.0 * metre // mobs appear no closer to anyone than this...
+	spawnFar        = 32.0 * metre // ...and no farther than this from someone
+	leaveRange      = 64.0 * metre // and vanish beyond this from everyone
 	maxSheep        = 10
 	monstersPerPrey = 4
 	maxMonsters     = 16

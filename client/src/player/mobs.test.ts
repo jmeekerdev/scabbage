@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
 import { type MobInfo, Mobs, pickMob } from "./mobs";
+import { METRE } from "../world/constants";
 
 const sheep = (x: number, more: Partial<MobInfo> = {}): MobInfo => ({
   id: 7,
@@ -50,24 +51,25 @@ describe("Mobs", () => {
 
 describe("pickMob", () => {
   const m = new Mobs(100);
-  m.change([sheep(0, { pos: { x: 0, y: 10, z: -3 } })], [], 0);
+  m.change([sheep(0, { pos: { x: 0, y: 10, z: -3 * METRE } })], [], 0);
   const mobs = m.sample(0);
+  const eye = 10 + 0.5 * METRE;
 
   it("finds the mob the ray points at, with its distance", () => {
-    const hit = pickMob([0, 10.5, 0], [0, 0, -1], mobs, 4);
+    const hit = pickMob([0, eye, 0], [0, 0, -1], mobs, 4 * METRE);
     expect(hit?.id).toBe(7);
-    expect(hit?.distance).toBeCloseTo(3 - 0.45);
+    expect(hit?.distance).toBeCloseTo((3 - 0.45) * METRE);
   });
 
   it("hits a golem's tall body", () => {
     const g = new Mobs(100);
-    g.change([sheep(0, { kind: MobKind.GOLEM, pos: { x: 0, y: 10, z: -3 } })], [], 0);
-    expect(pickMob([0, 12.3, 0], [0, 0, -1], g.sample(0), 4)?.id).toBe(7);
+    g.change([sheep(0, { kind: MobKind.GOLEM, pos: { x: 0, y: 10, z: -3 * METRE } })], [], 0);
+    expect(pickMob([0, 10 + 2.3 * METRE, 0], [0, 0, -1], g.sample(0), 4 * METRE)?.id).toBe(7);
   });
 
   it("misses mobs off to the side or out of reach", () => {
-    expect(pickMob([2, 10.5, 0], [0, 0, -1], mobs, 4)).toBeUndefined();
-    expect(pickMob([0, 10.5, 0], [0, 0, -1], mobs, 2)).toBeUndefined();
-    expect(pickMob([0, 10.5, 0], [0, 0, 1], mobs, 4)).toBeUndefined();
+    expect(pickMob([2 * METRE, eye, 0], [0, 0, -1], mobs, 4 * METRE)).toBeUndefined();
+    expect(pickMob([0, eye, 0], [0, 0, -1], mobs, 2 * METRE)).toBeUndefined();
+    expect(pickMob([0, eye, 0], [0, 0, 1], mobs, 4 * METRE)).toBeUndefined();
   });
 });

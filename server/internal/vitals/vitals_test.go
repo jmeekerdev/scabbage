@@ -3,24 +3,29 @@ package vitals
 import (
 	"testing"
 	"time"
+
+	"scabbage/internal/world"
 )
 
 var t0 = time.Unix(1000, 0)
 
 // fall drops from y=20 by blocks through the air and lands with the given footing.
-func fall(s *State, blocks float64, land Footing) int {
-	s.Fall(20, Ground)
-	for y := 20.0; y > 20-blocks; y-- {
-		s.Fall(y, Air)
+const m = world.Metre
+
+// fall drops a player the given metres from y = 20 m onto land.
+func fall(s *State, metres float64, land Footing) int {
+	s.Fall(20*m, Ground)
+	for y := 20.0; y > 20-metres; y-- {
+		s.Fall(y*m, Air)
 	}
-	return s.Fall(20-blocks, land)
+	return s.Fall((20-metres)*m, land)
 }
 
 func TestShortFallsAreSafe(t *testing.T) {
 	s := New(t0)
 	for _, h := range []float64{1, 2, 3} {
 		if d := fall(s, h, Ground); d != 0 {
-			t.Errorf("falling %v blocks hurt %d", h, d)
+			t.Errorf("falling %v m hurt %d", h, d)
 		}
 	}
 }
@@ -28,18 +33,18 @@ func TestShortFallsAreSafe(t *testing.T) {
 func TestLongFallsHurtMoreTheHigherTheyAre(t *testing.T) {
 	s := New(t0)
 	if d := fall(s, 4, Ground); d != 1 {
-		t.Errorf("4 blocks hurt %d, want 1", d)
+		t.Errorf("4 m hurt %d, want 1", d)
 	}
 	if d := fall(s, 10, Ground); d != 7 {
-		t.Errorf("10 blocks hurt %d, want 7", d)
+		t.Errorf("10 m hurt %d, want 7", d)
 	}
 }
 
 func TestJumpsCountFromTheirHighestPoint(t *testing.T) {
 	s := New(t0)
-	s.Fall(10, Ground)
-	s.Fall(11.2, Air)
-	if d := s.Fall(6, Ground); d != 2 {
+	s.Fall(10*m, Ground)
+	s.Fall(11.2*m, Air)
+	if d := s.Fall(6*m, Ground); d != 2 {
 		t.Errorf("hurt %d, want 2", d)
 	}
 }

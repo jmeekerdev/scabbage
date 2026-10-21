@@ -25,27 +25,27 @@ func TestNoiseIsDeterministicAndBounded(t *testing.T) {
 }
 
 func TestGenerateIsDeterministic(t *testing.T) {
-	p := ChunkPos{3, 1, -2}
-	a := Encode(NewGenV1(42).Generate(p))
-	if !bytes.Equal(a, Encode(NewGenV1(42).Generate(p))) {
+	p := ChunkPos{3, 3, -2}
+	a := Encode(NewGenV3(42).Generate(p))
+	if !bytes.Equal(a, Encode(NewGenV3(42).Generate(p))) {
 		t.Fatal("same seed and position gave different chunks")
 	}
-	if bytes.Equal(a, Encode(NewGenV1(43).Generate(p))) {
+	if bytes.Equal(a, Encode(NewGenV3(43).Generate(p))) {
 		t.Fatal("different seeds gave identical chunks")
 	}
 }
 
-func TestGenV1Layers(t *testing.T) {
-	g := NewGenV1(42)
+func TestGenV3Layers(t *testing.T) {
+	g := NewGenV3(42)
 	bottom := g.Generate(ChunkPos{0, 0, 0})
-	if bottom.Get(5, 0, 5) != Bedrock {
-		t.Error("y=0 should be bedrock")
+	if bottom.Get(5, 0, 5) != Bedrock || bottom.Get(5, Metre-1, 5) != Bedrock {
+		t.Error("the bottom metre should be bedrock")
 	}
 	if top := g.Generate(ChunkPos{0, MaxY/Size - 1, 0}); !top.Uniform() || top.Get(0, 0, 0) != Air {
 		t.Error("the top chunk should be empty air")
 	}
 	h := g.SurfaceY(5, 5)
-	if h < 1 || h >= MaxY-16 {
+	if h < Metre || h >= MaxY-Size {
 		t.Fatalf("surface %d out of range", h)
 	}
 	surface := blockAt(g, 5, h, 5)
@@ -59,11 +59,12 @@ func TestGenV1Layers(t *testing.T) {
 
 // Trees near chunk edges must be complete in every chunk they touch.
 func TestTreesAreSeamless(t *testing.T) {
-	g := NewGenV1(42)
+	g := NewGenV3(42)
 	at := cachedBlocks(g)
 	tops := 0
-	for cx := int32(-4); cx < 4; cx++ {
-		for cz := int32(-4); cz < 4; cz++ {
+	beside := [][2]int32{{Metre, 0}, {-1, 0}, {0, Metre}, {0, -1}}
+	for cx := int32(-3); cx < 3; cx++ {
+		for cz := int32(-3); cz < 3; cz++ {
 			for x := cx * Size; x < (cx+1)*Size; x++ {
 				for z := cz * Size; z < (cz+1)*Size; z++ {
 					top, ok := treeTop(g, at, x, z)
@@ -71,7 +72,7 @@ func TestTreesAreSeamless(t *testing.T) {
 						continue
 					}
 					tops++
-					for _, d := range [][2]int32{{1, 0}, {-1, 0}, {0, 1}, {0, -1}} {
+					for _, d := range beside {
 						if b := at(x+d[0], top, z+d[1]); b != Leaves && b != Log {
 							t.Fatalf("tree at %d,%d missing leaves at %d,%d: %v", x, z, x+d[0], z+d[1], b)
 						}
@@ -85,29 +86,16 @@ func TestTreesAreSeamless(t *testing.T) {
 	}
 }
 
-// Golden hashes pin generator v1: if this fails, the change needs a new generator version.
-func TestGenV1Golden(t *testing.T) {
-	g := NewGenV1(42)
+// Golden hashes pin generator v3, through the room and arch of the dungeon in region -4,-4.
+func TestGenV3Golden(t *testing.T) {
+	g := NewGenV3(42)
 	h := sha256.New()
-	for _, p := range []ChunkPos{{0, 1, 0}, {0, 2, 0}, {-3, 1, 5}, {7, 2, -7}} {
+	for _, p := range []ChunkPos{{0, 3, 0}, {0, 4, 0}, {-19, 2, -20}, {-22, 3, -20}} {
 		h.Write(Encode(g.Generate(p)))
 	}
-	const want = "1c3797855e1b776cd9f43896adf538755bb01ff77cc9933e226a07a39236f283"
+	const want = "accb9233fb202f21d2f2e0d2ba498f8d31e705ada9d612a12ea957569cfafb43"
 	if got := hex.EncodeToString(h.Sum(nil)); got != want {
-		t.Fatalf("generator v1 output changed: %s", got)
-	}
-}
-
-// Golden hashes pin generator v2, through the dungeon in region 2,0.
-func TestGenV2Golden(t *testing.T) {
-	g := NewGenV2(42)
-	h := sha256.New()
-	for _, p := range []ChunkPos{{0, 1, 0}, {11, 1, 1}, {10, 1, 1}, {10, 2, 1}} {
-		h.Write(Encode(g.Generate(p)))
-	}
-	const want = "b1f3c36bf3f993663892173683d44fdc670c445645976292db78c56f00464c96"
-	if got := hex.EncodeToString(h.Sum(nil)); got != want {
-		t.Fatalf("generator v2 output changed: %s", got)
+		t.Fatalf("generator v3 output changed: %s", got)
 	}
 }
 
@@ -128,13 +116,13 @@ func cachedBlocks(g Generator) func(x, y, z int32) Block {
 	}
 }
 
-// treeTop returns the y of the topmost log if column x,z holds a trunk.
-func treeTop(g *GenV1, at func(x, y, z int32) Block, x, z int32) (int32, bool) {
-	h := g.SurfaceY(x, z)
-	if at(x, h+1, z) != Log {
+// treeTop returns the y of the topmost log if column x,z is a trunk's corner.
+func treeTop(g *GenV3, at func(x, y, z int32) Block, x, z int32) (int32, bool) {
+	t, ok := g.treeAt(floorDiv(x, Metre), floorDiv(z, Metre))
+	if !ok || t.x != x || t.z != z || at(x, t.ground+1, z) != Log {
 		return 0, false
 	}
-	y := h + 1
+	y := t.ground + 1
 	for at(x, y+1, z) == Log {
 		y++
 	}
@@ -142,14 +130,14 @@ func treeTop(g *GenV1, at func(x, y, z int32) Block, x, z int32) (int32, bool) {
 }
 
 func BenchmarkGenerateSurfaceChunk(b *testing.B) {
-	g := NewGenV1(42)
+	g := NewGenV3(42)
 	for i := range b.N {
-		g.Generate(ChunkPos{int32(i % 64), 2, int32(i / 64 % 64)})
+		g.Generate(ChunkPos{int32(i % 64), 3, int32(i / 64 % 64)})
 	}
 }
 
 func BenchmarkEncodeSurfaceChunk(b *testing.B) {
-	c := NewGenV1(42).Generate(ChunkPos{0, 2, 0})
+	c := NewGenV3(42).Generate(ChunkPos{0, 3, 0})
 	b.ReportAllocs()
 	for range b.N {
 		Encode(c)

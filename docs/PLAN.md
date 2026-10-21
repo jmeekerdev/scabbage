@@ -323,6 +323,31 @@ Each phase ends with something the family can play. Compact the model context be
       players, inventories (minus custom blocks) and journals, sends everyone to the new spawn and has their
       clients reconnect; refused while a game is being played)
 
+### Phase 8 — Finer world (blocks a third the size)
+Every old block becomes 3×3×3 small blocks, one world unit is still one block, and the world starts fresh
+(generator v3; old worlds and `.scabmap` files are refused). Each step is measured against the 2 GB /
+2-core budget before moving on.
+- [x] Core scale: 32-block chunks, height 384, radius 1536; Uint16 mesh positions; every body, speed,
+      reach, range and timing ×3 on both sides, kept in one shared table of numbers; protocol bump;
+      v3 land is v2's shapes scaled up; measure chunk bytes, server memory and meshing time
+      (`world.Metre` / `METRE` = 3 and sizes are written in metres times it; players step up 1.5 blocks;
+      generator v3 replaces v1/v2 and `-upgrade-world` is gone, and older worlds refuse to open;
+      chunk encoding v2; protocol 22; mobs walk in half-block strides; view presets 4/6/9 chunks.
+      Measured: a surface chunk is ~0.7–3.4 KB encoded and ~1 ms to generate; meshing ~5 ms per chunk
+      after removing per-cell allocations (no WASM needed yet); the server grew to ~240 MB after
+      visiting three places, so memory eviction is next)
+- [ ] Server memory: clean chunks far from every player leave memory, so a big world stays inside 2 GB
+- [ ] Light and look: lamps reach about as far as before (more light levels), textures stay 16 px per small
+      block with a slight per-block tint so ground doesn't show a grid; camera, fog and view presets in
+      metres rather than chunks
+- [ ] Building at the new scale: brush sizes 1, 2 and 3 (3 = an old block) for placing and digging,
+      faster mining per block, a higher edit rate and bigger stacks
+- [ ] Rescale content: mobs and avatars, dungeons, the sample adventure, zones and arenas; map files keep
+      only the heights they use, with a smaller side limit
+- [ ] Generator v3 detail, so it has its own character: finer hills, rocks and boulders, grass tufts,
+      flowers, bushes, varied tree shapes, pebbled beaches and stepped banks
+- [ ] Far land: a cheap low-detail ring past the view distance, if the finer world needs it
+
 ## Open questions
 
 1. **Public access:** how will family outside the house reach the server: a port forward to

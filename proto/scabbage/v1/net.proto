@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 21;
+  PROTOCOL_VERSION_CURRENT = 22;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.

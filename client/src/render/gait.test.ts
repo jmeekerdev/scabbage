@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Gait } from "./gait";
+import { METRE } from "../world/constants";
 
 /** Feeds the gait one 50 ms frame per x position and returns the limb swings seen. */
 function walk(xs: number[]): number[] {
@@ -13,14 +14,17 @@ describe("Gait", () => {
   });
 
   it("swings limbs back and forth while walking", () => {
-    const xs = Array.from({ length: 40 }, (_, i) => i * 0.2); // 4 blocks/s
+    const xs = Array.from({ length: 40 }, (_, i) => i * 0.2 * METRE); // 4 m/s
     const swings = walk(xs);
     expect(Math.max(...swings)).toBeGreaterThan(0.4);
     expect(Math.min(...swings)).toBeLessThan(-0.4);
   });
 
   it("settles back to still after stopping", () => {
-    const xs = [...Array.from({ length: 20 }, (_, i) => i * 0.2), ...Array<number>(20).fill(3.8)];
+    const xs = [
+      ...Array.from({ length: 20 }, (_, i) => i * 0.2 * METRE),
+      ...Array<number>(20).fill(3.8 * METRE),
+    ];
     expect(Math.abs(walk(xs).at(-1) ?? 1)).toBeLessThan(0.05);
   });
 

@@ -14,7 +14,7 @@ const (
 	Lifetime    = 5 * time.Minute
 	PickupDelay = 500 * time.Millisecond // long enough to see the item pop out
 	Max         = 256                    // the oldest drop vanishes beyond this
-	reach       = 1.75                   // from the body's middle to the item
+	reach       = 1.75 * world.Metre     // from the body's middle to the item
 )
 
 type Drop struct {

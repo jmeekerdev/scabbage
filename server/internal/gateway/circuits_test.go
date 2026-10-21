@@ -215,6 +215,6 @@ func TestDoorsCloseOnlyOncePlayersStepOut(t *testing.T) {
 		t.Fatalf("the door closed on the player: %v", b)
 	}
 
-	send(t, admin, move(sx-1, sy, sz, 0))
+	send(t, admin, move(sx-2, sy, sz, 0))
 	waitForBlocks(t, admin, changed(x, y, z, world.Door), changed(x, y+1, z, world.Door))
 }

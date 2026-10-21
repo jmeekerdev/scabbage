@@ -6,6 +6,7 @@ import {
   SpriteMaterial,
   SRGBColorSpace,
 } from "three";
+import { METRE } from "../world/constants";
 
 export interface DropInfo {
   id: bigint;
@@ -13,7 +14,7 @@ export interface DropInfo {
   pos?: { x: number; y: number; z: number };
 }
 
-const SIZE = 0.3;
+const SIZE = 0.3 * METRE;
 
 /** Items lying in the world, drawn as small bobbing block icons. */
 export class Drops {
@@ -50,7 +51,8 @@ export class Drops {
   /** Bobs every item gently; call once per frame. */
   update(nowMs: number): void {
     for (const [id, s] of this.sprites)
-      s.position.y = (s.userData.baseY as number) + 0.08 * Math.sin(nowMs / 400 + Number(id));
+      s.position.y =
+        (s.userData.baseY as number) + 0.08 * METRE * Math.sin(nowMs / 400 + Number(id));
   }
 
   private add(d: DropInfo): Sprite {

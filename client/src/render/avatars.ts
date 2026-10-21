@@ -16,6 +16,7 @@ import type { RemoteState } from "../player/remote-players";
 import { daylight } from "./chunk-material";
 import { Gait, type Stance } from "./gait";
 import { boxUVs, defaultSkin, PARTS, SKIN_H, SKIN_W, type Part } from "./skin";
+import { METRE } from "../world/constants";
 
 const PX = 1.8 / 32; // world units per skin pixel: the figure is 32 pixels tall
 const TAG_HEIGHT = 0.3; // world units
@@ -101,6 +102,7 @@ export class Avatar {
   private shown?: Uint8Array;
 
   constructor(name: string | undefined, color: number, skin: Uint8Array) {
+    this.root.scale.setScalar(METRE); // the figure is modelled in metres
     this.material = daylit({ vertexColors: true, alphaTest: 0.5 });
     this.setSkin(skin, color);
     const m = this.material;

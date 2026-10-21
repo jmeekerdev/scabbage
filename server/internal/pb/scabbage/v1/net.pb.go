@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 21
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 22
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		21: "PROTOCOL_VERSION_CURRENT",
+		22: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     21,
+		"PROTOCOL_VERSION_CURRENT":     22,
 	}
 )
 
@@ -6378,7 +6378,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x06chunks\x18\x01 \x03(\v2\x15.scabbage.v1.ChunkPosR\x06chunks*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x15*\xad\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x16*\xad\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +

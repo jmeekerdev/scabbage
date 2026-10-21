@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
 import type { MobState } from "../player/mobs";
 import { bossNear } from "./boss-bar";
+import { METRE } from "../world/constants";
 
 const mob = (kind: MobKind, x: number, health = 0, maxHealth = 0): MobState => ({
   id: x,
@@ -29,7 +30,7 @@ describe("bossNear", () => {
   });
 
   it("is nothing when bosses are far away or missing", () => {
-    expect(bossNear([mob(MobKind.GOLEM, 40, 30, 40)], me)).toBeUndefined();
+    expect(bossNear([mob(MobKind.GOLEM, 30 * METRE, 30, 40)], me)).toBeUndefined();
     expect(bossNear([mob(MobKind.SHEEP, 2)], me)).toBeUndefined();
   });
 });

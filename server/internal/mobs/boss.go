@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	shedEvery = 6    // a king slime lets out a slime each time it loses this much health
-	bossRoom  = 32.0 // no two bosses wake this close together
+	shedEvery = 6            // a king slime lets out a slime each time it loses this much health
+	bossRoom  = 32.0 * metre // no two bosses wake this close together
 )
 
 // Summon wakes boss k at pos unless another boss is already up nearby.

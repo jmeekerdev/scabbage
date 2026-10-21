@@ -12,11 +12,12 @@ import (
 
 	"scabbage/internal/access"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/world"
 	"scabbage/internal/zones"
 )
 
 const (
-	maxZoneSize = 256
+	maxZoneSize = 256 * world.Metre
 	zoneHelp    = "Zones: /zone add NAME SIZE, /zone remove NAME, /zone allow NAME PLAYER, " +
 		"/zone disallow NAME PLAYER, /zone mode NAME creative|survival|any, /zone list"
 )

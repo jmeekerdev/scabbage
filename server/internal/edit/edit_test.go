@@ -27,11 +27,11 @@ func TestCannotBreakAirWaterOrBedrock(t *testing.T) {
 }
 
 func TestReachIsLimited(t *testing.T) {
-	if Allowed(feet, place(7, 11, 0, world.Air), world.Stone, nil) {
-		t.Fatal("a block 7 blocks away is out of reach")
+	if Allowed(feet, place(7*world.Metre, 15, 0, world.Air), world.Stone, nil) {
+		t.Fatal("a block 7 m away is out of reach")
 	}
-	if !Allowed(feet, place(5, 11, 0, world.Air), world.Stone, nil) {
-		t.Fatal("a block 5 blocks away is in reach")
+	if !Allowed(feet, place(5*world.Metre, 15, 0, world.Air), world.Stone, nil) {
+		t.Fatal("a block 5 m away is in reach")
 	}
 }
 
@@ -87,7 +87,7 @@ func TestOnlyOffLogicBlocksArePlaced(t *testing.T) {
 	if Allowed(feet, place(2, 10, 0, world.Counter+2), world.Air, nil) || !Allowed(feet, place(2, 10, 0, world.Piston+4), world.Air, nil) {
 		t.Fatal("counters start at 0; pistons may face any way")
 	}
-	if !InReach(feet, 2, 9, 0) || InReach(feet, 7, 11, 0) {
+	if !InReach(feet, 2, 9, 0) || InReach(feet, 7*world.Metre, 15, 0) {
 		t.Fatal("reach")
 	}
 }

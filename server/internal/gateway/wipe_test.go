@@ -46,7 +46,7 @@ func TestWorldResetNeedsAnotherAdmin(t *testing.T) {
 	ts := startServer(t)
 	mom, kid := ts.joinKid(t)
 	dad := ts.promoteKid(t, kid)
-	setBlock(t, ts, 1, 100, 1, world.Brick)
+	setBlock(t, ts, 1, 300, 1, world.Brick)
 	send(t, mom, sendChat("/zone add Home 8"))
 	recvWhere(t, mom, noticeOf("Zones updated"))
 	code := askWipe(t, mom, "/world reset")
@@ -61,7 +61,7 @@ func TestWorldResetNeedsAnotherAdmin(t *testing.T) {
 	recvWhere(t, mom, noticeOf("The world is starting over"))
 	expectClosed(t, mom)
 	expectClosed(t, dad)
-	blockIs(t, ts, 1, 100, 1, world.Air)
+	blockIs(t, ts, 1, 300, 1, world.Air)
 	if _, ok := ts.zones.Named("Home"); ok || ts.world.Meta().Seed != seed {
 		t.Fatalf("zone kept %v, seed %d → %d", ok, seed, ts.world.Meta().Seed)
 	}
@@ -83,11 +83,11 @@ func TestWorldWipeStopsIfTheBackupFails(t *testing.T) {
 	ts := startServer(t)
 	ts.backup = func() error { return errors.New("disk full") }
 	c := ts.joinAdmin(t)
-	setBlock(t, ts, 1, 100, 1, world.Brick)
+	setBlock(t, ts, 1, 300, 1, world.Brick)
 	code := askWipe(t, c, "/world reset")
 	send(t, c, sendChat("/world approve "+code))
 	recvWhere(t, c, noticeOf("backup failed, so nothing changed: disk full"))
-	blockIs(t, ts, 1, 100, 1, world.Brick)
+	blockIs(t, ts, 1, 300, 1, world.Brick)
 }
 
 func TestWorldWipeCanBeDenied(t *testing.T) {
@@ -103,7 +103,7 @@ func TestWorldWipeCanBeDenied(t *testing.T) {
 func TestWorldWipeKeepsInventoriesButNotCustomBlocksOrPlaces(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	tpAndWait(t, c, "30 90 30")
+	tpAndWait(t, c, "30 290 30")
 	s := ts.sessionOf(t, "Mom")
 	ts.gw.mu.Lock()
 	a := ts.gw.players[s]

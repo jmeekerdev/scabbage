@@ -37,9 +37,9 @@ func TestWelcomeDescribesTheWorld(t *testing.T) {
 func TestChunkRequestGetsOneBatchInOrder(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	send(t, c, requestChunks(&pb.ChunkPos{X: 0, Y: 2, Z: 0}, &pb.ChunkPos{X: -1, Y: 0, Z: 3}, &pb.ChunkPos{X: 5, Y: 0, Z: 0}))
+	send(t, c, requestChunks(&pb.ChunkPos{X: 0, Y: 2, Z: 0}, &pb.ChunkPos{X: -1, Y: 0, Z: 1}, &pb.ChunkPos{X: 5, Y: 0, Z: 0}))
 	batch := recv(t, c).GetChunkBatch()
-	if batch == nil || len(batch.Chunks) != 3 || batch.Chunks[1].Pos.X != -1 || batch.Chunks[1].Pos.Z != 3 {
+	if batch == nil || len(batch.Chunks) != 3 || batch.Chunks[1].Pos.X != -1 || batch.Chunks[1].Pos.Z != 1 {
 		t.Fatalf("batch = %v", batch)
 	}
 	for _, ch := range batch.Chunks {

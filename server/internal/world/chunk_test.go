@@ -16,8 +16,8 @@ func TestChunkOfHandlesNegativeCoordinates(t *testing.T) {
 		local   [3]int
 	}{
 		{0, 0, 0, ChunkPos{0, 0, 0}, [3]int{0, 0, 0}},
-		{15, 16, 17, ChunkPos{0, 1, 1}, [3]int{15, 0, 1}},
-		{-1, -16, -17, ChunkPos{-1, -1, -2}, [3]int{15, 0, 15}},
+		{Size - 1, Size, Size + 1, ChunkPos{0, 1, 1}, [3]int{Size - 1, 0, 1}},
+		{-1, -Size, -Size - 1, ChunkPos{-1, -1, -2}, [3]int{Size - 1, 0, Size - 1}},
 	}
 	for _, c := range cases {
 		pos, lx, ly, lz := ChunkOf(c.x, c.y, c.z)
@@ -74,7 +74,7 @@ func TestEncodeIsCompact(t *testing.T) {
 	layered := NewChunk(Stone)
 	for x := range Size {
 		for z := range Size {
-			layered.Set(x, 15, z, Grass)
+			layered.Set(x, Size-1, z, Grass)
 		}
 	}
 	if n := len(Encode(layered)); n > 16 {
@@ -114,7 +114,7 @@ func goldenChunk() *Chunk {
 	for i := range 100 {
 		c.Set(i%Size, 0, i/Size, Block(i*7%13))
 	}
-	c.Set(15, 15, 15, Glass)
+	c.Set(Size-1, Size-1, Size-1, Glass)
 	return c
 }
 

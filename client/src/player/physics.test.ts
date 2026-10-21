@@ -3,6 +3,7 @@ import { FULL_BLOCK, type Box } from "../world/shapes";
 import {
   FLY_SPEED,
   HALF_WIDTH,
+  HEIGHT,
   newBody,
   stepBody,
   WALK_SPEED,
@@ -10,6 +11,7 @@ import {
   type MoveInput,
   type BoxesAt,
 } from "./physics";
+import { METRE } from "../world/constants";
 
 const DT = 1 / 60;
 const idle: MoveInput = { forward: 0, right: 0, jump: false, descend: false };
@@ -59,11 +61,11 @@ describe("stepBody", () => {
   });
 
   it("slides along a wall when moving diagonally into it", () => {
-    const b = run(newBody(4.5, 10, 0.5), { right: 1, forward: 1 }, 1, wallAtX5);
-    expect(b.z).toBeLessThan(-2);
+    const b = run(newBody(3.5, 10, 0.5), { right: 1, forward: 1 }, 1, wallAtX5);
+    expect(b.z).toBeLessThan(-2 * METRE);
   });
 
-  it("jumps a little over one block high", () => {
+  it("jumps a little over a metre high", () => {
     const b = newBody(0.5, 10, 0.5);
     run(b, {}, 0.1);
     stepBody(b, { ...idle, jump: true }, 0, DT, floor);
@@ -72,8 +74,8 @@ describe("stepBody", () => {
       stepBody(b, idle, 0, DT, floor);
       top = Math.max(top, b.y);
     }
-    expect(top - 10).toBeGreaterThan(1.1);
-    expect(top - 10).toBeLessThan(1.5);
+    expect(top - 10).toBeGreaterThan(1.1 * METRE);
+    expect(top - 10).toBeLessThan(1.5 * METRE);
     expect(b.y).toBeCloseTo(10, 5);
   });
 
@@ -84,11 +86,11 @@ describe("stepBody", () => {
   });
 
   it("bumps its head on a ceiling", () => {
-    const ceiling = cubes((x, y) => below10(x, y) || y === 12);
+    const ceiling = cubes((x, y) => below10(x, y) || y === 16);
     const b = run(newBody(0.5, 10, 0.5), {}, 0.1, ceiling);
     stepBody(b, { ...idle, jump: true }, 0, DT, ceiling);
     run(b, {}, 0.3, ceiling);
-    expect(b.y + 1.8).toBeLessThanOrEqual(12);
+    expect(b.y + HEIGHT).toBeLessThanOrEqual(16);
   });
 
   it("flies without gravity, rising and sinking on demand", () => {
@@ -121,11 +123,15 @@ describe("stepBody", () => {
     expect(b.onGround).toBe(true);
   });
 
-  it("steps up onto slabs while walking but not onto full blocks", () => {
-    const up = run(newBody(4.5, 10, 0.5), { right: 1 }, 0.25, slabAtX5);
+  it("steps up onto slabs and single blocks while walking, but not up walls", () => {
+    const up = run(newBody(3.5, 10, 0.5), { right: 1 }, 0.25, slabAtX5);
     expect(up.x).toBeGreaterThan(5);
     expect(up.y).toBeCloseTo(10.5, 5);
-    const blocked = run(newBody(4.5, 10, 0.5), { right: 1 }, 1, wallAtX5);
+    const ledge = cubes((x, y) => below10(x, y) || (x >= 5 && y === 10));
+    const onto = run(newBody(3.5, 10, 0.5), { right: 1 }, 0.25, ledge);
+    expect(onto.x).toBeGreaterThan(5);
+    expect(onto.y).toBeCloseTo(11, 5);
+    const blocked = run(newBody(3.5, 10, 0.5), { right: 1 }, 1, wallAtX5);
     expect(blocked.x).toBeCloseTo(5 - HALF_WIDTH, 5);
     expect(blocked.y).toBeCloseTo(10, 5);
   });

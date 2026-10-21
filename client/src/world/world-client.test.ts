@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { CHUNK_SIZE } from "./constants";
 import { chunkKey, type ChunkPos } from "./coords";
 import { REGION_VOLUME } from "./light";
 import { PADDED_VOLUME, type ChunkMesh } from "./mesher";
 import { WorldClient, type ChunkView, type Mesher } from "./world-client";
 
-const AIR = Uint8Array.of(1, 1, 0);
-const STONE = Uint8Array.of(1, 1, 1);
+const AIR = Uint8Array.of(2, 1, 0);
+const STONE = Uint8Array.of(2, 1, 1);
 const TORCH = 2;
 const WIRE = 3; // see-through and dark, like a wire turning on or off
-const bounds = { radius: 32, height: 32 }; // chunk columns -2..1, two layers
+const bounds = { radius: 64, height: 64 }; // chunk columns -2..1, two layers
 
 class FakeMesher implements Mesher {
   jobs: { volume: Uint16Array; done: (m: ChunkMesh) => void }[] = [];
@@ -49,7 +50,7 @@ function setup(slots?: number) {
   return { sent, mesher, view, world };
 }
 
-/** Answers every outstanding request with stone below y=16 and air above. */
+/** Answers every outstanding request with stone in the bottom layer of chunks and air above. */
 function answer(world: WorldClient, sent: ChunkPos[][]) {
   for (const batch of sent.splice(0)) {
     world.receive(batch.map((pos) => ({ pos, data: pos.y === 0 ? STONE : AIR })));
@@ -109,7 +110,7 @@ describe("WorldClient", () => {
   });
 
   it("removes chunks the player has left behind", () => {
-    const big = { radius: 512, height: 32 };
+    const big = { radius: 1536, height: 64 };
     const { sent, mesher, view, world } = setup();
     world.start(big);
     world.tick(0, 0, 1);
@@ -119,14 +120,14 @@ describe("WorldClient", () => {
     }
     mesher.finishAll();
     expect(view.shown.has(chunkKey(0, 0, 0))).toBe(true);
-    world.tick(16 * 20, 0, 1);
+    world.tick(CHUNK_SIZE * 20, 0, 1);
     expect(view.shown.has(chunkKey(0, 0, 0))).toBe(false);
   });
 
   it("re-meshes a changed chunk, and the neighbors whose border holds the block", () => {
     const { sent, mesher, view, world } = loaded();
-    world.setBlock(0, 15, 5, 0); // top layer of chunk 0,0,0
-    expect(world.blockAt(0, 15, 5)).toBe(0);
+    world.setBlock(0, CHUNK_SIZE - 1, 5, 0); // top layer of chunk 0,0,0
+    expect(world.blockAt(0, CHUNK_SIZE - 1, 5)).toBe(0);
     world.tick(0, 0, 1);
     expect(mesher.jobs.length).toBe(4); // itself, the -x neighbor, the one above and their shared edge
     expect(sent.length).toBe(0);
@@ -137,7 +138,7 @@ describe("WorldClient", () => {
     const { mesher, world } = loaded();
     world.setBlock(5, 5, 5, TORCH);
     world.tick(0, 0, 1);
-    expect(mesher.jobs.length).toBe(10); // all of the loaded chunks in view
+    expect(mesher.jobs.length).toBe(3); // its own chunk and the -x and -z ones the light reaches
     expect(mesher.jobs.every((j) => j.volume.length === REGION_VOLUME)).toBe(true);
   });
 
@@ -148,7 +149,7 @@ describe("WorldClient", () => {
     mesher.finishAll();
     world.setBlock(5, 5, 5, 0);
     world.tick(0, 0, 1);
-    expect(mesher.jobs.length).toBe(10);
+    expect(mesher.jobs.length).toBe(3);
     expect(mesher.jobs.every((j) => j.volume.length === PADDED_VOLUME)).toBe(true);
   });
 
@@ -172,7 +173,7 @@ describe("WorldClient", () => {
     mesher.finishAll();
     world.setBlock(6, 5, 5, 1);
     world.tick(0, 0, 1);
-    expect(mesher.jobs.length).toBe(10);
+    expect(mesher.jobs.length).toBe(3);
   });
 
   it("keeps showing a stale chunk until it arrives again, then re-meshes it", () => {

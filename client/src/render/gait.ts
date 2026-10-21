@@ -1,8 +1,10 @@
-const STRIDE = 2.5; // radians of swing cycle per block walked
+import { METRE } from "../world/constants";
+
+const STRIDE = 2.5 / METRE; // radians of swing cycle per block walked
 const MAX_SWING = 0.7; // radians at full walking speed
-const WALK_SPEED = 4.5; // blocks/s that gives the full swing
-const TELEPORT_SPEED = 30; // blocks/s; faster than this is a jump cut, not a walk
-const AIRBORNE_SPEED = 1; // vertical blocks/s that counts as jumping or falling
+const WALK_SPEED = 4.5 * METRE; // blocks/s that gives the full swing
+const TELEPORT_SPEED = 30 * METRE; // blocks/s; faster than this is a jump cut, not a walk
+const AIRBORNE_SPEED = 1 * METRE; // vertical blocks/s that counts as jumping or falling
 const SMOOTH_MS = 120;
 
 interface Point {

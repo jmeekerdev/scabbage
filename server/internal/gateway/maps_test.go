@@ -45,46 +45,46 @@ func blockIs(t *testing.T, ts *testServer, x, y, z int32, want world.Block) {
 func TestMapResetPutsTheSavedBlocksBack(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	tpAndWait(t, c, "0 90 0")
+	tpAndWait(t, c, "0 290 0")
 	send(t, c, sendChat("/zone add Castle 8")) // -4..3
 	recvWhere(t, c, noticeOf("Zones updated"))
-	setBlock(t, ts, 2, 80, 2, world.Chest)
+	setBlock(t, ts, 2, 280, 2, world.Chest)
 	send(t, c, sendChat("/map save Castle"))
 	recvWhere(t, c, noticeOf("Saved the map Castle"))
 
-	setBlock(t, ts, 2, 80, 2, world.Chest+1) // looted
-	setBlock(t, ts, 1, 70, 1, world.Brick)
-	setBlock(t, ts, 5, 70, 5, world.Brick) // outside the zone
+	setBlock(t, ts, 2, 280, 2, world.Chest+1) // looted
+	setBlock(t, ts, 1, 270, 1, world.Brick)
+	setBlock(t, ts, 5, 270, 5, world.Brick) // outside the zone
 	send(t, c, sendChat("/map reset Castle"))
 	batch := recvWhere(t, c, func(m *pb.ServerMessage) bool { return m.GetBlockBatch() != nil }).GetBlockBatch()
 	if len(batch.Blocks) != 2 {
 		t.Fatalf("reset sent %d blocks", len(batch.Blocks))
 	}
 	recvWhere(t, c, noticeOf("starts over"))
-	blockIs(t, ts, 2, 80, 2, world.Chest)
-	blockIs(t, ts, 1, 70, 1, world.Air)
-	blockIs(t, ts, 5, 70, 5, world.Brick)
+	blockIs(t, ts, 2, 280, 2, world.Chest)
+	blockIs(t, ts, 1, 270, 1, world.Air)
+	blockIs(t, ts, 5, 270, 5, world.Brick)
 }
 
 func TestMapStartIsWherePlayersGoOnReset(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	tpAndWait(t, c, "0 90 0")
+	tpAndWait(t, c, "0 290 0")
 	send(t, c, sendChat("/zone add Castle 8"))
 	recvWhere(t, c, noticeOf("Zones updated"))
 	send(t, c, sendChat("/map start Castle"))
 	recvWhere(t, c, noticeOf("Save the map first"))
 	send(t, c, sendChat("/map save Castle"))
 	recvWhere(t, c, noticeOf("Saved"))
-	tpAndWait(t, c, "2 85 -3")
+	tpAndWait(t, c, "2 285 -3")
 	send(t, c, sendChat("/map start Castle"))
 	recvWhere(t, c, noticeOf("start here"))
-	tpAndWait(t, c, "0 90 0")
+	tpAndWait(t, c, "0 290 0")
 	send(t, c, sendChat("/map reset Castle"))
-	if p := recvWhere(t, c, isTeleport).GetTeleport().Pos; p.X != 2.5 || p.Y != 85 || p.Z != -2.5 {
+	if p := recvWhere(t, c, isTeleport).GetTeleport().Pos; p.X != 2.5 || p.Y != 285 || p.Z != -2.5 {
 		t.Fatalf("sent to %v", p)
 	}
-	tpAndWait(t, c, "40 90 40")
+	tpAndWait(t, c, "40 290 40")
 	send(t, c, sendChat("/map start Castle"))
 	recvWhere(t, c, noticeOf("inside Castle"))
 }
@@ -92,7 +92,7 @@ func TestMapStartIsWherePlayersGoOnReset(t *testing.T) {
 func TestMapResetPutsScriptsBack(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	tpAndWait(t, c, "0 90 0")
+	tpAndWait(t, c, "0 290 0")
 	send(t, c, sendChat("/zone add Castle 8"))
 	recvWhere(t, c, noticeOf("Zones updated"))
 	at := world.Pos{X: 1, Y: 80, Z: 1}
@@ -120,12 +120,12 @@ func TestMapExportThenImportElsewhere(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
 	c.SetReadLimit(maps.MaxFileBytes)
-	tpAndWait(t, c, "0 90 0")
+	tpAndWait(t, c, "0 290 0")
 	send(t, c, sendChat("/zone add Castle 8"))
 	recvWhere(t, c, noticeOf("Zones updated"))
 	send(t, c, sendChat("/zone mode Castle survival"))
 	recvWhere(t, c, noticeOf("Zones updated"))
-	setBlock(t, ts, 0, 100, 0, world.GoldBlock)
+	setBlock(t, ts, 0, 300, 0, world.GoldBlock)
 	send(t, c, sendChat("/map save Castle"))
 	recvWhere(t, c, noticeOf("Saved"))
 	send(t, c, sendChat("/map export Castle"))
@@ -136,10 +136,10 @@ func TestMapExportThenImportElsewhere(t *testing.T) {
 
 	send(t, c, importMap("Copy", file.Data))
 	recvWhere(t, c, noticeOf("would cover the zone Castle"))
-	tpAndWait(t, c, "30 90 30")
+	tpAndWait(t, c, "30 290 30")
 	send(t, c, importMap("Copy", file.Data))
 	recvWhere(t, c, noticeOf("Placed Copy"))
-	blockIs(t, ts, 30, 100, 30, world.GoldBlock)
+	blockIs(t, ts, 30, 300, 30, world.GoldBlock)
 	z, ok := ts.zones.Named("Copy")
 	if !ok || z.X0 != 26 || z.X1 != 33 || z.Mode != access.ModeSurvival {
 		t.Fatalf("zone = %+v, %v", z, ok)
@@ -163,7 +163,7 @@ func TestOnlyAdminsImportMaps(t *testing.T) {
 func TestMapSamplePlacesAStarterAdventure(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	tpAndWait(t, c, "0 40 0")
+	tpAndWait(t, c, "0 240 0")
 	send(t, c, sendChat("/map sample Quest"))
 	recvWhere(t, c, noticeOf("Placed Quest")) // written straight away, before the queued broadcasts
 	stale := recvWhere(t, c, func(m *pb.ServerMessage) bool { return m.GetChunksStale() != nil }).GetChunksStale()
@@ -188,7 +188,7 @@ func TestMapSamplePlacesAStarterAdventure(t *testing.T) {
 	}
 
 	// The hidden switch behind the house opens its gate.
-	g := int32(39)
+	g := int32(239)
 	sw := world.Pos{X: z.X0 + 20, Y: g + 1, Z: z.Z0 + 13}
 	gate := world.Pos{X: z.X0 + 16, Y: g + 1, Z: z.Z0 + 7}
 	blockIs(t, ts, gate.X, gate.Y, gate.Z, world.Cobblestone)
@@ -231,17 +231,17 @@ func (ts *testServer) scriptAt(t *testing.T, at world.Pos) string {
 func TestMapRemovePutsBackTheLandUnderAPlacedMap(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	setBlock(t, ts, 3, 60, 3, world.ScriptBlock) // someone's build where the map will go
-	ts.saveScript(t, world.Pos{X: 3, Y: 60, Z: 3}, `say("mine")`)
-	setBlock(t, ts, 5, 45, -2, world.Brick)
+	setBlock(t, ts, 3, 260, 3, world.ScriptBlock) // someone's build where the map will go
+	ts.saveScript(t, world.Pos{X: 3, Y: 260, Z: 3}, `say("mine")`)
+	setBlock(t, ts, 5, 245, -2, world.Brick)
 	before, err := ts.world.Copy(world.Area{X0: -12, Z0: -8, X1: 11, Z1: 7})
 	if err != nil {
 		t.Fatal(err)
 	}
-	tpAndWait(t, c, "0 40 0")
+	tpAndWait(t, c, "0 240 0")
 	send(t, c, sendChat("/map sample Quest"))
 	recvWhere(t, c, noticeOf("Placed Quest"))
-	blockIs(t, ts, 3, 60, 3, world.Air)
+	blockIs(t, ts, 3, 260, 3, world.Air)
 	send(t, c, sendChat("/zone remove Quest"))
 	recvWhere(t, c, noticeOf("/map remove Quest puts that land back"))
 
@@ -251,7 +251,7 @@ func TestMapRemovePutsBackTheLandUnderAPlacedMap(t *testing.T) {
 	if !slices.Equal(after, before) {
 		t.Fatal("the land under the map didn't come back")
 	}
-	if got := ts.scriptAt(t, world.Pos{X: 3, Y: 60, Z: 3}); got != `say("mine")` {
+	if got := ts.scriptAt(t, world.Pos{X: 3, Y: 260, Z: 3}); got != `say("mine")` {
 		t.Fatalf("script under the map = %q", got)
 	}
 	if scripts, _ := ts.gw.scripts.Inside(-12, -8, 11, 7); len(scripts) != 1 {
@@ -265,7 +265,7 @@ func TestMapRemovePutsBackTheLandUnderAPlacedMap(t *testing.T) {
 func TestMapRemoveNeedsLandThatWasKept(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
-	tpAndWait(t, c, "0 90 0")
+	tpAndWait(t, c, "0 290 0")
 	send(t, c, sendChat("/zone add Castle 8"))
 	recvWhere(t, c, noticeOf("Zones updated"))
 	send(t, c, sendChat("/map save Castle"))

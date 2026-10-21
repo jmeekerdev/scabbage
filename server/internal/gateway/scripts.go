@@ -20,9 +20,9 @@ import (
 
 const (
 	// scriptRange is how far, in blocks along each axis, a script reaches from its block.
-	scriptRange = 16
+	scriptRange = 16 * world.Metre
 	// scriptHearing is how far away players hear what a script says.
-	scriptHearing = 32
+	scriptHearing = 32 * world.Metre
 	// scriptErrorGap is how often one script block may tell its owner it went wrong.
 	scriptErrorGap = 5 * time.Second
 	scriptColor    = 0x7fd4ff

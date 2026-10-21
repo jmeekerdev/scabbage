@@ -7,7 +7,7 @@ import (
 )
 
 // encodingVersion leads every encoded chunk so the format can evolve.
-const encodingVersion = 1
+const encodingVersion = 2 // 2: 32-block chunks
 
 var errCorrupt = errors.New("corrupt chunk data")
 

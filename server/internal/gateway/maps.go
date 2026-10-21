@@ -397,7 +397,7 @@ func (g *Gateway) placeProblem(name string, a world.Area) string {
 // groundBelow is the y of the block under the admin's feet, kept clear of the world's floor and sky.
 func (s *session) groundBelow() int32 {
 	y := int32(math.Floor(s.body.Pos().Y)) - 1
-	return min(max(y, 8), world.MaxY-40)
+	return min(max(y, 8*world.Metre), world.MaxY-40*world.Metre)
 }
 
 // removeMap puts back the land a placed map covered, then removes its zone, map and scripts.

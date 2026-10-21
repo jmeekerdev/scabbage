@@ -38,7 +38,7 @@ func (ts *testServer) survivalAdmin(t *testing.T) *websocket.Conn {
 // dropTen jumps the player up ten blocks above spawn and lands back on it.
 func (ts *testServer) dropTen(t *testing.T, c *websocket.Conn) {
 	x, y, z := ts.spawn()
-	send(t, c, move(x, y+10, z, 0))
+	send(t, c, move(x, y+10*world.Metre, z, 0))
 	send(t, c, move(x, y, z, 0))
 }
 
@@ -77,13 +77,16 @@ func TestFaintingSendsThePlayerBackToSpawnHealed(t *testing.T) {
 	ts := startServer(t)
 	c := ts.survivalAdmin(t)
 	x, y, z := ts.spawn()
-	for d := int32(1); d <= 25; d++ {
-		if err := ts.world.SetBlock(0, int32(y)-d, 0, world.Air); err != nil {
-			t.Fatal(err)
+	shaft := int32(25 * world.Metre)
+	for d := int32(1); d <= shaft; d++ {
+		for _, at := range [][2]int32{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 0}, {0, 1}, {1, -1}, {1, 0}, {1, 1}} {
+			if err := ts.world.SetBlock(at[0], int32(y)-d, at[1], world.Air); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	send(t, c, move(x, y-0.5, z, 0))
-	send(t, c, move(x, y-25, z, 0))
+	send(t, c, move(x, y-float32(shaft), z, 0))
 	if v := recv(t, c).GetVitals(); v.GetHealth() != 0 || v.Hurt != pb.Harm_HARM_FALL {
 		t.Fatalf("vitals = %v", v)
 	}
