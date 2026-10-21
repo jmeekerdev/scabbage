@@ -17,10 +17,13 @@ end
 
 const HELP = `on_touch(player)   someone used this block
 on_power(on)       power arrived (true) or stopped (false)
+on_round_start(players)   a minigame round started in this arena
+on_round_end(winners)     the round ended
 say(text)          everyone nearby sees text
 set_block(x, y, z, "stone")   places a block nearby ("air" clears it)
 give_item(player, "torch", 3) hands someone nearby some blocks
 teleport(player, x, y, z)     moves someone nearby
+add_points(player, 2)         scores points in this arena's round
 after(seconds, function() ... end)   runs something later`;
 
 /** A dialog for reading and writing the Lua in one script block. */

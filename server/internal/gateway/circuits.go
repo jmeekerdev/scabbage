@@ -120,6 +120,7 @@ func (g *Gateway) stepCircuits(now time.Time) error {
 		return err
 	}
 	g.reportScriptsLocked(g.scripts.RunTimers(now), nil)
+	g.tellScriptsAboutRoundsLocked(now)
 	if err := g.releaseDoorsLocked(feet); err != nil {
 		return err
 	}

@@ -83,6 +83,9 @@ func (g *Gateway) playLocked(r *rounds.Round, effects []rounds.Effect) {
 			s.push(&pb.ServerMessage{Body: &pb.ServerMessage_Scoreboard{Scoreboard: &pb.Scoreboard{}}})
 		}
 	}
+	for _, ev := range r.TakeEvents() {
+		g.roundEvents = append(g.roundEvents, roundEvent{zone: r.Zone(), Event: ev})
+	}
 	if r.Empty() {
 		delete(g.rounds, strings.ToLower(r.Zone()))
 	}

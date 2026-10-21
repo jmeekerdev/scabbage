@@ -115,6 +115,35 @@ func (s *Service) Power(at world.Pos, on bool, now time.Time) []Failure {
 	return s.dispatch(event{at, now, func(r *script.Script, now time.Time) error { return r.Power(on, now) }})
 }
 
+// RoundStart runs on_round_start(players) at `at`.
+func (s *Service) RoundStart(at world.Pos, players []string, now time.Time) []Failure {
+	return s.dispatch(event{at, now, func(r *script.Script, now time.Time) error { return r.RoundStart(players, now) }})
+}
+
+// RoundEnd runs on_round_end(winners) at `at`.
+func (s *Service) RoundEnd(at world.Pos, winners []string, now time.Time) []Failure {
+	return s.dispatch(event{at, now, func(r *script.Script, now time.Time) error { return r.RoundEnd(winners, now) }})
+}
+
+// Inside lists the script blocks in the columns from x0, z0 to x1, z1, e.g. an arena's zone.
+func (s *Service) Inside(x0, z0, x1, z1 int32) ([]world.Pos, error) {
+	rows, err := s.db.Query(`SELECT x, y, z FROM scripts WHERE x BETWEEN ? AND ? AND z BETWEEN ? AND ? ORDER BY x, y, z`,
+		x0, x1, z0, z1)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []world.Pos
+	for rows.Next() {
+		var p world.Pos
+		if err := rows.Scan(&p.X, &p.Y, &p.Z); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 // RunTimers runs every loaded script's due timers.
 func (s *Service) RunTimers(now time.Time) []Failure {
 	var out []Failure

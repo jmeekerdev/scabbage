@@ -12,6 +12,7 @@ import (
 	"scabbage/internal/logic"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/rounds"
 	"scabbage/internal/script"
 	"scabbage/internal/scripts"
 	"scabbage/internal/world"
@@ -36,7 +37,15 @@ var (
 	errStandingHere = errors.New("someone is standing there")
 	errOutside      = errors.New("that is outside the world")
 	errNotCreative  = errors.New("only admins' scripts give items to survival players")
+	errNoRound      = errors.New("no round is being played in this script's arena")
+	errNotPlaying   = errors.New("that player isn't playing in this round")
 )
+
+// roundEvent is a round starting or ending in the arena of the zone named zone.
+type roundEvent struct {
+	zone string
+	rounds.Event
+}
 
 // openScript shows the sender the Lua in a script block they can reach.
 func (s *session) openScript(ctx context.Context, m *pb.OpenScript) error {
@@ -102,6 +111,33 @@ func (g *Gateway) powerScriptsLocked(changes []logic.Change) {
 	for _, c := range changes {
 		if c.Block.Item() == world.ScriptBlock {
 			g.reportScriptsLocked(g.scripts.Power(world.Pos(c.Pos), c.Block != world.ScriptBlock, now), nil)
+		}
+	}
+}
+
+// tellScriptsAboutRoundsLocked runs on_round_start and on_round_end in every script block inside
+// the arenas whose rounds started or ended; call with editMu held.
+func (g *Gateway) tellScriptsAboutRoundsLocked(now time.Time) {
+	g.mu.Lock()
+	events := g.roundEvents
+	g.roundEvents = nil
+	g.mu.Unlock()
+	for _, ev := range events {
+		zone, ok := g.cfg.Zones.Named(ev.zone)
+		if !ok {
+			continue
+		}
+		inside, err := g.scripts.Inside(zone.X0, zone.Z0, zone.X1, zone.Z1)
+		if err != nil {
+			g.cfg.Logger.Error("finding scripts in an arena", "zone", ev.zone, "err", err)
+			continue
+		}
+		for _, at := range inside {
+			if ev.Start {
+				g.reportScriptsLocked(g.scripts.RoundStart(at, ev.Names, now), nil)
+			} else {
+				g.reportScriptsLocked(g.scripts.RoundEnd(at, ev.Names, now), nil)
+			}
 		}
 	}
 }
@@ -230,6 +266,26 @@ func (h scriptHost) Teleport(player string, x, y, z float64) error {
 		return errNotHere
 	}
 	s.relocateLocked(spot{at: motion.Vec{X: x, Y: y, Z: z}})
+	return nil
+}
+
+// AddPoints gives a player points in the round of the arena the script block is in.
+func (h scriptHost) AddPoints(player string, n int) error {
+	zone, ok := h.g.cfg.Zones.At(h.at.X, h.at.Z)
+	if !ok {
+		return errNoRound
+	}
+	h.g.mu.Lock()
+	defer h.g.mu.Unlock()
+	r := h.g.rounds[strings.ToLower(zone.Name)]
+	if r == nil {
+		return errNoRound
+	}
+	effects, playing := r.AddPoints(player, n)
+	if !playing {
+		return errNotPlaying
+	}
+	h.g.playLocked(r, effects)
 	return nil
 }
 

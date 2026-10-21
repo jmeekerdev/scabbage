@@ -60,6 +60,7 @@ type Gateway struct {
 	mobsAt      time.Time                // when the herd last stepped; guarded by mu
 	arenas      map[string]arenaView     // by lowercased zone name; guarded by mu
 	rounds      map[string]*rounds.Round // games being played, by lowercased zone name; guarded by mu
+	roundEvents []roundEvent             // starts and ends for scripts to hear on the next tick; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.

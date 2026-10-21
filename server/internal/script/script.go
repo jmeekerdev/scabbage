@@ -76,6 +76,24 @@ func (s *Script) Power(on bool, now time.Time) error {
 	return s.handle("on_power", now, lua.LBool(on))
 }
 
+// RoundStart runs on_round_start(players) when a round starts in the script's arena.
+func (s *Script) RoundStart(players []string, now time.Time) error {
+	return s.handle("on_round_start", now, s.list(players))
+}
+
+// RoundEnd runs on_round_end(winners) when the round ends; nobody may have won.
+func (s *Script) RoundEnd(winners []string, now time.Time) error {
+	return s.handle("on_round_end", now, s.list(winners))
+}
+
+func (s *Script) list(names []string) *lua.LTable {
+	t := s.L.CreateTable(len(names), 0)
+	for _, n := range names {
+		t.Append(lua.LString(n))
+	}
+	return t
+}
+
 // NextTimer is when the earliest after() is due, if any wait.
 func (s *Script) NextTimer() (time.Time, bool) {
 	if len(s.timers) == 0 {

@@ -10,6 +10,7 @@ import (
 )
 
 type fakeHost struct {
+	points   []string
 	said     []string
 	blocks   []string
 	given    []string
@@ -26,6 +27,11 @@ func (h *fakeHost) SetBlock(x, y, z int32, name string) error {
 
 func (h *fakeHost) GiveItem(player, item string, count int) error {
 	h.given = append(h.given, fmt.Sprintf("%s %s %d", player, item, count))
+	return h.refusing
+}
+
+func (h *fakeHost) AddPoints(player string, n int) error {
+	h.points = append(h.points, fmt.Sprintf("%s %d", player, n))
 	return h.refusing
 }
 
@@ -206,5 +212,27 @@ func TestSyntaxErrorsSayWhere(t *testing.T) {
 	_, err := Load("x = = 1", &fakeHost{}, t0)
 	if err == nil || err.Error() != "line 1: near '=': syntax error" {
 		t.Fatalf("got %v", err)
+	}
+}
+
+func TestRoundsTellScriptsWhoPlaysAndWhoWon(t *testing.T) {
+	s, h := load(t, `
+		function on_round_start(players) say("start " .. table.concat(players, ",")) add_points(players[1], 2) end
+		function on_round_end(winners) say("end " .. #winners) end`)
+	if err := s.RoundStart([]string{"ada", "bo"}, t0); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RoundEnd(nil, t0); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(h.said, []string{"start ada,bo", "end 0"}) || !slices.Equal(h.points, []string{"ada 2"}) {
+		t.Fatalf("said %q, points %q", h.said, h.points)
+	}
+}
+
+func TestPointsAreBounded(t *testing.T) {
+	s, _ := load(t, `function on_touch(p) add_points(p, 1000) end`)
+	if err := s.Touch("ada", t0); err == nil {
+		t.Fatal("a thousand points at once")
 	}
 }

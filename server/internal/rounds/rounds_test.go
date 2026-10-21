@@ -264,3 +264,37 @@ func must(t *testing.T, err error) {
 		t.Fatal(err)
 	}
 }
+
+func TestRoundsReportTheirStartAndEnd(t *testing.T) {
+	r, _ := started(t, arena(arenas.Race, spawn("", 1)), 2)
+	r.Stand(1, goal.X, goal.Y, goal.Z, true)
+	got := r.TakeEvents()
+	want := []Event{{Start: true, Names: []string{"A", "B"}}, {Names: []string{"A"}}}
+	if len(got) != 2 || !got[0].Start || !slices.Equal(got[0].Names, want[0].Names) || got[1].Start || !slices.Equal(got[1].Names, want[1].Names) {
+		t.Fatalf("events %+v", got)
+	}
+	if len(r.TakeEvents()) != 0 {
+		t.Fatal("events are taken once")
+	}
+}
+
+func TestScriptsGivePointsDuringARound(t *testing.T) {
+	a := arena(arenas.Custom, spawn("", 1))
+	a.Win, a.Points = arenas.WinPoints, 3
+	r := New(a)
+	if _, ok := r.AddPoints("a", 1); ok {
+		t.Fatal("points before the round started")
+	}
+	r, _ = started(t, a, 2)
+	if _, ok := r.AddPoints("nobody", 1); ok {
+		t.Fatal("points for someone not playing")
+	}
+	r.AddPoints("a", 2)
+	if r.Board(t0).Scores[0].Points != 2 {
+		t.Fatalf("board %+v", r.Board(t0))
+	}
+	effects, ok := r.AddPoints("A", 1)
+	if !ok || !strings.Contains(said(effects, 2), "A wins!") {
+		t.Fatalf("said %q", said(effects, 2))
+	}
+}

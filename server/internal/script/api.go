@@ -15,6 +15,7 @@ type Host interface {
 	SetBlock(x, y, z int32, name string) error
 	GiveItem(player, item string, count int) error
 	Teleport(player string, x, y, z float64) error
+	AddPoints(player string, n int) error // in the round of the arena the script is in
 }
 
 const (
@@ -22,19 +23,22 @@ const (
 	MaxSay = 200
 	// MaxGive is the most of an item one give_item call hands over.
 	MaxGive = 64
+	// MaxPoints is the most points one add_points call gives or takes.
+	MaxPoints = 10
 	// minDelay and maxDelay bound how far ahead after() may schedule.
 	minDelay = 100 * time.Millisecond
 	maxDelay = time.Hour
 )
 
-// register gives the script its world calls: say, set_block, give_item, teleport and after.
+// register gives the script its world calls: say, set_block, give_item, teleport, add_points and after.
 func (s *Script) register() {
 	for name, fn := range map[string]lua.LGFunction{
-		"say":       s.say,
-		"set_block": s.setBlock,
-		"give_item": s.giveItem,
-		"teleport":  s.teleport,
-		"after":     s.after,
+		"say":        s.say,
+		"set_block":  s.setBlock,
+		"give_item":  s.giveItem,
+		"teleport":   s.teleport,
+		"add_points": s.addPoints,
+		"after":      s.after,
 	} {
 		s.L.SetGlobal(name, s.L.NewFunction(s.counted(fn)))
 	}
@@ -80,6 +84,15 @@ func (s *Script) teleport(L *lua.LState) int {
 	player := L.CheckString(1)
 	x, y, z := checkFinite(L, 2), checkFinite(L, 3), checkFinite(L, 4)
 	refuse(L, s.host.Teleport(player, x, y, z))
+	return 0
+}
+
+func (s *Script) addPoints(L *lua.LState) int {
+	player, n := L.CheckString(1), L.OptInt(2, 1)
+	if n < -MaxPoints || n > MaxPoints || n == 0 {
+		L.ArgError(2, "give between -10 and 10 points")
+	}
+	refuse(L, s.host.AddPoints(player, n))
 	return 0
 }
 

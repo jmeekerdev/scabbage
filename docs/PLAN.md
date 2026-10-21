@@ -277,9 +277,10 @@ Each phase ends with something the family can play. Compact the model context be
       (`on_touch`, `say`, `set_block`, `give_item`, `teleport`, timers)
       (`internal/script`: base, string, table and math only; 10 ms per run, and a script that overruns
       stops; 64 world calls per run, 16 waiting timers; no `string.rep` and capped format widths)
-- [ ] Script blocks attach to logic blocks and minigames; text-mode Lua for older kids/adults
-      (done: a script block runs `on_touch` when used and `on_power` from circuits, with a text editor
-      on R / 📜 / Back; scripts act for whoever saved them, within 16 blocks. Still to do: minigame hooks)
+- [x] Script blocks attach to logic blocks and minigames; text-mode Lua for older kids/adults
+      (a script block runs `on_touch` when used, `on_power` from circuits, and `on_round_start` /
+      `on_round_end` inside an arena, where `add_points` scores; a text editor opens on R / 📜 / Back;
+      scripts act for whoever saved them, within 16 blocks)
 
 ### Phase 7 — Adventure
 - [ ] Quests (data + scripts), NPCs with dialogue

@@ -24,6 +24,12 @@ type Effect struct {
 	Move   *arenas.Mark // a spawn, or the portal they joined from
 }
 
+// Event is a round starting, with who plays, or ending, with who won; scripts in the arena hear them.
+type Event struct {
+	Start bool
+	Names []string // the players at the start, the winners at the end
+}
+
 type phase uint8
 
 const (
@@ -50,6 +56,7 @@ type Round struct {
 	phase   phase
 	ends    time.Time // when the countdown or game ends; zero for never
 	players []*entry
+	events  []Event // not yet taken
 }
 
 func New(a arenas.Arena) *Round { return &Round{arena: a} }
@@ -62,6 +69,31 @@ func (r *Round) Empty() bool { return len(r.players) == 0 }
 
 // Tagging is whether a hit puts a player out, as it does while tag is on.
 func (r *Round) Tagging() bool { return r.phase == playing && r.arena.Game == arenas.Tag }
+
+// TakeEvents returns the starts and ends since the last call.
+func (r *Round) TakeEvents() []Event {
+	out := r.events
+	r.events = nil
+	return out
+}
+
+// AddPoints gives a playing player n points, as a script might; it reports false when they aren't playing.
+func (r *Round) AddPoints(name string, n int) ([]Effect, bool) {
+	var e *entry
+	for _, o := range r.players {
+		if strings.EqualFold(o.name, name) && !o.out {
+			e = o
+		}
+	}
+	if r.phase != playing || e == nil {
+		return nil, false
+	}
+	e.points = max(0, e.points+n)
+	if r.arena.Win != arenas.WinPoints {
+		return nil, true
+	}
+	return r.checkPoints(e), true
+}
 
 func (r *Round) find(id uint32) *entry {
 	for _, e := range r.players {
@@ -148,6 +180,11 @@ func (r *Round) start(now time.Time) []Effect {
 		e.spawn = r.spawnFor(e.team, i)
 		effects = append(effects, r.toSpawn(e))
 	}
+	names := make([]string, len(r.players))
+	for i, e := range r.players {
+		names[i] = e.name
+	}
+	r.events = append(r.events, Event{Start: true, Names: names})
 	return append(effects, r.tellAll("Go! "+r.aim())...)
 }
 
@@ -326,6 +363,7 @@ func (r *Round) leaders() []string {
 
 // finish announces the winners, sends everyone still in back to their portal and empties the round.
 func (r *Round) finish(why string, winners []string) []Effect {
+	r.events = append(r.events, Event{Names: winners})
 	effects := r.tellAll(why + result(winners))
 	for _, e := range r.players {
 		if !e.out {

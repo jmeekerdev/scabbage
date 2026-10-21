@@ -36,6 +36,7 @@ func (h fakeHost) SetBlock(x, y, z int32, name string) error {
 }
 func (fakeHost) GiveItem(string, string, int) error               { return nil }
 func (fakeHost) Teleport(string, float64, float64, float64) error { return nil }
+func (fakeHost) AddPoints(string, int) error                      { return nil }
 
 type env struct {
 	svc   *Service
@@ -194,5 +195,22 @@ func TestSourceIsCapped(t *testing.T) {
 	}
 	if _, ok, _ := e.svc.Source(here); ok {
 		t.Fatal("a refused script should not be stored")
+	}
+}
+
+func TestRoundsReachScriptsInTheirArena(t *testing.T) {
+	e := newEnv(t)
+	e.save(t, here, `function on_round_start(p) say("go " .. p[1]) end function on_round_end(w) say("won " .. w[1]) end`)
+	e.save(t, world.Pos{X: 100, Y: 2, Z: 3}, `function on_round_start(p) say("far away") end`)
+	inside, err := e.svc.Inside(0, 0, 10, 10)
+	if err != nil || !slices.Equal(inside, []world.Pos{here}) {
+		t.Fatalf("inside %v %v", inside, err)
+	}
+	for _, at := range inside {
+		e.svc.RoundStart(at, []string{"amy"}, t0)
+		e.svc.RoundEnd(at, []string{"amy"}, t0)
+	}
+	if !slices.Equal(e.said, []string{"go amy", "won amy"}) {
+		t.Fatalf("said %q", e.said)
 	}
 }

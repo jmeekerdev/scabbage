@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/coder/websocket"
 
+	"scabbage/internal/arenas"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/rounds"
 	"scabbage/internal/world"
 )
 
@@ -123,4 +126,37 @@ func TestOnlyBuildersSaveScripts(t *testing.T) {
 	if got := scriptShown(t, kid); got.Source != "x = 1" || got.Editable {
 		t.Fatalf("kid sees %v", got)
 	}
+}
+
+func TestScriptsInAnArenaHearItsRoundsAndScorePoints(t *testing.T) {
+	ts := startServer(t)
+	admin := ts.joinAdmin(t)
+	x, y, z := ts.circuit(t, world.ScriptBlock)
+	a := arenas.Arena{Zone: "Field", Spawns: []arenas.Mark{{X: x, Y: y + 1, Z: z}}}
+	a.Play(arenas.Custom)
+	a.Win, a.Points = arenas.WinPoints, 2
+	if err := ts.zones.Put("Field", x-8, z-8, x+8, z+8); err != nil {
+		t.Fatal(err)
+	}
+	if err := ts.arenas.Put("Field", a); err != nil {
+		t.Fatal(err)
+	}
+	send(t, admin, saveScript(x, y, z, `
+		function on_round_start(players) say("go " .. #players) add_points(players[1], 2) end
+		function on_round_end(winners) say("won " .. winners[1]) end`))
+	scriptShown(t, admin)
+
+	ts.gw.mu.Lock()
+	var entity uint32
+	for _, av := range ts.gw.players {
+		entity = av.entity
+	}
+	r := rounds.New(a)
+	r.Join(entity, "Mom", arenas.Mark{X: x, Y: y + 1, Z: z}, time.Now())
+	ts.gw.rounds["field"] = r
+	ts.gw.playLocked(r, r.Step(time.Now().Add(rounds.Countdown)))
+	ts.gw.mu.Unlock()
+
+	scriptSaid(t, admin, "go 1")
+	scriptSaid(t, admin, "won Mom")
 }
