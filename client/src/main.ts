@@ -84,6 +84,7 @@ import { ChatView } from "./ui/chat-view";
 import { $, el } from "./ui/dom";
 import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
+import { isMenuKey } from "./ui/hotkey";
 import { InventoryView } from "./ui/inventory-view";
 import { openPixelEditor, type EditorMode, type Submission } from "./ui/pixel-editor";
 import {
@@ -227,7 +228,7 @@ gameScene.onDrawn((timeMs, steady, change) => {
 });
 const settingsView = settingsPanel(settings, changeSettings);
 addHudDialog("Settings", settingsView.node);
-addHudDialog("Blocks", el("div", {}, picker.node, backpack.node));
+addHudDialog("Blocks", el("div", {}, picker.node, backpack.node), "KeyB");
 addHudButton("🎨", "Create", () => createDialog.showModal());
 addHudButton("💬", "Chat", () => chat.open());
 addHudButton("😀", "Emotes", () => emotes.open());
@@ -647,8 +648,8 @@ function createButton(label: string, kind: EditorMode["kind"]): HTMLButtonElemen
   return el("button", { class: "primary", onclick: () => edit(kind) }, label);
 }
 
-/** Adds a HUD button that opens `content` in a modal dialog. */
-function addHudDialog(label: string, content: Node): void {
+/** Adds a HUD button, and optionally a key that toggles it, that opens `content` in a modal dialog. */
+function addHudDialog(label: string, content: Node, key?: string): void {
   const dialog = el(
     "dialog",
     { class: "card" },
@@ -657,6 +658,18 @@ function addHudDialog(label: string, content: Node): void {
   );
   document.body.append(dialog);
   $("#hud-buttons").append(el("button", { onclick: () => dialog.showModal() }, label));
+  if (key) document.addEventListener("keydown", (e) => toggleByKey(e, key, dialog));
+}
+
+/** Opens or closes `dialog` on its key, unless another dialog or the join screen is up. */
+function toggleByKey(e: KeyboardEvent, key: string, dialog: HTMLDialogElement): void {
+  if (!isMenuKey(e, key) || !document.body.classList.contains("in-world")) return;
+  const other = document.querySelector("dialog[open]");
+  if (other && other !== dialog) return;
+  e.preventDefault();
+  if (dialog.open) return dialog.close();
+  if (document.pointerLockElement) document.exitPointerLock();
+  dialog.showModal();
 }
 
 function addHudButton(icon: string, label: string, onclick: () => void): void {
