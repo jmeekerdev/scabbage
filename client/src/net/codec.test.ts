@@ -11,6 +11,8 @@ import {
   PROTOCOL_VERSION,
   encodeOpenScript,
   encodeSaveScript,
+  encodeTalkTo,
+  encodeAnswer,
   decodeServer,
   encodeCreateJoinCode,
   encodeDecideArt,
@@ -123,6 +125,15 @@ describe("codec", () => {
     expect(open.case === "openScript" && open.value.pos?.z).toBe(3);
     const save = decodeClient(encodeSaveScript({ x: 1, y: 2, z: 3 }, "x = 1"));
     expect(save.case === "saveScript" && save.value.source).toBe("x = 1");
+  });
+
+  it("encodes talking to a character and answering it", () => {
+    const talk = decodeClient(encodeTalkTo(4));
+    expect(talk.case === "talkTo" && talk.value.npc).toBe(4);
+    const answer = decodeClient(encodeAnswer(7, 1));
+    expect(answer.case === "answer" && [answer.value.dialogue, answer.value.choice]).toEqual([
+      7, 1,
+    ]);
   });
 
   it("encodes a ping", () => {

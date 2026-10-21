@@ -286,7 +286,13 @@ Each phase ends with something the family can play. Compact the model context be
       scripts act for whoever saved them, within 16 blocks)
 
 ### Phase 7 — Adventure
-- [ ] Quests (data + scripts), NPCs with dialogue
+- [x] Quests (data + scripts), NPCs with dialogue
+      (a script calling `npc("Granny Ivy")` stands a character on its block, saved with the script so it
+      stays after restarts; using it runs `on_talk(player)`; `talk` and `ask(player, text, choices, fn)`
+      open a dialogue box and `ask` runs fn with the answer; `remember`/`recall` keep strings, numbers
+      and booleans per player for any script (100 each); `quest`/`finish_quest` fill a quest log (Q or the
+      Quests button, 50 entries) that comes in the Welcome; `take_item` takes blocks, always true in creative
+      and admin-only for survival; journals save with players; a Story category in the blocks)
 - [ ] Dungeons/structures in world gen, loot, a couple of bosses
 - [ ] Family-authored adventure maps using phases 4–6
 

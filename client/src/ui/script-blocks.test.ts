@@ -55,6 +55,74 @@ describe("script blocks", () => {
   });
 });
 
+describe("story blocks", () => {
+  const say = (t: object) => ({ type: "sc_say", inputs: { TEXT: { block: t } } });
+  const words = (t: string) => ({ shadow: { type: "text", fields: { TEXT: t } } });
+  const who = { shadow: { type: "sc_player" } };
+
+  it("make a character who talks", () => {
+    const talk = { type: "sc_talk", inputs: { PLAYER: who, TEXT: words("Hi") } };
+    const lua = luaFor(
+      workspace(
+        { type: "sc_npc", fields: { NAME: "Granny Ivy" } },
+        { type: "sc_on_talk", inputs: { DO: { block: talk } } },
+      ),
+    );
+    expect(lua).toContain("npc('Granny Ivy')");
+    expect(lua).toContain("function on_talk(player)");
+    expect(lua).toContain("talk(player, tostring('Hi'))");
+  });
+
+  it("ask with the choices filled in, then use the answer", () => {
+    const ask = {
+      type: "sc_ask",
+      fields: { CHOICE1: "Yes", CHOICE2: "No", CHOICE3: "" },
+      inputs: {
+        PLAYER: who,
+        TEXT: words("Help?"),
+        DO: { block: say({ type: "sc_answer" }) },
+      },
+    };
+    const lua = luaFor(workspace({ type: "sc_on_talk", inputs: { DO: { block: ask } } }));
+    expect(lua).toMatch(
+      /ask\(player, tostring\('Help\?'\), \{'Yes', 'No'\}, function\(answer\)\n\s+say\(tostring\(answer\)\)\n\s+end\)/,
+    );
+  });
+
+  it("remember things, keep quests and take items", () => {
+    const steps = [
+      {
+        type: "sc_remember",
+        fields: { KEY: "sheep" },
+        inputs: { PLAYER: who, VALUE: num(3) },
+      },
+      {
+        type: "sc_quest",
+        fields: { TITLE: "Lost sheep" },
+        inputs: { PLAYER: who, STEP: words("Find wool") },
+      },
+      { type: "sc_finish_quest", fields: { TITLE: "Old well" }, inputs: { PLAYER: who } },
+      say({ type: "sc_recall", fields: { KEY: "sheep" }, inputs: { PLAYER: who } }),
+      say({
+        type: "sc_take_item",
+        fields: { ITEM: "stone" },
+        inputs: { PLAYER: who, COUNT: num(2) },
+      }),
+    ];
+    const chain = steps.reduceRight<object | undefined>(
+      (next, b) => (next ? { ...b, next: { block: next } } : b),
+      undefined,
+    );
+    setBlockNames(["stone"]);
+    const lua = luaFor(workspace({ type: "sc_on_touch", inputs: { DO: { block: chain } } }));
+    expect(lua).toContain("remember(player, 'sheep', 3)");
+    expect(lua).toContain("quest(player, 'Lost sheep', tostring('Find wool'))");
+    expect(lua).toContain("finish_quest(player, 'Old well')");
+    expect(lua).toContain("say(tostring(recall(player, 'sheep')))");
+    expect(lua).toContain("say(tostring(take_item(player, 'stone', 2)))");
+  });
+});
+
 describe("compact", () => {
   it("drops block ids but keeps variables'", () => {
     const state = {

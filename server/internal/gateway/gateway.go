@@ -35,7 +35,7 @@ type Config struct {
 	Mobs           *mobs.Herd        // a new herd when nil; guarded by the gateway's mu
 	Zones          *zones.Service
 	Arenas         *arenas.Service
-	ScriptDB       *sql.DB // where script blocks keep their Lua
+	ScriptDB       *sql.DB // where script blocks keep their Lua and characters, and players their journals
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -61,6 +61,7 @@ type Gateway struct {
 	arenas      map[string]arenaView     // by lowercased zone name; guarded by mu
 	rounds      map[string]*rounds.Round // games being played, by lowercased zone name; guarded by mu
 	roundEvents []roundEvent             // starts and ends for scripts to hear on the next tick; guarded by mu
+	dialogue    uint32                   // last Dialogue id handed out; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.
@@ -79,7 +80,10 @@ func New(cfg Config) (*Gateway, error) {
 	}
 	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}, rounds: map[string]*rounds.Round{},
 		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}, scriptErrAt: map[world.Pos]time.Time{}}
-	g.scripts = scripts.New(cfg.ScriptDB, g.scriptHost)
+	var err error
+	if g.scripts, err = scripts.New(cfg.ScriptDB, g.scriptHost, g.npcChanged); err != nil {
+		return nil, err
+	}
 	return g, g.loadArt()
 }
 

@@ -102,6 +102,14 @@ export function encodeCraft(recipe: number): Bytes {
   return encode({ case: "craft", value: { recipe } });
 }
 
+export function encodeTalkTo(npc: number): Bytes {
+  return encode({ case: "talkTo", value: { npc } });
+}
+
+export function encodeAnswer(dialogue: number, choice: number): Bytes {
+  return encode({ case: "answer", value: { dialogue, choice } });
+}
+
 export function encodeHitMob(mob: number): Bytes {
   return encode({ case: "hitMob", value: { mob } });
 }

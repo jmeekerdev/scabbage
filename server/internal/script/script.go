@@ -36,6 +36,7 @@ type Script struct {
 	now     time.Time // when the current run started, for after()
 	actions int       // world calls made in the current run
 	timers  []timer
+	answers map[string]*lua.LFunction // what to do with each player's answer to ask(), by lowercased name
 	stopped bool
 }
 
@@ -74,6 +75,22 @@ func (s *Script) Touch(player string, now time.Time) error {
 // Power runs on_power(on) when the power reaching the script changes.
 func (s *Script) Power(on bool, now time.Time) error {
 	return s.handle("on_power", now, lua.LBool(on))
+}
+
+// Talk runs on_talk(player) when someone talks to the script's character.
+func (s *Script) Talk(player string, now time.Time) error {
+	return s.handle("on_talk", now, lua.LString(player))
+}
+
+// Answer runs what ask() said to do with the player's answer, once; without a question waiting it does nothing.
+func (s *Script) Answer(player, answer string, now time.Time) error {
+	key := strings.ToLower(player)
+	fn, ok := s.answers[key]
+	if !ok {
+		return nil
+	}
+	delete(s.answers, key)
+	return s.run(now, fn, lua.LString(answer))
 }
 
 // RoundStart runs on_round_start(players) when a round starts in the script's arena.

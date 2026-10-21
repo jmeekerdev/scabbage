@@ -9,6 +9,8 @@ import {
   encodeEditBlock,
   encodeHitMob,
   encodeHitPlayer,
+  encodeTalkTo,
+  encodeAnswer,
   encodeUseBlock,
   encodeOpenScript,
   encodeSaveScript,
@@ -37,6 +39,7 @@ import {
   type Teleport,
   type Texture,
   type Vitals,
+  type Quest,
   type Welcome,
   type WorldInfo,
 } from "./pb/scabbage/v1/net_pb";
@@ -52,6 +55,7 @@ import {
 } from "./player/building";
 import { Hotbar, hotbarBlocks } from "./player/hotbar";
 import { Inventory } from "./player/inventory";
+import { Npcs } from "./player/npcs";
 import { Miner } from "./player/mining";
 import { MOB_REACH, MOB_STEP_MS, type MobState, Mobs, pickMob } from "./player/mobs";
 import { GamepadControls } from "./player/gamepad";
@@ -84,7 +88,9 @@ import { ChatView } from "./ui/chat-view";
 import { $, el } from "./ui/dom";
 import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
+import { DialogueView } from "./ui/dialogue-view";
 import { isMenuKey } from "./ui/hotkey";
+import { QuestLogView } from "./ui/quest-log-view";
 import { InventoryView } from "./ui/inventory-view";
 import { openPixelEditor, type EditorMode, type Submission } from "./ui/pixel-editor";
 import {
@@ -135,6 +141,9 @@ const backpack = new InventoryView(
 );
 const miner = new Miner();
 const presses = new PressFilter(250); // input repeats held buttons every 250 ms
+const npcs = new Npcs();
+const dialogue = new DialogueView((id, choice) => conn?.send(encodeAnswer(id, choice)));
+const questLog = new QuestLogView();
 let survival = false;
 const zones = new Zones();
 const arenaMarks = new ArenaMarks(gameScene.scene);
@@ -163,6 +172,7 @@ const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, emotes, (l) 
 const gamepad = new GamepadControls(player, hotbar, () => navigator.getGamepads(), sendEmote);
 const touchControls = touch ? new TouchControls($("#game"), $("#touch"), player) : undefined;
 const avatars = new Avatars(gameScene.scene);
+const npcAvatars = new Avatars(gameScene.scene); // characters, apart so their ids never meet players'
 const audio = new GameAudio(settings.sound, settings.music);
 const footsteps = new Footsteps();
 const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
@@ -209,6 +219,7 @@ gameScene.onFrame((timeMs) => {
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
   avatars.update(others?.sample(performance.now()) ?? [], performance.now());
+  npcAvatars.update(npcs.figures(player.body), performance.now());
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
@@ -229,6 +240,7 @@ gameScene.onDrawn((timeMs, steady, change) => {
 const settingsView = settingsPanel(settings, changeSettings);
 addHudDialog("Settings", settingsView.node);
 addHudDialog("Blocks", el("div", {}, picker.node, backpack.node), "KeyB");
+addHudDialog("Quests", questLog.node, "KeyQ");
 addHudButton("🎨", "Create", () => createDialog.showModal());
 addHudButton("💬", "Chat", () => chat.open());
 addHudButton("😀", "Emotes", () => emotes.open());
@@ -286,6 +298,12 @@ function connect(join?: JoinInit): void {
         else if (msg.body.case === "vitals") applyVitals(msg.body.value);
         else if (msg.body.case === "scoreboard") scoreboard.show(msg.body.value);
         else if (msg.body.case === "scriptShown") scriptEditor.show(msg.body.value);
+        else if (msg.body.case === "npcsChanged")
+          npcs.change(msg.body.value.npcs, msg.body.value.gone);
+        else if (msg.body.case === "dialogue") {
+          dialogue.show(msg.body.value);
+          audio.play("pop", 0.6);
+        } else if (msg.body.case === "questLog") questNews(msg.body.value.quests);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
         else if (msg.body.case === "blockBatch") msg.body.value.blocks.forEach(blockChanged);
         else if (msg.body.case === "inventory") {
@@ -355,6 +373,14 @@ function enterGame(w: Welcome): void {
   if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
   if (w.start) teleport(w.start); // after vitals, which decide whether we may fly
+  if (w.quests) questLog.start(w.quests.quests);
+}
+
+/** Shows the changed quest log and tells us what is new in it. */
+function questNews(quests: Quest[]): void {
+  const news = questLog.update(quests);
+  for (const line of news) chat.note(line);
+  if (news.length) audio.play("pop", 0.8);
 }
 
 /** Our own health and game mode: survival walks, carries its blocks and shows hearts. */
@@ -371,6 +397,7 @@ function applyVitals(v: Vitals): void {
 function enterWorld(info: WorldInfo, tickRateHz: number): void {
   world.start(info);
   drops.clear(); // the server lists every item again on joining
+  npcs.clear(); // and every character
   bounds = { radius: info.radius, height: info.height };
   hotbar.slots.splice(0, Infinity, ...hotbarBlocks(info.blocks));
   hotbar.select(0);
@@ -452,6 +479,13 @@ function build(
 ): void {
   const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
   const aimed = aimedAt(eye, near);
+  const npc = npcs.pick(eye, lookDirection(player.look.yaw, player.look.pitch), MOB_REACH);
+  if (npc && npc.distance < Math.min(hit?.distance ?? Infinity, aimed?.distance ?? Infinity)) {
+    miner.stop();
+    selection.show(undefined);
+    if (act.placing && presses.fresh(performance.now())) talkTo(npc.id);
+    return;
+  }
   if (aimed && (!hit || aimed.distance < hit.distance)) {
     miner.stop();
     selection.show(undefined);
@@ -551,6 +585,14 @@ function strike(hit: Bytes): void {
   if (pose) conn.send(encodeMove(pose, moves.teleport));
   conn.send(hit);
   audio.play("bonk");
+}
+
+/** Asks a character's script block to run its on_talk. */
+function talkTo(npc: number): void {
+  if (!conn || !moves) return;
+  const pose = moves.flush(player.pose()); // the server checks reach from our latest position
+  if (pose) conn.send(encodeMove(pose, moves.teleport));
+  conn.send(encodeTalkTo(npc));
 }
 
 /** Presses a switch or button; anyone may, even in a protected zone. */

@@ -5,6 +5,7 @@ import (
 
 	"scabbage/internal/edit"
 	"scabbage/internal/inventory"
+	"scabbage/internal/journal"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/rounds"
@@ -27,6 +28,8 @@ type avatar struct {
 	digger     edit.Digger
 	hitAt      time.Time     // when they last hit a mob or player
 	round      *rounds.Round // the minigame they joined, if any
+	journal    *journal.Journal
+	asked      *question // what a script last asked them, until they answer
 }
 
 func (a *avatar) pose() *pb.PlayerPose {
@@ -45,11 +48,12 @@ func (s *session) other(a *avatar) *pb.OtherPlayer {
 // addPlayer puts a session in the world, introducing it and everyone already there to each other.
 func (g *Gateway) addPlayer(s *session) {
 	arenas := g.arenaViews()
+	npcs := g.npcsMessage()
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.arenas = arenas
 	g.entity++
-	a := &avatar{entity: g.entity, own: g.modeOf(s.player), vitals: vitals.New(time.Now())}
+	a := &avatar{entity: g.entity, own: g.modeOf(s.player), vitals: vitals.New(time.Now()), journal: s.journal}
 	a.load(s.saved)
 	arrived := playersJoined(s.other(a))
 	present := playersJoined()
@@ -61,7 +65,7 @@ func (g *Gateway) addPlayer(s *session) {
 		s.push(present)
 	}
 	a.mode = g.zoneMode(a)
-	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked(), g.zonesMessage(s, true)} {
+	for _, msg := range []*pb.ServerMessage{g.itemsLyingAroundLocked(), g.mobsAroundLocked(), g.zonesMessage(s, true), npcs} {
 		if msg != nil {
 			s.push(msg)
 		}

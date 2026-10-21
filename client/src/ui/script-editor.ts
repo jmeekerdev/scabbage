@@ -17,7 +17,17 @@ set_block(x, y, z, "stone")   places a block nearby ("air" clears it)
 give_item(player, "torch", 3) hands someone nearby some blocks
 teleport(player, x, y, z)     moves someone nearby
 add_points(player, 2)         scores points in this arena's round
-after(seconds, function() ... end)   runs something later`;
+after(seconds, function() ... end)   runs something later
+
+npc("Granny Ivy")  stands a character on this block
+on_talk(player)    someone talked to the character
+talk(player, "Hello!")        the character says something
+ask(player, "Help?", {"Yes", "No"}, function(answer) ... end)
+remember(player, "sheep", 3)  kept about them, for any script
+recall(player, "sheep")       what was remembered, or nil
+quest(player, "Lost sheep", "Find 3 wool")   adds or moves on a quest
+finish_quest(player, "Lost sheep")
+take_item(player, "white_wool", 3)   true if they had them`;
 
 const LOSE_EDITS = "Go back to the blocks? Changes you made to the Lua will be lost.";
 const START_OVER =

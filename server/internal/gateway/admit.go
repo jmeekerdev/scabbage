@@ -64,6 +64,7 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 		welcome.Vitals = &pb.Vitals{Mode: s.gw.modeOf(s.player), Health: uint32(s.saved.health)}
 		welcome.Inventory = inventoryProto(&s.saved.inv)
 		welcome.Start = s.start()
+		welcome.Quests = questLogMessage(s.journal).GetQuestLog()
 		s.startMotion()
 		s.talk = rate.New(time.Now(), chat.PerSecond, chat.Burst)
 	}

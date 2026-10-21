@@ -102,6 +102,21 @@ var migrations = []string{
 		updated_ms INTEGER NOT NULL,
 		PRIMARY KEY (x, y, z)
 	) WITHOUT ROWID;`,
+	`ALTER TABLE scripts ADD COLUMN npc TEXT NOT NULL DEFAULT '';
+	CREATE TABLE memories (
+		player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+		key       TEXT NOT NULL,
+		value     TEXT NOT NULL,
+		PRIMARY KEY (player_id, key)
+	) WITHOUT ROWID;
+	CREATE TABLE quests (
+		player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+		title     TEXT NOT NULL,
+		step      TEXT NOT NULL,
+		done      INTEGER NOT NULL,
+		place     INTEGER NOT NULL,
+		PRIMARY KEY (player_id, title)
+	) WITHOUT ROWID;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

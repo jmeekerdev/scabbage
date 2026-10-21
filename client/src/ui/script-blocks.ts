@@ -9,6 +9,7 @@ Blockly.setLocale(En as unknown as Record<string, string>);
 const EVENTS = 45;
 const WORLD = 200;
 const PLAYERS = 290;
+const STORY = 160;
 
 let blockNames = ["stone"];
 
@@ -50,7 +51,12 @@ Blockly.common.defineBlocksWithJsonArray([
     "Runs when a minigame round starts in this arena.",
   ),
   event("sc_on_round_end", "when a round ends", "Runs when this arena's round ends."),
-  value("sc_player", "player who used it", "String", "Who used the script block."),
+  event(
+    "sc_on_talk",
+    "when someone talks to me",
+    "Runs when a player talks to this block's character.",
+  ),
+  value("sc_player", "player", "String", "Who used the script block or talked to its character."),
   value(
     "sc_power_on",
     "power is on",
@@ -118,7 +124,93 @@ Blockly.common.defineBlocksWithJsonArray([
     colour: WORLD,
     tooltip: "Waits, then does the blocks inside.",
   },
+  ...storyBlocks(),
 ]);
+
+/** Blocks for characters and quests. */
+function storyBlocks(): object[] {
+  const player = { type: "input_value", name: "PLAYER", check: "String" };
+  const words = (name: string, text: string) => ({ type: "field_input", name, text });
+  const story = { ...statement, colour: STORY };
+  return [
+    {
+      type: "sc_npc",
+      message0: "🧑 I am a character called %1",
+      args0: [words("NAME", "Granny Ivy")],
+      colour: STORY,
+      tooltip:
+        "Stands a character on top of this block. Talking to it runs “when someone talks to me”.",
+    },
+    {
+      type: "sc_talk",
+      message0: "tell %1 %2",
+      args0: [player, { type: "input_value", name: "TEXT" }],
+      ...story,
+      tooltip: "Shows a player what this block's character says.",
+    },
+    {
+      type: "sc_ask",
+      message0: "ask %1 %2 choices %3 %4 %5 %6 when they answer %7",
+      args0: [
+        player,
+        { type: "input_value", name: "TEXT" },
+        words("CHOICE1", "Yes"),
+        words("CHOICE2", "No"),
+        words("CHOICE3", ""),
+        { type: "input_dummy" },
+        { type: "input_statement", name: "DO" },
+      ],
+      ...story,
+      tooltip:
+        "Asks a player a question with up to three answers to pick from. Leave a choice empty to skip it.",
+    },
+    { ...value("sc_answer", "answer", "String", "The choice the player picked."), colour: STORY },
+    {
+      type: "sc_remember",
+      message0: "remember about %1 that %2 is %3",
+      args0: [player, words("KEY", "sheep found"), { type: "input_value", name: "VALUE" }],
+      ...story,
+      tooltip:
+        "Keeps something about a player that any script can look up later, even after they leave.",
+    },
+    {
+      type: "sc_recall",
+      message0: "%1 about %2",
+      args0: [words("KEY", "sheep found"), player],
+      output: null,
+      inputsInline: true,
+      colour: STORY,
+      tooltip: "What was remembered about a player, or nothing if it never was.",
+    },
+    {
+      type: "sc_quest",
+      message0: "give %1 the quest %2 next step %3",
+      args0: [player, words("TITLE", "Lost sheep"), { type: "input_value", name: "STEP" }],
+      ...story,
+      tooltip: "Adds a quest to a player's quest log, or changes what it says to do next.",
+    },
+    {
+      type: "sc_finish_quest",
+      message0: "finish %1's quest %2",
+      args0: [player, words("TITLE", "Lost sheep")],
+      ...story,
+      tooltip: "Ticks a quest off in a player's quest log.",
+    },
+    {
+      type: "sc_take_item",
+      message0: "take %1 %2 from %3",
+      args0: [
+        { type: "input_value", name: "COUNT", check: "Number" },
+        { type: "field_dropdown", name: "ITEM", options: giveMenu },
+        player,
+      ],
+      output: "Boolean",
+      inputsInline: true,
+      colour: STORY,
+      tooltip: "Takes blocks from a player if they have enough, and says whether it did.",
+    },
+  ];
+}
 
 type Gen = typeof luaGenerator;
 const arg = (b: Blockly.Block, g: Gen, name: string, order: Order, empty: string) =>
@@ -157,12 +249,45 @@ Object.assign(luaGenerator.forBlock, {
     `add_points(${arg(b, g, "PLAYER", Order.NONE, "player")}, ${arg(b, g, "POINTS", Order.NONE, "1")})\n`,
   sc_after: (b: Blockly.Block, g: Gen) =>
     `after(${arg(b, g, "SECONDS", Order.NONE, "1")}, function()\n${g.statementToCode(b, "DO")}end)\n`,
+  ...storyLua(),
 });
+
+function storyLua(): Record<string, (b: Blockly.Block, g: Gen) => string | [string, Order]> {
+  const who = (b: Blockly.Block, g: Gen) => arg(b, g, "PLAYER", Order.NONE, "player");
+  const field = (b: Blockly.Block, g: Gen, name: string) =>
+    g.quote_(b.getFieldValue(name) as string);
+  const said = (b: Blockly.Block, g: Gen, name: string) =>
+    `tostring(${arg(b, g, name, Order.NONE, "''")})`;
+  return {
+    sc_on_talk: handler("on_talk", "player"),
+    sc_npc: (b, g) => `npc(${field(b, g, "NAME")})\n`,
+    sc_talk: (b, g) => `talk(${who(b, g)}, ${said(b, g, "TEXT")})\n`,
+    sc_ask: (b, g) => {
+      const picked = ["CHOICE1", "CHOICE2", "CHOICE3"].map((n) =>
+        (b.getFieldValue(n) as string).trim(),
+      );
+      const choices = picked.filter(Boolean).map((c) => g.quote_(c));
+      const list = `{${(choices.length ? choices : ["'OK'"]).join(", ")}}`;
+      return `ask(${who(b, g)}, ${said(b, g, "TEXT")}, ${list}, function(answer)\n${g.statementToCode(b, "DO")}end)\n`;
+    },
+    sc_answer: name("answer"),
+    sc_remember: (b, g) =>
+      `remember(${who(b, g)}, ${field(b, g, "KEY")}, ${arg(b, g, "VALUE", Order.NONE, "nil")})\n`,
+    sc_recall: (b, g) => [`recall(${who(b, g)}, ${field(b, g, "KEY")})`, Order.HIGH],
+    sc_quest: (b, g) => `quest(${who(b, g)}, ${field(b, g, "TITLE")}, ${said(b, g, "STEP")})\n`,
+    sc_finish_quest: (b, g) => `finish_quest(${who(b, g)}, ${field(b, g, "TITLE")})\n`,
+    sc_take_item: (b, g) => [
+      `take_item(${who(b, g)}, ${field(b, g, "ITEM")}, ${arg(b, g, "COUNT", Order.NONE, "1")})`,
+      Order.HIGH,
+    ],
+  };
+}
 
 // Players' variables and functions must not take the names scripts already use.
 luaGenerator.addReservedWords(
   "player,on,players,winners,here,say,set_block,give_item,teleport,add_points,after," +
-    "on_touch,on_power,on_round_start,on_round_end",
+    "on_touch,on_power,on_round_start,on_round_end,on_talk,answer,npc,talk,ask,remember,recall," +
+    "quest,finish_quest,take_item",
 );
 
 /** A new script: say hello to whoever uses the block. */
@@ -212,6 +337,9 @@ export function luaFor(state: object): string {
 const num = (n: number) => ({ shadow: { type: "math_number", fields: { NUM: n } } });
 const text = (t: string) => ({ shadow: { type: "text", fields: { TEXT: t } } });
 const who = { shadow: { type: "sc_player" } };
+const logic = (on: boolean) => ({
+  block: { type: "logic_boolean", fields: { BOOL: on ? "TRUE" : "FALSE" } },
+});
 const near = (x: number, y: number, z: number) => ({ X: num(x), Y: num(y), Z: num(z) });
 const kinds = (...types: string[]) => types.map((type) => ({ kind: "block", type }));
 const category = (name: string, colour: number | string, contents: object[]) => ({
@@ -227,8 +355,19 @@ const TOOLBOX = {
     category(
       "When",
       EVENTS,
-      kinds("sc_on_touch", "sc_on_power", "sc_on_round_start", "sc_on_round_end"),
+      kinds("sc_on_touch", "sc_on_talk", "sc_on_power", "sc_on_round_start", "sc_on_round_end"),
     ),
+    category("Story", STORY, [
+      ...kinds("sc_npc", "sc_on_talk"),
+      { kind: "block", type: "sc_talk", inputs: { PLAYER: who, TEXT: text("Hello there!") } },
+      { kind: "block", type: "sc_ask", inputs: { PLAYER: who, TEXT: text("Will you help me?") } },
+      ...kinds("sc_answer"),
+      { kind: "block", type: "sc_quest", inputs: { PLAYER: who, STEP: text("Find 3 white wool") } },
+      { kind: "block", type: "sc_finish_quest", inputs: { PLAYER: who } },
+      { kind: "block", type: "sc_remember", inputs: { PLAYER: who, VALUE: logic(true) } },
+      { kind: "block", type: "sc_recall", inputs: { PLAYER: who } },
+      { kind: "block", type: "sc_take_item", inputs: { PLAYER: who, COUNT: num(3) } },
+    ]),
     category("World", WORLD, [
       { kind: "block", type: "sc_say", inputs: { TEXT: text("Hello!") } },
       { kind: "block", type: "sc_set_block", inputs: near(0, 1, 0) },

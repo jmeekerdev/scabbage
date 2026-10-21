@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 18;
+  PROTOCOL_VERSION_CURRENT = 19;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -33,6 +33,8 @@ message ClientMessage {
     HitPlayer hit_player = 18;
     OpenScript open_script = 19;
     SaveScript save_script = 20;
+    TalkTo talk_to = 21;
+    Answer answer = 22;
   }
 }
 
@@ -65,6 +67,9 @@ message ServerMessage {
     BlockBatch block_batch = 24;
     Scoreboard scoreboard = 25;
     ScriptShown script_shown = 26;
+    NpcsChanged npcs_changed = 27;
+    Dialogue dialogue = 28;
+    QuestLog quest_log = 29;
   }
 }
 
@@ -97,6 +102,7 @@ message Welcome {
   Inventory inventory = 7; // unset for admin console connections
   // Where the player was last saved, with id 0; unset to start at the world spawn.
   Teleport start = 8;
+  QuestLog quests = 9; // unset for admin console connections
 }
 
 message WorldInfo {
@@ -572,4 +578,48 @@ message ScriptShown {
   bool editable = 3; // the recipient may build here, so may save
   string error = 4;  // the last error loading or running it, if any
   bool saved = 5;    // this answers a save that was stored
+}
+
+// A character a script block stands on top of itself; using it runs the script's on_talk.
+message Npc {
+  uint32 id = 1;
+  string name = 2;
+  BlockPos pos = 3; // the block it stands in, just above its script block
+}
+
+// Characters that appeared or were renamed, and the ids of ones gone; all of them on join.
+message NpcsChanged {
+  repeated Npc npcs = 1;
+  repeated uint32 gone = 2;
+}
+
+// Talks to a character within reach.
+message TalkTo {
+  uint32 npc = 1;
+}
+
+// A script talking to the recipient; with choices it waits for an Answer.
+message Dialogue {
+  uint32 id = 1;
+  string speaker = 2;
+  string text = 3;
+  repeated string choices = 4;
+}
+
+// Picks one of a Dialogue's choices.
+message Answer {
+  uint32 dialogue = 1;
+  uint32 choice = 2; // index into the Dialogue's choices
+}
+
+// A quest in the recipient's log; scripts start, update and finish them.
+message Quest {
+  string title = 1;
+  string step = 2; // what to do next; empty once done
+  bool done = 3;
+}
+
+// The recipient's whole quest log, newest first; in the Welcome and whenever it changes.
+message QuestLog {
+  repeated Quest quests = 1;
 }

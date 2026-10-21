@@ -958,3 +958,49 @@ body.page .requests {
   font-size: 20px;
   letter-spacing: 0;
 }
+
+/* Talking to characters. */
+.dialogue[open] {
+  display: grid;
+  gap: 12px;
+}
+
+.dialogue h1 {
+  margin: 0;
+  font-size: 20px;
+  color: #7fd4ff;
+}
+
+.dialogue .line {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.dialogue .choices {
+  display: grid;
+  gap: 8px;
+}
+
+.dialogue .choices button {
+  margin: 0;
+  text-align: left;
+  letter-spacing: 0;
+}
+
+/* Quest log. */
+.quests h1 {
+  font-size: 20px;
+}
+
+.quests .quest {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #273049;
+}
+
+.quests .quest.done {
+  opacity: 0.6;
+}

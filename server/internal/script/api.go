@@ -17,6 +17,13 @@ type Host interface {
 	Teleport(player string, x, y, z float64) error
 	AddPoints(player string, n int) error // in the round of the arena the script is in
 	Where() (x, y, z int32)               // the script's own block
+	NPC(name string) error                // stands a character called name on the script block
+	Talk(player, text string, choices []string) error
+	Remember(player, key, value string) error // an empty value forgets
+	Recall(player, key string) (string, error)
+	SetQuest(player, title, step string) error
+	FinishQuest(player, title string) error
+	TakeItem(player, item string, count int) (bool, error) // false when they don't have that many
 }
 
 const (
@@ -31,8 +38,8 @@ const (
 	maxDelay = time.Hour
 )
 
-// register gives the script its world calls: say, set_block, give_item, teleport, add_points and after,
-// and `here`, where its block is.
+// register gives the script its world calls (say, set_block, give_item, teleport, add_points, after
+// and the story calls) and `here`, where its block is.
 func (s *Script) register() {
 	x, y, z := s.host.Where()
 	here := s.L.NewTable()
@@ -50,6 +57,9 @@ func (s *Script) register() {
 	} {
 		s.L.SetGlobal(name, s.L.NewFunction(s.counted(fn)))
 	}
+	for name, fn := range s.story() {
+		s.L.SetGlobal(name, s.L.NewFunction(s.counted(fn)))
+	}
 }
 
 // counted makes fn use up one of the run's actions, failing the run once they are gone.
@@ -64,12 +74,17 @@ func (s *Script) counted(fn lua.LGFunction) lua.LGFunction {
 }
 
 func (s *Script) say(L *lua.LState) int {
-	text := strings.TrimSpace(L.CheckString(1))
-	if utf8.RuneCountInString(text) > MaxSay {
-		text = string([]rune(text)[:MaxSay])
-	}
-	s.host.Say(text)
+	s.host.Say(clip(L.CheckString(1), MaxSay))
 	return 0
+}
+
+// clip trims text and cuts it to at most n characters.
+func clip(text string, n int) string {
+	text = strings.TrimSpace(text)
+	if utf8.RuneCountInString(text) > n {
+		text = string([]rune(text)[:n])
+	}
+	return text
 }
 
 func (s *Script) setBlock(L *lua.LState) int {

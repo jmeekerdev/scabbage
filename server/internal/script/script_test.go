@@ -15,7 +15,49 @@ type fakeHost struct {
 	blocks   []string
 	given    []string
 	moved    []string
+	talks    []string
+	quests   []string
+	npc      string
+	memory   map[string]string
+	hasItems bool
 	refusing error
+}
+
+func (h *fakeHost) NPC(name string) error {
+	h.npc = name
+	return h.refusing
+}
+
+func (h *fakeHost) Talk(player, text string, choices []string) error {
+	h.talks = append(h.talks, fmt.Sprintf("%s: %s %q", player, text, choices))
+	return h.refusing
+}
+
+func (h *fakeHost) Remember(player, key, value string) error {
+	if h.memory == nil {
+		h.memory = map[string]string{}
+	}
+	h.memory[player+" "+key] = value
+	return h.refusing
+}
+
+func (h *fakeHost) Recall(player, key string) (string, error) {
+	return h.memory[player+" "+key], h.refusing
+}
+
+func (h *fakeHost) SetQuest(player, title, step string) error {
+	h.quests = append(h.quests, fmt.Sprintf("%s %s: %s", player, title, step))
+	return h.refusing
+}
+
+func (h *fakeHost) FinishQuest(player, title string) error {
+	h.quests = append(h.quests, fmt.Sprintf("%s %s done", player, title))
+	return h.refusing
+}
+
+func (h *fakeHost) TakeItem(player, item string, count int) (bool, error) {
+	h.given = append(h.given, fmt.Sprintf("%s %s -%d", player, item, count))
+	return h.hasItems, h.refusing
 }
 
 func (h *fakeHost) Say(text string) { h.said = append(h.said, text) }

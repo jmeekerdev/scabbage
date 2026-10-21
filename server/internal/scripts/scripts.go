@@ -48,6 +48,7 @@ type Service struct {
 	loaded map[world.Pos]*entry
 	queue  []event
 	busy   bool // a script is running, so events it sets off wait in queue
+	npcs   npcs
 }
 
 type entry struct {
@@ -62,9 +63,12 @@ type event struct {
 	run func(*script.Script, time.Time) error
 }
 
-// New makes a service whose scripts reach the world through host.
-func New(db *sql.DB, host HostFunc) *Service {
-	return &Service{db: db, host: host, loaded: map[world.Pos]*entry{}}
+// New makes a service whose scripts reach the world through host, reading the characters they made.
+func New(db *sql.DB, host HostFunc, onNPC NPCFunc) (*Service, error) {
+	s := &Service{db: db, host: host, loaded: map[world.Pos]*entry{}, npcs: npcs{
+		byPos: map[world.Pos]NPC{}, unsaved: map[world.Pos]struct{}{}, notify: onNPC,
+	}}
+	return s, s.loadNPCs()
 }
 
 // Source is the script saved at `at`, if there is one.
@@ -79,17 +83,19 @@ func (s *Service) Source(at world.Pos) (Saved, bool, error) {
 }
 
 // Save stores src as the script at `at` and starts it; a script that fails to load is kept
-// so its author can fix it, and the error is returned.
+// so its author can fix it, and the error is returned. Its character leaves unless the new script names one.
 func (s *Service) Save(at world.Pos, src string, owner int64, now time.Time) error {
 	if len(src) > script.MaxSource {
 		return script.ErrTooLong
 	}
 	if _, err := s.db.Exec(`INSERT INTO scripts (x, y, z, source, owner_id, updated_ms) VALUES (?, ?, ?, ?, ?, ?)
-		ON CONFLICT (x, y, z) DO UPDATE SET source = excluded.source, owner_id = excluded.owner_id, updated_ms = excluded.updated_ms`,
+		ON CONFLICT (x, y, z) DO UPDATE SET source = excluded.source, owner_id = excluded.owner_id,
+			updated_ms = excluded.updated_ms, npc = ''`,
 		at.X, at.Y, at.Z, src, owner, now.UnixMilli()); err != nil {
 		return err
 	}
 	s.unload(at)
+	s.dropNPC(at)
 	var e *entry
 	s.drain(func() { e = s.start(at, Saved{Source: src, Owner: owner}, now) })
 	if e.Err != "" {
@@ -98,9 +104,10 @@ func (s *Service) Save(at world.Pos, src string, owner int64, now time.Time) err
 	return nil
 }
 
-// Delete forgets the script at `at`, e.g. when its block is broken.
+// Delete forgets the script at `at` and its character, e.g. when its block is broken.
 func (s *Service) Delete(at world.Pos) error {
 	s.unload(at)
+	s.dropNPC(at)
 	_, err := s.db.Exec(`DELETE FROM scripts WHERE x = ? AND y = ? AND z = ?`, at.X, at.Y, at.Z)
 	return err
 }
@@ -113,6 +120,16 @@ func (s *Service) Touch(at world.Pos, player string, now time.Time) []Failure {
 // Power runs on_power(on) at `at`.
 func (s *Service) Power(at world.Pos, on bool, now time.Time) []Failure {
 	return s.dispatch(event{at, now, func(r *script.Script, now time.Time) error { return r.Power(on, now) }})
+}
+
+// Talk runs on_talk(player) at `at`, when someone talks to its character.
+func (s *Service) Talk(at world.Pos, player string, now time.Time) []Failure {
+	return s.dispatch(event{at, now, func(r *script.Script, now time.Time) error { return r.Talk(player, now) }})
+}
+
+// Answer hands the script at `at` the player's answer to its question.
+func (s *Service) Answer(at world.Pos, player, answer string, now time.Time) []Failure {
+	return s.dispatch(event{at, now, func(r *script.Script, now time.Time) error { return r.Answer(player, answer, now) }})
 }
 
 // RoundStart runs on_round_start(players) at `at`.
@@ -169,16 +186,18 @@ func (s *Service) dispatch(ev event) []Failure {
 }
 
 // drain runs first, which may load scripts, then the queued events; scripts never run inside
-// each other, so a running script's events wait for it.
-func (s *Service) drain(first func()) []Failure {
+// each other, so a running script's events wait for it. Characters' names are saved once all have run.
+func (s *Service) drain(first func()) (out []Failure) {
 	if s.busy {
 		first()
 		return nil
 	}
 	s.busy = true
-	defer func() { s.busy = false }()
+	defer func() {
+		s.busy = false
+		out = append(out, s.saveNPCs()...)
+	}()
 	first()
-	var out []Failure
 	for ran := 0; len(s.queue) > 0; ran++ {
 		next := s.queue[0]
 		s.queue = s.queue[1:]

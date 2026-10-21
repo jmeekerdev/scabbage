@@ -6,6 +6,7 @@ import (
 
 	"scabbage/internal/access"
 	"scabbage/internal/inventory"
+	"scabbage/internal/journal"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/vitals"
@@ -68,6 +69,9 @@ func (s *session) loadSave() error {
 	if v.Health > 0 && v.Health <= vitals.Max {
 		s.saved.health = v.Health
 	}
+	if s.journal, err = journal.Load(s.gw.cfg.ScriptDB, s.player.ID); err != nil {
+		return err
+	}
 	s.saved.inv, err = inventory.Decode(v.Inventory)
 	if errors.Is(err, inventory.ErrCorrupt) {
 		s.log.Warn("inventory unreadable, starting empty", "player", s.player.Name)
@@ -105,9 +109,11 @@ func (s *session) restoreLocked(a *avatar) {
 	s.relocateLocked(spot{at: a.pos, restore: a.snapshot().restore()})
 }
 
+// pendingSave is what changed about a player: their save, their journal or both.
 type pendingSave struct {
-	player int64
-	data   access.Save
+	player  int64
+	data    *access.Save
+	journal *journal.Saved
 }
 
 // unsavedLocked collects changed players when it's time to save them; call with g.mu held.
@@ -125,24 +131,36 @@ func (g *Gateway) unsavedLocked(now time.Time) []pendingSave {
 	return out
 }
 
-// unsaved is the avatar's save if it changed; during a game that stays the one from before it.
+// unsaved is what changed of the avatar's save and journal; during a game the save stays the one from before it.
 func (a *avatar) unsaved(player int64) (pendingSave, bool) {
+	p := pendingSave{player: player}
 	now := a.snapshot()
 	if a.stash != nil {
 		now = *a.stash
 	}
-	if now == a.saved {
-		return pendingSave{}, false
+	if now != a.saved {
+		a.saved = now
+		rec := now.record()
+		p.data = &rec
 	}
-	a.saved = now
-	return pendingSave{player, now.record()}, true
+	if j, ok := a.journal.Unsaved(); ok {
+		p.journal = &j
+	}
+	return p, p.data != nil || p.journal != nil
 }
 
 // save writes players outside g.mu, since the database can be slow.
 func (g *Gateway) save(saves []pendingSave) {
 	for _, p := range saves {
-		if err := g.cfg.Access.Store(p.player, p.data); err != nil {
-			g.cfg.Logger.Error("saving player", "player", p.player, "err", err)
+		if p.data != nil {
+			if err := g.cfg.Access.Store(p.player, *p.data); err != nil {
+				g.cfg.Logger.Error("saving player", "player", p.player, "err", err)
+			}
+		}
+		if p.journal != nil {
+			if err := journal.Store(g.cfg.ScriptDB, p.player, *p.journal); err != nil {
+				g.cfg.Logger.Error("saving journal", "player", p.player, "err", err)
+			}
 		}
 	}
 }

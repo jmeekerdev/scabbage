@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
+	"scabbage/internal/journal"
 	"scabbage/internal/logic"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
@@ -41,6 +42,7 @@ type session struct {
 	talk     *rate.Bucket // chat and emotes
 	saved    snapshot     // as loaded on admit; the avatar holds the live state
 	resumed  bool         // saved is where they left off, not the spawn
+	journal  *journal.Journal
 
 	cancel   context.CancelFunc // ends the session, e.g. when it can't keep up
 	fainted  chan struct{}      // a mob knocked the player out; respawn on the run goroutine
@@ -168,6 +170,10 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.openScript(ctx, body.OpenScript)
 	case *pb.ClientMessage_SaveScript:
 		return s.saveScript(ctx, body.SaveScript)
+	case *pb.ClientMessage_TalkTo:
+		return s.talkTo(body.TalkTo)
+	case *pb.ClientMessage_Answer:
+		return s.answer(body.Answer)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

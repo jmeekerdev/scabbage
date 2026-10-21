@@ -1,6 +1,7 @@
 package scripts
 
 import (
+	"database/sql"
 	"errors"
 	"path/filepath"
 	"slices"
@@ -20,11 +21,12 @@ var (
 	t0    = time.Unix(1000, 0)
 )
 
-// fakeHost records what scripts said, and lets SetBlock power other script blocks.
+// fakeHost records what scripts said, lets SetBlock power other script blocks and names characters.
 type fakeHost struct {
 	at    world.Pos
 	said  *[]string
 	onSet func(at world.Pos)
+	svc   **Service
 }
 
 func (h fakeHost) Say(text string) { *h.said = append(*h.said, text) }
@@ -38,11 +40,23 @@ func (fakeHost) GiveItem(string, string, int) error               { return nil }
 func (fakeHost) Teleport(string, float64, float64, float64) error { return nil }
 func (fakeHost) AddPoints(string, int) error                      { return nil }
 func (h fakeHost) Where() (x, y, z int32)                         { return h.at.X, h.at.Y, h.at.Z }
+func (h fakeHost) NPC(name string) error                          { (*h.svc).SetNPC(h.at, name); return nil }
+func (h fakeHost) Talk(player, text string, choices []string) error {
+	*h.said = append(*h.said, player+": "+text+" "+strings.Join(choices, "/"))
+	return nil
+}
+func (fakeHost) Remember(string, string, string) error      { return nil }
+func (fakeHost) Recall(string, string) (string, error)      { return "", nil }
+func (fakeHost) SetQuest(string, string, string) error      { return nil }
+func (fakeHost) FinishQuest(string, string) error           { return nil }
+func (fakeHost) TakeItem(string, string, int) (bool, error) { return false, nil }
 
 type env struct {
+	db    *sql.DB
 	svc   *Service
 	said  []string
 	onSet func(at world.Pos)
+	npcs  []string // characters appearing and going, in order
 }
 
 func newEnv(t *testing.T) *env {
@@ -55,16 +69,32 @@ func newEnv(t *testing.T) *env {
 	if _, err := db.Exec(`INSERT INTO players (id, name, color, created_ms) VALUES (?, 'Amy', 0, 0)`, amy); err != nil {
 		t.Fatal(err)
 	}
-	e := &env{}
-	e.svc = New(db, func(at world.Pos, owner int64) Host {
-		return fakeHost{at: at, said: &e.said, onSet: func(p world.Pos) {
+	e := &env{db: db}
+	e.start(t)
+	return e
+}
+
+// start runs a service over the env's database, as the server does when it starts.
+func (e *env) start(t *testing.T) {
+	t.Helper()
+	svc, err := New(e.db, func(at world.Pos, owner int64) Host {
+		return fakeHost{at: at, said: &e.said, svc: &e.svc, onSet: func(p world.Pos) {
 			if e.onSet != nil {
 				e.onSet(p)
 			}
 		}}
+	}, func(n NPC, gone bool) {
+		if gone {
+			e.npcs = append(e.npcs, "-"+n.Name)
+		} else {
+			e.npcs = append(e.npcs, "+"+n.Name)
+		}
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.svc = svc
 	t.Cleanup(e.svc.Forget)
-	return e
 }
 
 func (e *env) save(t *testing.T, at world.Pos, src string) {

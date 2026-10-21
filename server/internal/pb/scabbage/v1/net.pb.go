@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 18
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 19
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		18: "PROTOCOL_VERSION_CURRENT",
+		19: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     18,
+		"PROTOCOL_VERSION_CURRENT":     19,
 	}
 )
 
@@ -491,6 +491,8 @@ type ClientMessage struct {
 	//	*ClientMessage_HitPlayer
 	//	*ClientMessage_OpenScript
 	//	*ClientMessage_SaveScript
+	//	*ClientMessage_TalkTo
+	//	*ClientMessage_Answer
 	Body          isClientMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -713,6 +715,24 @@ func (x *ClientMessage) GetSaveScript() *SaveScript {
 	return nil
 }
 
+func (x *ClientMessage) GetTalkTo() *TalkTo {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_TalkTo); ok {
+			return x.TalkTo
+		}
+	}
+	return nil
+}
+
+func (x *ClientMessage) GetAnswer() *Answer {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_Answer); ok {
+			return x.Answer
+		}
+	}
+	return nil
+}
+
 type isClientMessage_Body interface {
 	isClientMessage_Body()
 }
@@ -797,6 +817,14 @@ type ClientMessage_SaveScript struct {
 	SaveScript *SaveScript `protobuf:"bytes,20,opt,name=save_script,json=saveScript,proto3,oneof"`
 }
 
+type ClientMessage_TalkTo struct {
+	TalkTo *TalkTo `protobuf:"bytes,21,opt,name=talk_to,json=talkTo,proto3,oneof"`
+}
+
+type ClientMessage_Answer struct {
+	Answer *Answer `protobuf:"bytes,22,opt,name=answer,proto3,oneof"`
+}
+
 func (*ClientMessage_Hello) isClientMessage_Body() {}
 
 func (*ClientMessage_Ping) isClientMessage_Body() {}
@@ -837,6 +865,10 @@ func (*ClientMessage_OpenScript) isClientMessage_Body() {}
 
 func (*ClientMessage_SaveScript) isClientMessage_Body() {}
 
+func (*ClientMessage_TalkTo) isClientMessage_Body() {}
+
+func (*ClientMessage_Answer) isClientMessage_Body() {}
+
 // Every WebSocket binary frame from the server is one ServerMessage.
 type ServerMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -868,6 +900,9 @@ type ServerMessage struct {
 	//	*ServerMessage_BlockBatch
 	//	*ServerMessage_Scoreboard
 	//	*ServerMessage_ScriptShown
+	//	*ServerMessage_NpcsChanged
+	//	*ServerMessage_Dialogue
+	//	*ServerMessage_QuestLog
 	Body          isServerMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1144,6 +1179,33 @@ func (x *ServerMessage) GetScriptShown() *ScriptShown {
 	return nil
 }
 
+func (x *ServerMessage) GetNpcsChanged() *NpcsChanged {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_NpcsChanged); ok {
+			return x.NpcsChanged
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetDialogue() *Dialogue {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_Dialogue); ok {
+			return x.Dialogue
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetQuestLog() *QuestLog {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_QuestLog); ok {
+			return x.QuestLog
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Body interface {
 	isServerMessage_Body()
 }
@@ -1252,6 +1314,18 @@ type ServerMessage_ScriptShown struct {
 	ScriptShown *ScriptShown `protobuf:"bytes,26,opt,name=script_shown,json=scriptShown,proto3,oneof"`
 }
 
+type ServerMessage_NpcsChanged struct {
+	NpcsChanged *NpcsChanged `protobuf:"bytes,27,opt,name=npcs_changed,json=npcsChanged,proto3,oneof"`
+}
+
+type ServerMessage_Dialogue struct {
+	Dialogue *Dialogue `protobuf:"bytes,28,opt,name=dialogue,proto3,oneof"`
+}
+
+type ServerMessage_QuestLog struct {
+	QuestLog *QuestLog `protobuf:"bytes,29,opt,name=quest_log,json=questLog,proto3,oneof"`
+}
+
 func (*ServerMessage_Welcome) isServerMessage_Body() {}
 
 func (*ServerMessage_Pong) isServerMessage_Body() {}
@@ -1303,6 +1377,12 @@ func (*ServerMessage_BlockBatch) isServerMessage_Body() {}
 func (*ServerMessage_Scoreboard) isServerMessage_Body() {}
 
 func (*ServerMessage_ScriptShown) isServerMessage_Body() {}
+
+func (*ServerMessage_NpcsChanged) isServerMessage_Body() {}
+
+func (*ServerMessage_Dialogue) isServerMessage_Body() {}
+
+func (*ServerMessage_QuestLog) isServerMessage_Body() {}
 
 // First message on every connection.
 type Hello struct {
@@ -1456,6 +1536,7 @@ type Welcome struct {
 	Inventory *Inventory `protobuf:"bytes,7,opt,name=inventory,proto3" json:"inventory,omitempty"` // unset for admin console connections
 	// Where the player was last saved, with id 0; unset to start at the world spawn.
 	Start         *Teleport `protobuf:"bytes,8,opt,name=start,proto3" json:"start,omitempty"`
+	Quests        *QuestLog `protobuf:"bytes,9,opt,name=quests,proto3" json:"quests,omitempty"` // unset for admin console connections
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1542,6 +1623,13 @@ func (x *Welcome) GetInventory() *Inventory {
 func (x *Welcome) GetStart() *Teleport {
 	if x != nil {
 		return x.Start
+	}
+	return nil
+}
+
+func (x *Welcome) GetQuests() *QuestLog {
+	if x != nil {
+		return x.Quests
 	}
 	return nil
 }
@@ -5284,11 +5372,398 @@ func (x *ScriptShown) GetSaved() bool {
 	return false
 }
 
+// A character a script block stands on top of itself; using it runs the script's on_talk.
+type Npc struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Pos           *BlockPos              `protobuf:"bytes,3,opt,name=pos,proto3" json:"pos,omitempty"` // the block it stands in, just above its script block
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Npc) Reset() {
+	*x = Npc{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Npc) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Npc) ProtoMessage() {}
+
+func (x *Npc) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Npc.ProtoReflect.Descriptor instead.
+func (*Npc) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{69}
+}
+
+func (x *Npc) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Npc) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Npc) GetPos() *BlockPos {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+// Characters that appeared or were renamed, and the ids of ones gone; all of them on join.
+type NpcsChanged struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Npcs          []*Npc                 `protobuf:"bytes,1,rep,name=npcs,proto3" json:"npcs,omitempty"`
+	Gone          []uint32               `protobuf:"varint,2,rep,packed,name=gone,proto3" json:"gone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NpcsChanged) Reset() {
+	*x = NpcsChanged{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NpcsChanged) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NpcsChanged) ProtoMessage() {}
+
+func (x *NpcsChanged) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NpcsChanged.ProtoReflect.Descriptor instead.
+func (*NpcsChanged) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *NpcsChanged) GetNpcs() []*Npc {
+	if x != nil {
+		return x.Npcs
+	}
+	return nil
+}
+
+func (x *NpcsChanged) GetGone() []uint32 {
+	if x != nil {
+		return x.Gone
+	}
+	return nil
+}
+
+// Talks to a character within reach.
+type TalkTo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Npc           uint32                 `protobuf:"varint,1,opt,name=npc,proto3" json:"npc,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TalkTo) Reset() {
+	*x = TalkTo{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TalkTo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TalkTo) ProtoMessage() {}
+
+func (x *TalkTo) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TalkTo.ProtoReflect.Descriptor instead.
+func (*TalkTo) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *TalkTo) GetNpc() uint32 {
+	if x != nil {
+		return x.Npc
+	}
+	return 0
+}
+
+// A script talking to the recipient; with choices it waits for an Answer.
+type Dialogue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Speaker       string                 `protobuf:"bytes,2,opt,name=speaker,proto3" json:"speaker,omitempty"`
+	Text          string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	Choices       []string               `protobuf:"bytes,4,rep,name=choices,proto3" json:"choices,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Dialogue) Reset() {
+	*x = Dialogue{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Dialogue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Dialogue) ProtoMessage() {}
+
+func (x *Dialogue) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Dialogue.ProtoReflect.Descriptor instead.
+func (*Dialogue) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *Dialogue) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Dialogue) GetSpeaker() string {
+	if x != nil {
+		return x.Speaker
+	}
+	return ""
+}
+
+func (x *Dialogue) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *Dialogue) GetChoices() []string {
+	if x != nil {
+		return x.Choices
+	}
+	return nil
+}
+
+// Picks one of a Dialogue's choices.
+type Answer struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dialogue      uint32                 `protobuf:"varint,1,opt,name=dialogue,proto3" json:"dialogue,omitempty"`
+	Choice        uint32                 `protobuf:"varint,2,opt,name=choice,proto3" json:"choice,omitempty"` // index into the Dialogue's choices
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Answer) Reset() {
+	*x = Answer{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[73]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Answer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Answer) ProtoMessage() {}
+
+func (x *Answer) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[73]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Answer.ProtoReflect.Descriptor instead.
+func (*Answer) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{73}
+}
+
+func (x *Answer) GetDialogue() uint32 {
+	if x != nil {
+		return x.Dialogue
+	}
+	return 0
+}
+
+func (x *Answer) GetChoice() uint32 {
+	if x != nil {
+		return x.Choice
+	}
+	return 0
+}
+
+// A quest in the recipient's log; scripts start, update and finish them.
+type Quest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Step          string                 `protobuf:"bytes,2,opt,name=step,proto3" json:"step,omitempty"` // what to do next; empty once done
+	Done          bool                   `protobuf:"varint,3,opt,name=done,proto3" json:"done,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Quest) Reset() {
+	*x = Quest{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[74]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Quest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Quest) ProtoMessage() {}
+
+func (x *Quest) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[74]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Quest.ProtoReflect.Descriptor instead.
+func (*Quest) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{74}
+}
+
+func (x *Quest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Quest) GetStep() string {
+	if x != nil {
+		return x.Step
+	}
+	return ""
+}
+
+func (x *Quest) GetDone() bool {
+	if x != nil {
+		return x.Done
+	}
+	return false
+}
+
+// The recipient's whole quest log, newest first; in the Welcome and whenever it changes.
+type QuestLog struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Quests        []*Quest               `protobuf:"bytes,1,rep,name=quests,proto3" json:"quests,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QuestLog) Reset() {
+	*x = QuestLog{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[75]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QuestLog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuestLog) ProtoMessage() {}
+
+func (x *QuestLog) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[75]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QuestLog.ProtoReflect.Descriptor instead.
+func (*QuestLog) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{75}
+}
+
+func (x *QuestLog) GetQuests() []*Quest {
+	if x != nil {
+		return x.Quests
+	}
+	return nil
+}
+
 var File_scabbage_v1_net_proto protoreflect.FileDescriptor
 
 const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\n" +
-	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\xe8\b\n" +
+	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\xc7\t\n" +
 	"\rClientMessage\x12*\n" +
 	"\x05hello\x18\x01 \x01(\v2\x12.scabbage.v1.HelloH\x00R\x05hello\x12'\n" +
 	"\x04ping\x18\x02 \x01(\v2\x11.scabbage.v1.PingH\x00R\x04ping\x12:\n" +
@@ -5318,8 +5793,10 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\vopen_script\x18\x13 \x01(\v2\x17.scabbage.v1.OpenScriptH\x00R\n" +
 	"openScript\x12:\n" +
 	"\vsave_script\x18\x14 \x01(\v2\x17.scabbage.v1.SaveScriptH\x00R\n" +
-	"saveScriptB\x06\n" +
-	"\x04body\"\xbd\f\n" +
+	"saveScript\x12.\n" +
+	"\atalk_to\x18\x15 \x01(\v2\x13.scabbage.v1.TalkToH\x00R\x06talkTo\x12-\n" +
+	"\x06answer\x18\x16 \x01(\v2\x13.scabbage.v1.AnswerH\x00R\x06answerB\x06\n" +
+	"\x04body\"\xe7\r\n" +
 	"\rServerMessage\x120\n" +
 	"\awelcome\x18\x01 \x01(\v2\x14.scabbage.v1.WelcomeH\x00R\awelcome\x12'\n" +
 	"\x04pong\x18\x02 \x01(\v2\x11.scabbage.v1.PongH\x00R\x04pong\x129\n" +
@@ -5356,7 +5833,10 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\n" +
 	"scoreboard\x18\x19 \x01(\v2\x17.scabbage.v1.ScoreboardH\x00R\n" +
 	"scoreboard\x12=\n" +
-	"\fscript_shown\x18\x1a \x01(\v2\x18.scabbage.v1.ScriptShownH\x00R\vscriptShownB\x06\n" +
+	"\fscript_shown\x18\x1a \x01(\v2\x18.scabbage.v1.ScriptShownH\x00R\vscriptShown\x12=\n" +
+	"\fnpcs_changed\x18\x1b \x01(\v2\x18.scabbage.v1.NpcsChangedH\x00R\vnpcsChanged\x123\n" +
+	"\bdialogue\x18\x1c \x01(\v2\x15.scabbage.v1.DialogueH\x00R\bdialogue\x124\n" +
+	"\tquest_log\x18\x1d \x01(\v2\x15.scabbage.v1.QuestLogH\x00R\bquestLogB\x06\n" +
 	"\x04body\"\xc0\x01\n" +
 	"\x05Hello\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
@@ -5368,7 +5848,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\vJoinRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05color\x18\x03 \x01(\rR\x05color\"\xe0\x02\n" +
+	"\x05color\x18\x03 \x01(\rR\x05color\"\x8f\x03\n" +
 	"\aWelcome\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
 	"\vserver_name\x18\x02 \x01(\tR\n" +
@@ -5379,7 +5859,8 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x05world\x18\x05 \x01(\v2\x16.scabbage.v1.WorldInfoR\x05world\x12+\n" +
 	"\x06vitals\x18\x06 \x01(\v2\x13.scabbage.v1.VitalsR\x06vitals\x124\n" +
 	"\tinventory\x18\a \x01(\v2\x16.scabbage.v1.InventoryR\tinventory\x12+\n" +
-	"\x05start\x18\b \x01(\v2\x15.scabbage.v1.TeleportR\x05start\"\xf5\x01\n" +
+	"\x05start\x18\b \x01(\v2\x15.scabbage.v1.TeleportR\x05start\x12-\n" +
+	"\x06quests\x18\t \x01(\v2\x15.scabbage.v1.QuestLogR\x06quests\"\xf5\x01\n" +
 	"\tWorldInfo\x12\x16\n" +
 	"\x06radius\x18\x01 \x01(\x05R\x06radius\x12\x16\n" +
 	"\x06height\x18\x02 \x01(\x05R\x06height\x12'\n" +
@@ -5634,10 +6115,33 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x1a\n" +
 	"\beditable\x18\x03 \x01(\bR\beditable\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error\x12\x14\n" +
-	"\x05saved\x18\x05 \x01(\bR\x05saved*Q\n" +
+	"\x05saved\x18\x05 \x01(\bR\x05saved\"R\n" +
+	"\x03Npc\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
+	"\x03pos\x18\x03 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\"G\n" +
+	"\vNpcsChanged\x12$\n" +
+	"\x04npcs\x18\x01 \x03(\v2\x10.scabbage.v1.NpcR\x04npcs\x12\x12\n" +
+	"\x04gone\x18\x02 \x03(\rR\x04gone\"\x1a\n" +
+	"\x06TalkTo\x12\x10\n" +
+	"\x03npc\x18\x01 \x01(\rR\x03npc\"b\n" +
+	"\bDialogue\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x18\n" +
+	"\aspeaker\x18\x02 \x01(\tR\aspeaker\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x18\n" +
+	"\achoices\x18\x04 \x03(\tR\achoices\"<\n" +
+	"\x06Answer\x12\x1a\n" +
+	"\bdialogue\x18\x01 \x01(\rR\bdialogue\x12\x16\n" +
+	"\x06choice\x18\x02 \x01(\rR\x06choice\"E\n" +
+	"\x05Quest\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
+	"\x04step\x18\x02 \x01(\tR\x04step\x12\x12\n" +
+	"\x04done\x18\x03 \x01(\bR\x04done\"6\n" +
+	"\bQuestLog\x12*\n" +
+	"\x06quests\x18\x01 \x03(\v2\x12.scabbage.v1.QuestR\x06quests*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x12*\xad\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x13*\xad\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -5702,7 +6206,7 @@ func file_scabbage_v1_net_proto_rawDescGZIP() []byte {
 }
 
 var file_scabbage_v1_net_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
+var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 76)
 var file_scabbage_v1_net_proto_goTypes = []any{
 	(ProtocolVersion)(0),    // 0: scabbage.v1.ProtocolVersion
 	(Shape)(0),              // 1: scabbage.v1.Shape
@@ -5781,6 +6285,13 @@ var file_scabbage_v1_net_proto_goTypes = []any{
 	(*OpenScript)(nil),      // 74: scabbage.v1.OpenScript
 	(*SaveScript)(nil),      // 75: scabbage.v1.SaveScript
 	(*ScriptShown)(nil),     // 76: scabbage.v1.ScriptShown
+	(*Npc)(nil),             // 77: scabbage.v1.Npc
+	(*NpcsChanged)(nil),     // 78: scabbage.v1.NpcsChanged
+	(*TalkTo)(nil),          // 79: scabbage.v1.TalkTo
+	(*Dialogue)(nil),        // 80: scabbage.v1.Dialogue
+	(*Answer)(nil),          // 81: scabbage.v1.Answer
+	(*Quest)(nil),           // 82: scabbage.v1.Quest
+	(*QuestLog)(nil),        // 83: scabbage.v1.QuestLog
 }
 var file_scabbage_v1_net_proto_depIdxs = []int32{
 	10,  // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
@@ -5803,91 +6314,100 @@ var file_scabbage_v1_net_proto_depIdxs = []int32{
 	56,  // 17: scabbage.v1.ClientMessage.hit_player:type_name -> scabbage.v1.HitPlayer
 	74,  // 18: scabbage.v1.ClientMessage.open_script:type_name -> scabbage.v1.OpenScript
 	75,  // 19: scabbage.v1.ClientMessage.save_script:type_name -> scabbage.v1.SaveScript
-	12,  // 20: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
-	70,  // 21: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
-	71,  // 22: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
-	57,  // 23: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
-	58,  // 24: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
-	68,  // 25: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
-	20,  // 26: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
-	23,  // 27: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
-	28,  // 28: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
-	33,  // 29: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
-	34,  // 30: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
-	35,  // 31: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
-	37,  // 32: scabbage.v1.ServerMessage.chat:type_name -> scabbage.v1.Chat
-	39,  // 33: scabbage.v1.ServerMessage.emote_shown:type_name -> scabbage.v1.EmoteShown
-	65,  // 34: scabbage.v1.ServerMessage.art_requests:type_name -> scabbage.v1.ArtRequests
-	16,  // 35: scabbage.v1.ServerMessage.blocks_changed:type_name -> scabbage.v1.BlocksChanged
-	31,  // 36: scabbage.v1.ServerMessage.skin_changed:type_name -> scabbage.v1.SkinChanged
-	61,  // 37: scabbage.v1.ServerMessage.player_list:type_name -> scabbage.v1.PlayerList
-	41,  // 38: scabbage.v1.ServerMessage.vitals:type_name -> scabbage.v1.Vitals
-	44,  // 39: scabbage.v1.ServerMessage.inventory:type_name -> scabbage.v1.Inventory
-	49,  // 40: scabbage.v1.ServerMessage.items_changed:type_name -> scabbage.v1.ItemsChanged
-	51,  // 41: scabbage.v1.ServerMessage.mobs_changed:type_name -> scabbage.v1.MobsChanged
-	54,  // 42: scabbage.v1.ServerMessage.zones_changed:type_name -> scabbage.v1.ZonesChanged
-	29,  // 43: scabbage.v1.ServerMessage.block_batch:type_name -> scabbage.v1.BlockBatch
-	72,  // 44: scabbage.v1.ServerMessage.scoreboard:type_name -> scabbage.v1.Scoreboard
-	76,  // 45: scabbage.v1.ServerMessage.script_shown:type_name -> scabbage.v1.ScriptShown
-	11,  // 46: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
-	40,  // 47: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
-	13,  // 48: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
-	41,  // 49: scabbage.v1.Welcome.vitals:type_name -> scabbage.v1.Vitals
-	44,  // 50: scabbage.v1.Welcome.inventory:type_name -> scabbage.v1.Inventory
-	23,  // 51: scabbage.v1.Welcome.start:type_name -> scabbage.v1.Teleport
-	17,  // 52: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
-	14,  // 53: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
-	15,  // 54: scabbage.v1.WorldInfo.textures:type_name -> scabbage.v1.Texture
-	46,  // 55: scabbage.v1.WorldInfo.recipes:type_name -> scabbage.v1.Recipe
-	1,   // 56: scabbage.v1.BlockType.shape:type_name -> scabbage.v1.Shape
-	14,  // 57: scabbage.v1.BlocksChanged.blocks:type_name -> scabbage.v1.BlockType
-	15,  // 58: scabbage.v1.BlocksChanged.textures:type_name -> scabbage.v1.Texture
-	18,  // 59: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
-	21,  // 60: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
-	18,  // 61: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
-	17,  // 62: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
-	17,  // 63: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
-	24,  // 64: scabbage.v1.Teleport.restore:type_name -> scabbage.v1.Restore
-	25,  // 65: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 66: scabbage.v1.UseBlock.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 67: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
-	28,  // 68: scabbage.v1.BlockBatch.blocks:type_name -> scabbage.v1.BlockChanged
-	32,  // 69: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
-	17,  // 70: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
-	30,  // 71: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
-	32,  // 72: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
-	2,   // 73: scabbage.v1.SendEmote.emote:type_name -> scabbage.v1.Emote
-	2,   // 74: scabbage.v1.EmoteShown.emote:type_name -> scabbage.v1.Emote
-	3,   // 75: scabbage.v1.PlayerInfo.mode:type_name -> scabbage.v1.GameMode
-	3,   // 76: scabbage.v1.Vitals.mode:type_name -> scabbage.v1.GameMode
-	4,   // 77: scabbage.v1.Vitals.hurt:type_name -> scabbage.v1.Harm
-	3,   // 78: scabbage.v1.SetGameMode.mode:type_name -> scabbage.v1.GameMode
-	43,  // 79: scabbage.v1.Inventory.slots:type_name -> scabbage.v1.ItemStack
-	43,  // 80: scabbage.v1.Recipe.make:type_name -> scabbage.v1.ItemStack
-	43,  // 81: scabbage.v1.Recipe.from:type_name -> scabbage.v1.ItemStack
-	17,  // 82: scabbage.v1.ItemDrop.pos:type_name -> scabbage.v1.Vec3
-	48,  // 83: scabbage.v1.ItemsChanged.drops:type_name -> scabbage.v1.ItemDrop
-	5,   // 84: scabbage.v1.Mob.kind:type_name -> scabbage.v1.MobKind
-	17,  // 85: scabbage.v1.Mob.pos:type_name -> scabbage.v1.Vec3
-	50,  // 86: scabbage.v1.MobsChanged.mobs:type_name -> scabbage.v1.Mob
-	3,   // 87: scabbage.v1.Zone.mode:type_name -> scabbage.v1.GameMode
-	53,  // 88: scabbage.v1.Zone.marks:type_name -> scabbage.v1.ArenaMark
-	52,  // 89: scabbage.v1.ZonesChanged.zones:type_name -> scabbage.v1.Zone
-	59,  // 90: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
-	40,  // 91: scabbage.v1.PlayerList.players:type_name -> scabbage.v1.PlayerInfo
-	6,   // 92: scabbage.v1.SubmitArt.kind:type_name -> scabbage.v1.ArtKind
-	66,  // 93: scabbage.v1.ArtRequests.requests:type_name -> scabbage.v1.ArtRequest
-	6,   // 94: scabbage.v1.ArtRequest.kind:type_name -> scabbage.v1.ArtKind
-	7,   // 95: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
-	73,  // 96: scabbage.v1.Scoreboard.scores:type_name -> scabbage.v1.Score
-	25,  // 97: scabbage.v1.OpenScript.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 98: scabbage.v1.SaveScript.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 99: scabbage.v1.ScriptShown.pos:type_name -> scabbage.v1.BlockPos
-	100, // [100:100] is the sub-list for method output_type
-	100, // [100:100] is the sub-list for method input_type
-	100, // [100:100] is the sub-list for extension type_name
-	100, // [100:100] is the sub-list for extension extendee
-	0,   // [0:100] is the sub-list for field type_name
+	79,  // 20: scabbage.v1.ClientMessage.talk_to:type_name -> scabbage.v1.TalkTo
+	81,  // 21: scabbage.v1.ClientMessage.answer:type_name -> scabbage.v1.Answer
+	12,  // 22: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
+	70,  // 23: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
+	71,  // 24: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
+	57,  // 25: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
+	58,  // 26: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
+	68,  // 27: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
+	20,  // 28: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
+	23,  // 29: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
+	28,  // 30: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
+	33,  // 31: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
+	34,  // 32: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
+	35,  // 33: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
+	37,  // 34: scabbage.v1.ServerMessage.chat:type_name -> scabbage.v1.Chat
+	39,  // 35: scabbage.v1.ServerMessage.emote_shown:type_name -> scabbage.v1.EmoteShown
+	65,  // 36: scabbage.v1.ServerMessage.art_requests:type_name -> scabbage.v1.ArtRequests
+	16,  // 37: scabbage.v1.ServerMessage.blocks_changed:type_name -> scabbage.v1.BlocksChanged
+	31,  // 38: scabbage.v1.ServerMessage.skin_changed:type_name -> scabbage.v1.SkinChanged
+	61,  // 39: scabbage.v1.ServerMessage.player_list:type_name -> scabbage.v1.PlayerList
+	41,  // 40: scabbage.v1.ServerMessage.vitals:type_name -> scabbage.v1.Vitals
+	44,  // 41: scabbage.v1.ServerMessage.inventory:type_name -> scabbage.v1.Inventory
+	49,  // 42: scabbage.v1.ServerMessage.items_changed:type_name -> scabbage.v1.ItemsChanged
+	51,  // 43: scabbage.v1.ServerMessage.mobs_changed:type_name -> scabbage.v1.MobsChanged
+	54,  // 44: scabbage.v1.ServerMessage.zones_changed:type_name -> scabbage.v1.ZonesChanged
+	29,  // 45: scabbage.v1.ServerMessage.block_batch:type_name -> scabbage.v1.BlockBatch
+	72,  // 46: scabbage.v1.ServerMessage.scoreboard:type_name -> scabbage.v1.Scoreboard
+	76,  // 47: scabbage.v1.ServerMessage.script_shown:type_name -> scabbage.v1.ScriptShown
+	78,  // 48: scabbage.v1.ServerMessage.npcs_changed:type_name -> scabbage.v1.NpcsChanged
+	80,  // 49: scabbage.v1.ServerMessage.dialogue:type_name -> scabbage.v1.Dialogue
+	83,  // 50: scabbage.v1.ServerMessage.quest_log:type_name -> scabbage.v1.QuestLog
+	11,  // 51: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
+	40,  // 52: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
+	13,  // 53: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
+	41,  // 54: scabbage.v1.Welcome.vitals:type_name -> scabbage.v1.Vitals
+	44,  // 55: scabbage.v1.Welcome.inventory:type_name -> scabbage.v1.Inventory
+	23,  // 56: scabbage.v1.Welcome.start:type_name -> scabbage.v1.Teleport
+	83,  // 57: scabbage.v1.Welcome.quests:type_name -> scabbage.v1.QuestLog
+	17,  // 58: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
+	14,  // 59: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
+	15,  // 60: scabbage.v1.WorldInfo.textures:type_name -> scabbage.v1.Texture
+	46,  // 61: scabbage.v1.WorldInfo.recipes:type_name -> scabbage.v1.Recipe
+	1,   // 62: scabbage.v1.BlockType.shape:type_name -> scabbage.v1.Shape
+	14,  // 63: scabbage.v1.BlocksChanged.blocks:type_name -> scabbage.v1.BlockType
+	15,  // 64: scabbage.v1.BlocksChanged.textures:type_name -> scabbage.v1.Texture
+	18,  // 65: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
+	21,  // 66: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
+	18,  // 67: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
+	17,  // 68: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
+	17,  // 69: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
+	24,  // 70: scabbage.v1.Teleport.restore:type_name -> scabbage.v1.Restore
+	25,  // 71: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 72: scabbage.v1.UseBlock.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 73: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
+	28,  // 74: scabbage.v1.BlockBatch.blocks:type_name -> scabbage.v1.BlockChanged
+	32,  // 75: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
+	17,  // 76: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
+	30,  // 77: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
+	32,  // 78: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
+	2,   // 79: scabbage.v1.SendEmote.emote:type_name -> scabbage.v1.Emote
+	2,   // 80: scabbage.v1.EmoteShown.emote:type_name -> scabbage.v1.Emote
+	3,   // 81: scabbage.v1.PlayerInfo.mode:type_name -> scabbage.v1.GameMode
+	3,   // 82: scabbage.v1.Vitals.mode:type_name -> scabbage.v1.GameMode
+	4,   // 83: scabbage.v1.Vitals.hurt:type_name -> scabbage.v1.Harm
+	3,   // 84: scabbage.v1.SetGameMode.mode:type_name -> scabbage.v1.GameMode
+	43,  // 85: scabbage.v1.Inventory.slots:type_name -> scabbage.v1.ItemStack
+	43,  // 86: scabbage.v1.Recipe.make:type_name -> scabbage.v1.ItemStack
+	43,  // 87: scabbage.v1.Recipe.from:type_name -> scabbage.v1.ItemStack
+	17,  // 88: scabbage.v1.ItemDrop.pos:type_name -> scabbage.v1.Vec3
+	48,  // 89: scabbage.v1.ItemsChanged.drops:type_name -> scabbage.v1.ItemDrop
+	5,   // 90: scabbage.v1.Mob.kind:type_name -> scabbage.v1.MobKind
+	17,  // 91: scabbage.v1.Mob.pos:type_name -> scabbage.v1.Vec3
+	50,  // 92: scabbage.v1.MobsChanged.mobs:type_name -> scabbage.v1.Mob
+	3,   // 93: scabbage.v1.Zone.mode:type_name -> scabbage.v1.GameMode
+	53,  // 94: scabbage.v1.Zone.marks:type_name -> scabbage.v1.ArenaMark
+	52,  // 95: scabbage.v1.ZonesChanged.zones:type_name -> scabbage.v1.Zone
+	59,  // 96: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
+	40,  // 97: scabbage.v1.PlayerList.players:type_name -> scabbage.v1.PlayerInfo
+	6,   // 98: scabbage.v1.SubmitArt.kind:type_name -> scabbage.v1.ArtKind
+	66,  // 99: scabbage.v1.ArtRequests.requests:type_name -> scabbage.v1.ArtRequest
+	6,   // 100: scabbage.v1.ArtRequest.kind:type_name -> scabbage.v1.ArtKind
+	7,   // 101: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
+	73,  // 102: scabbage.v1.Scoreboard.scores:type_name -> scabbage.v1.Score
+	25,  // 103: scabbage.v1.OpenScript.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 104: scabbage.v1.SaveScript.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 105: scabbage.v1.ScriptShown.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 106: scabbage.v1.Npc.pos:type_name -> scabbage.v1.BlockPos
+	77,  // 107: scabbage.v1.NpcsChanged.npcs:type_name -> scabbage.v1.Npc
+	82,  // 108: scabbage.v1.QuestLog.quests:type_name -> scabbage.v1.Quest
+	109, // [109:109] is the sub-list for method output_type
+	109, // [109:109] is the sub-list for method input_type
+	109, // [109:109] is the sub-list for extension type_name
+	109, // [109:109] is the sub-list for extension extendee
+	0,   // [0:109] is the sub-list for field type_name
 }
 
 func init() { file_scabbage_v1_net_proto_init() }
@@ -5916,6 +6436,8 @@ func file_scabbage_v1_net_proto_init() {
 		(*ClientMessage_HitPlayer)(nil),
 		(*ClientMessage_OpenScript)(nil),
 		(*ClientMessage_SaveScript)(nil),
+		(*ClientMessage_TalkTo)(nil),
+		(*ClientMessage_Answer)(nil),
 	}
 	file_scabbage_v1_net_proto_msgTypes[1].OneofWrappers = []any{
 		(*ServerMessage_Welcome)(nil),
@@ -5944,6 +6466,9 @@ func file_scabbage_v1_net_proto_init() {
 		(*ServerMessage_BlockBatch)(nil),
 		(*ServerMessage_Scoreboard)(nil),
 		(*ServerMessage_ScriptShown)(nil),
+		(*ServerMessage_NpcsChanged)(nil),
+		(*ServerMessage_Dialogue)(nil),
+		(*ServerMessage_QuestLog)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -5951,7 +6476,7 @@ func file_scabbage_v1_net_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scabbage_v1_net_proto_rawDesc), len(file_scabbage_v1_net_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   69,
+			NumMessages:   76,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
