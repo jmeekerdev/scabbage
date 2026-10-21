@@ -393,7 +393,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       surface) and soft corners (natural full blocks' corners slide at most half a block toward the shape
       around them, with slope normals, and add no triangles). Faces merge only where their corners move
       alike. Switching to a look that needs different mesh data rebuilds the loaded chunks behind a short fade
-- [ ] Afterwards pass, run only when a look uses it: outlines from depth (and optionally normals) in
+- [x] Afterwards pass, run only when a look uses it: outlines from depth (and optionally normals) in
       a set or darkened colour, paper grain, map-only tilt-shift, vignette, saturation
 - [ ] Port the looks, cheapest first: Dusk Pastel, Clay Diorama, Smooth Clay, Ink & Cel, then
       Watercolour and Felt & Stitch, whose screen-space grain and lines need extra work not to swim in motion

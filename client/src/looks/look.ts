@@ -1,3 +1,5 @@
+import { afterFeatures } from "../render/after-pass";
+
 /** A color in sRGB, each channel 0–1. */
 export interface Rgb {
   r: number;
@@ -26,6 +28,28 @@ export interface LookSun {
   bands: number;
   /** Strength of a soft highlight; 0 for none. */
   shine: number;
+}
+
+/** Screen effects drawn over the finished frame; a look without any skips the pass entirely. */
+export interface LookAfter {
+  /** Lines where depth jumps, and with creases also where surfaces fold. */
+  outline?: {
+    /** Line width in pixels at 750 pixels tall. */
+    width: number;
+    /** 0–1, how much the line covers what is under it. */
+    strength: number;
+    /** The line colour; without one, lines darken what is under them. */
+    color?: Rgb;
+    creases?: boolean;
+  };
+  /** Paper grain, blots and fibres, 0–1. */
+  paper?: number;
+  /** Blur away from the middle band, only in the overhead map view. */
+  tiltShift?: number;
+  /** Darkening toward the corners, 0–1. */
+  vignette?: number;
+  /** 1 leaves colours as they are, lower greys them, higher strengthens them. */
+  saturation?: number;
 }
 
 /** Everything that decides how the world is drawn; one file per look in this folder. */
@@ -68,12 +92,16 @@ export interface Look {
     /** Multiplies the picture's opacity, or is the opacity itself in untextured looks. */
     opacity: number;
   };
+  after?: LookAfter;
 }
 
 export type LookCost = "fastest" | "light" | "heavier";
 
 /** A rough cost for the picker: each feature beyond plain textured blocks adds to it. */
 export function lookCost(look: Look): LookCost {
-  const points = (look.shape.edges ? 1 : 0) + (look.shape.softCorners > 0 ? 1 : 0);
+  const points =
+    (look.shape.edges ? 1 : 0) +
+    (look.shape.softCorners > 0 ? 1 : 0) +
+    (afterFeatures(look, true) ? 1 : 0);
   return points === 0 ? "fastest" : points === 1 ? "light" : "heavier";
 }

@@ -36,4 +36,8 @@ describe("lookCost", () => {
     expect(lookCost(shaped({ edges: true }))).toBe("light");
     expect(lookCost(shaped({ edges: true, softCorners: 0.5 }))).toBe("heavier");
   });
+
+  it("charges for an afterwards pass", () => {
+    expect(lookCost({ ...today, after: { vignette: 0.2 } })).toBe("light");
+  });
 });

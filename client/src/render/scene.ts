@@ -3,6 +3,7 @@ import { FrameLimiter, pixelRatioFor, qualityFor, type Settings } from "../setti
 import { lookById } from "../looks/registry";
 import type { Look } from "../looks/look";
 import { CHUNK_SIZE } from "../world/constants";
+import { AfterPass } from "./after-pass";
 import { daylight } from "./chunk-material";
 import { farDistance } from "./far-land";
 import { FrameState, type Change } from "./frame-state";
@@ -35,7 +36,9 @@ const WAKING_EVENTS = ["keydown", "pointerdown", "pointermove", "mousemove", "wh
 /** Creates the renderer, sky and camera, and draws whenever something changed and the limiter allows. */
 export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameScene {
   // WebGL fixes antialiasing when the context is created, so it comes from the startup preset.
-  const renderer = new WebGLRenderer({ canvas, antialias: qualityFor(initial.preset).antialias });
+  const { antialias } = qualityFor(initial.preset);
+  const renderer = new WebGLRenderer({ canvas, antialias });
+  const after = new AfterPass(antialias ? 4 : 0);
   const scene = new Scene();
   scene.fog = new Fog(0);
   const sky = new SkyView(scene);
@@ -61,6 +64,7 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   const apply = (s: Settings) => {
     look = lookById(s.look);
     sky.setLook(look.sky);
+    after.setLook(look, false); // no overhead map view yet
     renderer.setPixelRatio(pixelRatioFor(s.preset, window.devicePixelRatio));
     setViewDistance(scene.fog as Fog, camera, s.viewDistance, look);
     limiter.fps = s.fpsCap;
@@ -82,7 +86,8 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
       return change;
     }
     if (DEBUG_FRAMES) logCulprit(change, frame.culprit(scene));
-    renderer.render(scene, camera);
+    if (after.active) after.render(renderer, scene, camera);
+    else renderer.render(scene, camera);
     frame.drew();
     lastDrawnMs = timeMs;
     for (const fn of drawnHooks) fn(timeMs, steady, change);
