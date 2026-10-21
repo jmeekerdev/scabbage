@@ -1,15 +1,15 @@
-import { CHUNK_SIZE as S } from "./constants";
+import { METRE, CHUNK_SIZE as S } from "./constants";
 import { PADDED, PADDED_VOLUME, paddedIndex } from "./mesher";
 
 /** The brightest a block glows, as the server's world.MaxLight; light fades one per block. */
-export const MAX_LIGHT = 12;
+export const MAX_LIGHT = 10 * METRE;
 
 /** Blocks around a chunk that can still light its one-block border. */
 export const LIGHT_MARGIN = MAX_LIGHT;
 export const REGION = S + 2 * LIGHT_MARGIN;
 export const REGION_VOLUME = REGION ** 3;
 
-/** Index into a light region; each coordinate runs from -LIGHT_MARGIN to 15 + LIGHT_MARGIN. */
+/** Index into a light region; each coordinate runs from -LIGHT_MARGIN to S - 1 + LIGHT_MARGIN. */
 export function regionIndex(x: number, y: number, z: number): number {
   const m = LIGHT_MARGIN;
   return ((y + m) * REGION + (z + m)) * REGION + (x + m);
@@ -28,13 +28,13 @@ export function blockLight(
 ): Uint8Array {
   const level = new Uint8Array(REGION_VOLUME);
   const buckets: number[][] = Array.from({ length: MAX_LIGHT + 1 }, () => []);
-  region.forEach((b, i) => {
-    const l = Math.min(emits[b] ?? 0, MAX_LIGHT);
+  for (let i = 0; i < REGION_VOLUME; i++) {
+    const l = Math.min(emits[region[i]] ?? 0, MAX_LIGHT);
     if (l > 0) {
       level[i] = l;
       buckets[l].push(i);
     }
-  });
+  }
   for (let l = MAX_LIGHT; l > 1; l--) {
     for (const i of buckets[l]) {
       if (level[i] !== l) continue;

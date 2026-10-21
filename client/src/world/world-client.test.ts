@@ -173,7 +173,7 @@ describe("WorldClient", () => {
     mesher.finishAll();
     world.setBlock(6, 5, 5, 1);
     world.tick(0, 0, 1);
-    expect(mesher.jobs.length).toBe(3);
+    expect(mesher.jobs.length).toBe(10); // every loaded neighbor: it may shade light from any side
   });
 
   it("keeps showing a stale chunk until it arrives again, then re-meshes it", () => {

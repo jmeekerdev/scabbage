@@ -3,6 +3,7 @@ import {
   PRESETS,
   qualityFor,
   VIEW_DISTANCE,
+  viewMetres,
   type FpsCap,
   type Preset,
   type Settings,
@@ -21,9 +22,11 @@ export interface SettingsPanel {
   show(s: Settings): void;
 }
 
+const metres = (chunks: number) => `${viewMetres(chunks)} m`;
+
 /** A settings form that reports every change immediately. */
 export function settingsPanel(initial: Settings, onChange: (s: Settings) => void): SettingsPanel {
-  const distanceOut = el("output", {}, String(initial.viewDistance));
+  const distanceOut = el("output", {}, metres(initial.viewDistance));
   const distance = el("input", {
     type: "range",
     min: VIEW_DISTANCE.min,
@@ -60,12 +63,13 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
       music: music.checked,
       auto: auto.checked,
     };
-    distanceOut.textContent = distance.value;
+    distanceOut.textContent = metres(next.viewDistance);
     reloadHint.hidden = qualityFor(next.preset).antialias === qualityFor(initial.preset).antialias;
     onChange(next);
   });
   const show = (s: Settings) => {
-    distance.value = distanceOut.textContent = String(s.viewDistance);
+    distance.value = String(s.viewDistance);
+    distanceOut.textContent = metres(s.viewDistance);
     preset.value = s.preset;
     fps.value = String(s.fpsCap);
     auto.checked = s.auto;

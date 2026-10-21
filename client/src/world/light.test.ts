@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { blockLight, cropToPadded, LIGHT_MARGIN, REGION_VOLUME, regionIndex } from "./light";
 import { paddedIndex } from "./mesher";
+import { CHUNK_SIZE, METRE } from "./constants";
 
 const [AIR, STONE, TORCH] = [0, 1, 2];
 const transparent = Uint8Array.from([1, 0, 1]);
@@ -21,15 +22,22 @@ describe("blockLight", () => {
     expect(lit[paddedIndex(16, 5, 5)]).toBe(0);
   });
 
+  it("reaches about ten metres from the brightest light", () => {
+    const bright = Uint8Array.from([0, 0, 255]);
+    const lit = blockLight(region([[0, 5, 5, TORCH]]), transparent, bright);
+    expect(lit[paddedIndex(9 * METRE, 5, 5)]).toBeGreaterThan(0);
+    expect(lit[paddedIndex(CHUNK_SIZE, 5, 5)]).toBe(0);
+  });
+
   it("reaches in from torches outside the chunk", () => {
-    const lit = blockLight(region([[-LIGHT_MARGIN + 2, 5, 5, TORCH]]), transparent, light);
-    expect(lit[paddedIndex(-1, 5, 5)]).toBe(11 - (LIGHT_MARGIN - 3));
+    const lit = blockLight(region([[-8, 5, 5, TORCH]]), transparent, light);
+    expect(lit[paddedIndex(-1, 5, 5)]).toBe(11 - 7);
   });
 
   it("is blocked by opaque blocks", () => {
     const walls: [number, number, number, number][] = [];
-    for (let y = -LIGHT_MARGIN; y < 16 + LIGHT_MARGIN; y++) {
-      for (let z = -LIGHT_MARGIN; z < 16 + LIGHT_MARGIN; z++) walls.push([6, y, z, STONE]);
+    for (let y = -LIGHT_MARGIN; y < CHUNK_SIZE + LIGHT_MARGIN; y++) {
+      for (let z = -LIGHT_MARGIN; z < CHUNK_SIZE + LIGHT_MARGIN; z++) walls.push([6, y, z, STONE]);
     }
     const lit = blockLight(region([...walls, [5, 5, 5, TORCH]]), transparent, light);
     expect(lit[paddedIndex(6, 5, 5)]).toBe(0);

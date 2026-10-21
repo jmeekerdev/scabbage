@@ -105,7 +105,7 @@ export class WorldClient {
     // A neighbor needs a new mesh if the block is within `reach` of its side.
     const near = (reach: number) => (d: number[]) =>
       d.every((o, a) => o === 0 || (o < 0 ? local[a] < reach : local[a] >= S - reach));
-    this.remeshAround(cx, cy, cz, near(this.movesLight(old, block, cx, cy, cz) ? LIGHT_MARGIN : 1));
+    this.remeshAround(cx, cy, cz, near(this.lightReach(old, block, cx, cy, cz)));
   }
 
   /** Call every frame with the player's block position; does little unless something is due. */
@@ -144,11 +144,14 @@ export class WorldClient {
     }
   }
 
-  /** Whether swapping old for block changes any light: it glows, or stops or lets through light nearby. */
-  private movesLight(old: number, block: number, cx: number, cy: number, cz: number): boolean {
-    if ((this.emits[old] ?? 0) > 0 || (this.emits[block] ?? 0) > 0) return true;
+  /** How far swapping old for block changes light: its own glow, any light it now stops or lets through, or 1. */
+  private lightReach(old: number, block: number, cx: number, cy: number, cz: number): number {
+    const glow = Math.max(this.emits[old] ?? 0, this.emits[block] ?? 0);
+    if (glow > 0) return Math.min(glow, LIGHT_MARGIN);
     const blocksLight = (b: number) => this.transparent[b] !== 1;
-    return blocksLight(old) !== blocksLight(block) && this.lightsNear(cx, cy, cz);
+    return blocksLight(old) !== blocksLight(block) && this.lightsNear(cx, cy, cz)
+      ? LIGHT_MARGIN
+      : 1;
   }
 
   /** Whether a glowing block in this chunk or a neighbor could light it. */

@@ -1,4 +1,5 @@
 import type { KeyValueStore } from "../join/identity";
+import { CHUNK_SIZE, METRE } from "../world/constants";
 
 export const PRESETS = ["low", "medium", "high"] as const;
 export type Preset = (typeof PRESETS)[number];
@@ -9,6 +10,11 @@ export type FpsCap = (typeof FPS_CAPS)[number];
 
 /** View distance in chunks, measured from the player. */
 export const VIEW_DISTANCE = { min: 2, max: 12 } as const;
+
+/** How far a view distance in chunks reaches, in whole metres. */
+export function viewMetres(chunks: number): number {
+  return Math.round((chunks * CHUNK_SIZE) / METRE);
+}
 
 export interface Settings {
   viewDistance: number;

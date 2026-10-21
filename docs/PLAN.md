@@ -338,9 +338,9 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       visiting three places, so memory eviction is next)
 - [x] Server memory: each autosave (every minute) saves, then drops chunks more than 14 chunks from
       every player. Touring four far places peaked at 330 MB, fell to 88 MB at the next save, and 29 MB idle
-- [ ] Light and look: lamps reach about as far as before (more light levels), textures stay 16 px per small
-      block with a slight per-block tint so ground doesn't show a grid; camera, fog and view presets in
-      metres rather than chunks
+- [x] Light and look: light levels 0–30, so lamps light about 10 m and glow fades per metre; light
+      floods cost about 8 ms per lit chunk. Each block gets a steady ±6% brightness so ground doesn't
+      show a grid, leaves have fewer holes, and view distance shows in metres (fog already follows it)
 - [ ] Building at the new scale: brush sizes 1, 2 and 3 (3 = an old block) for placing and digging,
       faster mining per block, a higher edit rate and bigger stacks
 - [ ] Rescale content: mobs and avatars, dungeons, the sample adventure, zones and arenas; map files keep

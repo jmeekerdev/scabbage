@@ -257,3 +257,9 @@ func TestForgetCustomBlocks(t *testing.T) {
 		t.Fatal("custom block stayed or a built-in went")
 	}
 }
+
+func TestLampsLightTenMetresAround(t *testing.T) {
+	if reach := int(Info(Lamp).Light) - 1; reach < 9*Metre || reach > 10*Metre {
+		t.Fatalf("a lamp lights %d blocks around, want about ten metres", reach)
+	}
+}

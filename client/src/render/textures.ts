@@ -99,7 +99,8 @@ const PAINTERS: Record<string, Painter> = {
       ? shade([102, 81, 51], 0.9)
       : shade([176, 144, 92], (Math.floor(r) % 2 ? 0.85 : 1) * (0.95 + n() * 0.1));
   },
-  leaves: (_x, _y, n) => (n(2) < 0.22 ? [0, 0, 0, 0] : shade([58, 128, 38], 0.8 + n() * 0.4)),
+  // Few holes: at a third of a metre per block, more read as static.
+  leaves: (_x, _y, n) => (n(2) < 0.08 ? [0, 0, 0, 0] : shade([58, 128, 38], 0.85 + n() * 0.3)),
   planks: (x, y, n) => {
     const seam = y % 4 === 3 || x === ((y >> 2) % 2) * 8;
     return shade([166, 132, 80], (seam ? 0.7 : 1) * (0.94 + n() * 0.12));

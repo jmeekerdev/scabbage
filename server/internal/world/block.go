@@ -53,8 +53,8 @@ const (
 	Checkpoint   = GemBlock + 1 // a pad that remembers where you come back after fainting
 )
 
-// MaxLight is the brightest a block glows; light fades by one per block.
-const MaxLight = 12
+// MaxLight is the brightest a block glows; light fades by one per block, so about ten metres.
+const MaxLight = 10 * Metre
 
 // BlockInfo describes how a block behaves.
 type BlockInfo struct {
@@ -106,7 +106,7 @@ func palette() []BlockInfo {
 	}
 	out = append(out,
 		BlockInfo{Name: "lamp", Solid: true, Light: MaxLight, MineMs: 300},
-		BlockInfo{Name: "torch", Transparent: true, Shape: TorchShape, Light: MaxLight - 1},
+		BlockInfo{Name: "torch", Transparent: true, Shape: TorchShape, Light: MaxLight - Metre},
 	)
 	digs := func(name string) uint16 {
 		return out[slices.IndexFunc(out, func(b BlockInfo) bool { return b.Name == name })].MineMs

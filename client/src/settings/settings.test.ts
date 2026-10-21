@@ -9,6 +9,7 @@ import {
   sanitize,
   saveSettings,
   VIEW_DISTANCE,
+  viewMetres,
 } from "./settings";
 
 describe("settings", () => {
@@ -112,5 +113,12 @@ describe("FrameLimiter", () => {
     limiter.ready(0);
     expect(limiter.ready(5000)).toBe(true);
     expect(limiter.ready(5016)).toBe(false);
+  });
+});
+
+describe("viewMetres", () => {
+  it("turns a view distance in chunks into whole metres", () => {
+    expect(viewMetres(6)).toBe(64);
+    expect(viewMetres(VIEW_DISTANCE.max)).toBe(128);
   });
 });
