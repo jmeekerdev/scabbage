@@ -373,6 +373,36 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       takes ~0.1 ms to make and ~160 bytes to send, so the widest ring (27 chunks, ~2300 columns) costs
       ~0.2 s of server time and ~370 KB once, and a few milliseconds per chunk walked
 
+### Phase 9 — Looks (each player picks how the world is drawn)
+The world, its blocks and every mechanic stay the same; only drawing changes. A look is one config file
+in `client/src/looks/`, with these groups: surface (textured or flat colour, edge treatment, noise),
+light (sun and shade colours, wrap, bands, shine, corner-shade tint), shape (soft corners and which
+blocks get them), sky and fog stops by time of day, water, an afterwards pass (outlines, paper grain,
+tilt-shift on the map only, vignette, saturation) and per-block palette overrides by name, where a block
+without one uses its texture's average colour. Adding a look is adding a file. The mockups and Fable's
+review are in the look book (Today, Clay Diorama, Ink & Cel, Watercolour, Dusk Pastel, Felt & Stitch,
+Smooth Clay). Each step is measured against today's frame time and triangle count.
+- [ ] Look config, registry and picker: a schema; Today moved into a config with no visible change; the
+      choice is a client setting beside the graphics presets; the picker shows each look's cost
+      (light, adds an outline pass, rebuilds chunks), worked out from its features
+- [ ] Feature-built block shader: each feature is a small shader chunk switched on by a define from the
+      config, so only the chosen look is compiled and features that are off cost nothing; numbers are
+      live uniforms. Sky, fog, water and far land read the same look. Painted and custom blocks are
+      stickers (crisp pixels lit like everything else) in textureless looks
+- [ ] Mesher options from the look: edge flags (where a shape really ends, so flat ground reads as one
+      surface) and soft corners (natural full blocks' corners slide at most half a block toward the shape
+      around them, with slope normals, and add no triangles). Faces merge only where their corners move
+      alike. Switching to a look that needs different mesh data rebuilds the loaded chunks behind a short fade
+- [ ] Afterwards pass, run only when a look uses it: outlines from depth (and optionally normals) in
+      a set or darkened colour, paper grain, map-only tilt-shift, vignette, saturation
+- [ ] Port the looks, cheapest first: Dusk Pastel, Clay Diorama, Smooth Clay, Ink & Cel, then
+      Watercolour and Felt & Stitch, whose screen-space grain and lines need extra work not to swim in motion
+- [ ] Everything else follows the look: players, mobs, dropped items, the held item, the selection
+      outline (bent to soft corners) and the hand view take the look's light, palette tint and outlines
+- [ ] Tests and tuning: every look's config passes the schema and its shader compiles in a headless test,
+      so a typo fails `make check`; a developer overlay with sliders for the live numbers and an
+      "export config" button for making new looks
+
 ## Open questions
 
 1. **Public access:** how will family outside the house reach the server: a port forward to
