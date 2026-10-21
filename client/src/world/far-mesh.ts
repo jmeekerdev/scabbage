@@ -16,7 +16,8 @@ export interface FarTile {
 
 export interface FarMeshData {
   positions: Float32Array; // relative to the region's low corner
-  colors: Uint8Array; // sRGB, already shaded by slope
+  colors: Uint8Array; // sRGB
+  normals: Int8Array; // scaled to ±127
   indices: Uint16Array;
 }
 
@@ -35,7 +36,8 @@ export function farRegionMesh(
   const top = (sx: number, sz: number) => sampleAt(tileAt, rx * SPAN + sx, rz * SPAN + sz, "tops");
   const vertex = new Int32Array(side * side).fill(-1);
   const positions: number[] = [];
-  const shaded: number[] = [];
+  const blockColors: number[] = [];
+  const normals: number[] = [];
   for (let sz = 0; sz < side; sz++) {
     for (let sx = 0; sx < side; sx++) {
       const y = top(sx, sz);
@@ -43,19 +45,16 @@ export function farRegionMesh(
       vertex[sz * side + sx] = positions.length / 3;
       positions.push(sx * STEP, y, sz * STEP);
       const block = sampleAt(tileAt, rx * SPAN + sx, rz * SPAN + sz, "blocks") ?? 0;
-      const shade = slopeShade(
-        y,
-        top(sx - 1, sz),
-        top(sx + 1, sz),
-        top(sx, sz - 1),
-        top(sx, sz + 1),
+      normals.push(
+        ...slopeNormal(y, top(sx - 1, sz), top(sx + 1, sz), top(sx, sz - 1), top(sx, sz + 1)),
       );
-      for (let c = 0; c < 3; c++) shaded.push(Math.round((colors[block * 3 + c] ?? 0) * shade));
+      for (let c = 0; c < 3; c++) blockColors.push(colors[block * 3 + c] ?? 0);
     }
   }
   return {
     positions: Float32Array.from(positions),
-    colors: Uint8Array.from(shaded),
+    colors: Uint8Array.from(blockColors),
+    normals: Int8Array.from(normals),
     indices: Uint16Array.from(gridTriangles(vertex, side)),
   };
 }
@@ -73,12 +72,13 @@ function sampleAt(
   return tileAt(tx, tz)?.[field][i];
 }
 
-/** Like a top face in full light when flat, darker as the ground tilts; missing neighbors count as level. */
-function slopeShade(y: number, ...around: (number | undefined)[]): number {
+/** The ground's normal from the heights around it, scaled to ±127; missing neighbors count as level. */
+function slopeNormal(y: number, ...around: (number | undefined)[]): number[] {
   const [w, e, n, s] = around.map((h) => h ?? y);
   const dx = (e - w) / (2 * STEP);
   const dz = (s - n) / (2 * STEP);
-  return 0.6 + 0.4 / Math.sqrt(1 + dx * dx + dz * dz);
+  const scale = 127 / Math.sqrt(1 + dx * dx + dz * dz);
+  return [Math.round(-dx * scale) || 0, Math.round(scale), Math.round(-dz * scale) || 0];
 }
 
 /** Two triangles for every grid cell whose four corners all have a vertex, facing up. */

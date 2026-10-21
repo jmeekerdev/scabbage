@@ -4,9 +4,11 @@ import type { Look } from "../looks/look";
 import type { ChunkPos } from "../world/coords";
 import type { RenderTable } from "../world/mesher";
 import { WorldClient } from "../world/world-client";
-import { buildAtlas, topColors, type Atlas } from "./atlas";
+import { buildAtlas, type Atlas } from "./atlas";
 import { buildRenderTable, type BlockTypeInfo } from "./blocks";
-import { applyLook, blockTextures, opaqueMaterial, translucentMaterial } from "./chunk-material";
+import { blockTextures, opaqueMaterial, translucentMaterial } from "./chunk-material";
+import { applyLook, lookUniforms, setLookUniforms } from "./look-shader";
+import { layerColors, layerColorTexture, topColors } from "./palette";
 import { ChunkMeshes } from "./chunk-meshes";
 import { FarLand } from "./far-land";
 import type { GameScene } from "./scene";
@@ -43,6 +45,7 @@ export function createWorldRenderer(
   requestFar: (columns: { x: number; z: number }[]) => void,
   initialLook: Look,
 ): WorldRenderer {
+  setLookUniforms(initialLook);
   const textures = blockTextures(buildAtlas([], []));
   const materials: ShaderMaterial[] = [
     opaqueMaterial(textures, initialLook),
@@ -52,11 +55,21 @@ export function createWorldRenderer(
   const meshes = new ChunkMeshes(materials[0] as ShaderMaterial, materials[1] as ShaderMaterial);
   game.scene.add(meshes.group);
   const mesher = new WorkerMesher();
-  const far = new FarLand(requestFar);
+  const far = new FarLand(requestFar, initialLook);
   const cover = (x: number, z: number, covered: boolean) => far.cover(x, z, covered);
   const world = new WorldClient({ send: request, mesher, view: meshes, cover });
   game.scene.add(far.group);
   let started = false;
+  let art: BlockArt | undefined;
+
+  /** Gives each layer its flat colour in the look, for untextured blocks and far land. */
+  function paint(): void {
+    if (!art) return;
+    const colors = layerColors(art.atlas, look.surface.palette);
+    lookUniforms.layerColors.value?.dispose();
+    lookUniforms.layerColors.value = layerColorTexture(colors);
+    far.setColors(topColors(colors, art.table));
+  }
 
   return {
     start(info) {
@@ -73,9 +86,10 @@ export function createWorldRenderer(
       old?.dispose();
       mesher.setTable(table);
       world.setLights(table.light, table.transparent);
-      far.setColors(topColors(atlas, table));
+      art = { atlas, table };
+      paint();
       game.invalidate(); // the frame check can't see textures inside shader uniforms
-      return { atlas, table };
+      return art;
     },
     receive(batch) {
       world.receive(batch.chunks.flatMap((c) => (c.pos ? [{ pos: c.pos, data: c.data }] : [])));
@@ -87,7 +101,10 @@ export function createWorldRenderer(
     setLook(next) {
       if (next === look) return;
       look = next;
+      setLookUniforms(look);
       for (const m of materials) applyLook(m, look);
+      far.setLook(look);
+      paint();
       game.invalidate();
     },
     tick(x, z, viewDistance) {

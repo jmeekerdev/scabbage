@@ -16,11 +16,12 @@ function tiles(...at: [number, number, FarTile][]) {
 const triangles = (m: { indices: ArrayLike<number> }) => m.indices.length / 3;
 
 describe("farRegionMesh", () => {
-  it("draws a tile as a surface through its samples, lit like a top face", () => {
+  it("draws a tile as a surface through its samples, facing up where flat", () => {
     const m = farRegionMesh(tiles([0, 0, flat(100)]), 0, 0, RED);
     expect(triangles(m)).toBe((FAR_CELLS - 1) ** 2 * 2);
     for (let i = 1; i < m.positions.length; i += 3) expect(m.positions[i]).toBe(100);
     expect([...m.colors.subarray(0, 3)]).toEqual([200, 0, 0]);
+    expect([...m.normals.subarray(0, 3)]).toEqual([0, 127, 0]);
   });
 
   it("joins tiles side by side, and reaches into the next region to close the gap", () => {
@@ -39,13 +40,16 @@ describe("farRegionMesh", () => {
     expect([...m.positions.subarray(3, 6)]).toEqual([32 + step, 7, 0]);
   });
 
-  it("shades slopes darker than flat ground", () => {
+  it("tilts normals away from rising ground", () => {
     const slope: FarTile = {
       tops: Array.from({ length: SAMPLES }, (_, i) => 100 + (i % FAR_CELLS) * 4),
       blocks: Array(SAMPLES).fill(1),
     };
     const m = farRegionMesh(tiles([0, 0, slope]), 0, 0, RED);
-    expect(m.colors[0]).toBeLessThan(200);
-    expect(m.colors[0]).toBeGreaterThan(100);
+    const [x, y, z] = m.normals.subarray(3, 6);
+    expect(x).toBeLessThan(0);
+    expect(y).toBeGreaterThan(0);
+    expect(z).toBe(0);
+    expect([...m.colors.subarray(3, 6)]).toEqual([200, 0, 0]);
   });
 });

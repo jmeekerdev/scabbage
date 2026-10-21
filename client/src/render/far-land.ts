@@ -13,7 +13,9 @@ import {
 import { CHUNK_SIZE } from "../world/constants";
 import { FAR_REGION, farRegionMesh, type FarTile } from "../world/far-mesh";
 import { ChunkStreamer, type WorldBounds } from "../world/streamer";
+import type { Look } from "../looks/look";
 import { daylight } from "./chunk-material";
+import { applyLook, LOOK_LIGHT_GLSL, lookFeatures, lookUniforms } from "./look-shader";
 
 /** How many chunks away far land reaches for a view distance in chunks. */
 export const farDistance = (viewDistance: number) => viewDistance * 3;
@@ -40,11 +42,15 @@ export class FarLand {
   private streamer = new ChunkStreamer({ radius: 0, height: CHUNK_SIZE });
   private colors: Uint8Array = new Uint8Array(0);
   private readonly mask = coverMask();
-  private readonly material = farMaterial(this.mask);
+  private readonly material: ShaderMaterial;
   private masked = false; // the mask changed since the last tick
   private readonly tileAt = (x: number, z: number) => this.tiles.get(`${x},${z}`);
 
-  constructor(private readonly send: (columns: Column[]) => void) {
+  constructor(
+    private readonly send: (columns: Column[]) => void,
+    look: Look,
+  ) {
+    this.material = farMaterial(this.mask, look);
     this.group.name = "far land";
     this.group.userData.fixed = true; // regions are replaced, never changed in place
   }
@@ -68,6 +74,11 @@ export class FarLand {
     this.mask.image.data![wrap(z) * MASK + wrap(x)] = covered ? 255 : 0;
     this.mask.needsUpdate = true;
     this.masked = true;
+  }
+
+  /** Lights far land the way a look lights blocks. */
+  setLook(look: Look): void {
+    applyLook(this.material, look);
   }
 
   /** Each block's top color, RGB per block ID; every region is redrawn with them. */
@@ -133,6 +144,7 @@ export class FarLand {
     const g = new BufferGeometry();
     g.setAttribute("position", new BufferAttribute(data.positions, 3));
     g.setAttribute("color", new BufferAttribute(data.colors, 3, true));
+    g.setAttribute("normal", new BufferAttribute(data.normals, 3, true));
     g.setIndex(new BufferAttribute(data.indices, 1));
     g.computeBoundingSphere();
     const mesh = new Mesh(g, this.material);
@@ -155,11 +167,15 @@ export class FarLand {
 const vertexShader = /* glsl */ `
 attribute vec3 color;
 varying vec3 vColor;
+varying vec3 vNormal;
+varying vec3 vWorld;
 varying vec2 vColumn;
 #include <fog_pars_vertex>
 void main() {
   vColor = pow(color, vec3(2.2)); // sRGB to linear, like the block textures
+  vNormal = normal;
   vec4 world = modelMatrix * vec4(position, 1.0);
+  vWorld = world.xyz;
   vColumn = world.xz / CHUNK_SIZE;
   vec4 mvPosition = viewMatrix * world;
   gl_Position = projectionMatrix * mvPosition;
@@ -170,12 +186,17 @@ const fragmentShader = /* glsl */ `
 uniform float daylight;
 uniform sampler2D covered; // marks the columns the chunks draw
 varying vec3 vColor;
+varying vec3 vNormal;
+varying vec3 vWorld;
 varying vec2 vColumn;
 #include <fog_pars_fragment>
+${LOOK_LIGHT_GLSL}
 void main() {
   ivec2 column = ivec2(mod(floor(vColumn), MASK));
   if (texelFetch(covered, column, 0).r > 0.5) discard;
-  gl_FragColor = vec4(vColor * daylight, 1.0);
+  vec3 n = normalize(vNormal);
+  vec3 shine = lookShine(n, normalize(cameraPosition - vWorld));
+  gl_FragColor = vec4((vColor * lookLight(n) + shine) * daylight, 1.0);
   #include <colorspace_fragment>
   #include <fog_fragment>
 }`;
@@ -186,9 +207,10 @@ function coverMask(): DataTexture {
   return mask;
 }
 
-function farMaterial(covered: DataTexture): ShaderMaterial {
+function farMaterial(covered: DataTexture, look: Look): ShaderMaterial {
   const uniforms = UniformsUtils.merge([UniformsLib.fog]);
   uniforms.daylight = daylight;
+  Object.assign(uniforms, lookUniforms);
   uniforms.covered = { value: covered };
   return new ShaderMaterial({
     uniforms,
@@ -196,6 +218,6 @@ function farMaterial(covered: DataTexture): ShaderMaterial {
     fragmentShader,
     fog: true,
     side: FrontSide,
-    defines: { CHUNK_SIZE: CHUNK_SIZE.toFixed(1), MASK: MASK.toFixed(1) },
+    defines: { CHUNK_SIZE: CHUNK_SIZE.toFixed(1), MASK: MASK.toFixed(1), ...lookFeatures(look) },
   });
 }

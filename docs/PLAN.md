@@ -385,7 +385,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
 - [x] Look config, registry and picker: a schema; Today moved into a config with no visible change; the
       choice is a client setting beside the graphics presets; the picker shows each look's cost
       (light, adds an outline pass, rebuilds chunks), worked out from its features
-- [ ] Feature-built block shader: each feature is a small shader chunk switched on by a define from the
+- [x] Feature-built block shader: each feature is a small shader chunk switched on by a define from the
       config, so only the chosen look is compiled and features that are off cost nothing; numbers are
       live uniforms. Sky, fog, water and far land read the same look. Painted and custom blocks are
       stickers (crisp pixels lit like everything else) in textureless looks

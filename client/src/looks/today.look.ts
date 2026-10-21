@@ -4,10 +4,10 @@ import type { Look } from "./look";
 export default {
   name: "Today",
   about: "Crisp pixel blocks",
-  surface: { tint: 0.06 },
+  surface: { textured: true, tint: 0.06 },
   light: {
     faces: { top: 1, bottom: 0.5, x: 0.8, z: 0.65 },
-    ao: 0.5,
+    ao: { r: 0.5, g: 0.5, b: 0.5 },
     lamp: { r: 1, g: 0.86, b: 0.66 },
     lampFade: 0.82,
   },
@@ -20,4 +20,5 @@ export default {
     moon: { r: 0.91, g: 0.925, b: 0.957 },
   },
   fog: { start: 0.6 },
+  water: { opacity: 1 },
 } satisfies Look;

@@ -1,3 +1,4 @@
+import { lookById } from "../looks/registry";
 import { describe, expect, it } from "vitest";
 import { FAR_CELLS } from "../world/far-mesh";
 import { FarLand, farDistance } from "./far-land";
@@ -7,7 +8,7 @@ const SAMPLES = FAR_CELLS * FAR_CELLS;
 
 function setup() {
   const sent: { x: number; z: number }[][] = [];
-  const far = new FarLand((columns) => sent.push(columns));
+  const far = new FarLand((columns) => sent.push(columns), lookById("today"));
   far.start(bounds);
   far.setColors(Uint8Array.of(0, 0, 0, 90, 160, 60));
   return { sent, far };

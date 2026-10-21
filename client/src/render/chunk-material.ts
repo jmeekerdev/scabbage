@@ -11,6 +11,7 @@ import {
   type Texture,
 } from "three";
 import type { Look } from "../looks/look";
+import { LOOK_LIGHT_GLSL, lookFeatures, lookUniforms } from "./look-shader";
 import type { Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 import { MAX_LIGHT } from "../world/light";
@@ -34,23 +35,23 @@ attribute float face;
 attribute float layer;
 attribute float ao;
 attribute float light;
+uniform float lampFade;
 varying vec2 vUv;
 varying float vLayer;
-varying float vShade;
+varying vec3 vNormal;
+varying float vAo;
 varying float vGlow;
 varying vec3 vInside;
 #include <fog_pars_vertex>
 void main() {
   vUv = uv / POSITION_SCALE;
-  vGlow = light > 0.0 ? pow(LAMP_FADE, (MAX_LIGHT - light) / METRE) : 0.0; // each metre away dims it a little
+  vGlow = light > 0.0 ? pow(lampFade, (MAX_LIGHT - light) / METRE) : 0.0; // each metre away dims it a little
   vLayer = layer;
-  // Fixed per-face light: bright tops, darker sides and bottoms.
+  vAo = ao / 3.0;
   int f = int(face + 0.5);
-  vShade = f == 2 ? SHADE_TOP : f == 3 ? SHADE_BOTTOM : f < 2 ? SHADE_X : SHADE_Z;
-  vShade *= 1.0 - AO + AO * ao / 3.0; // corners tucked against blocks go darker
+  vNormal = vec3(equal(ivec3(f / 2), ivec3(0, 1, 2))) * ((f & 1) == 1 ? -1.0 : 1.0);
   // A point just behind the face, so the fragment shader can tell which block it belongs to.
-  vec3 normal = vec3(equal(ivec3(f / 2), ivec3(0, 1, 2))) * ((f & 1) == 1 ? -1.0 : 1.0);
-  vInside = (modelMatrix * vec4(position / POSITION_SCALE, 1.0)).xyz - normal * 0.5;
+  vInside = (modelMatrix * vec4(position / POSITION_SCALE, 1.0)).xyz - vNormal * 0.5;
   vec4 mvPosition = modelViewMatrix * vec4(position / POSITION_SCALE, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
@@ -59,30 +60,58 @@ void main() {
 const fragmentShader = /* glsl */ `
 precision highp sampler2DArray;
 uniform sampler2DArray blocks;
+#ifdef FLAT
+uniform sampler2D layerColors;
+#endif
 uniform float daylight;
+uniform float tint;
+uniform vec3 ao;
+uniform vec3 lamp;
+uniform float waterOpacity;
 varying vec2 vUv;
 varying float vLayer;
-varying float vShade;
+varying vec3 vNormal;
+varying float vAo;
 varying float vGlow;
 varying vec3 vInside;
 #include <fog_pars_fragment>
+${LOOK_LIGHT_GLSL}
 
 // A steady brightness per block, so neighbors of the same kind don't line up into a grid.
-float tint(vec3 p) {
+float blockTint(vec3 p) {
   uvec3 c = uvec3(ivec3(floor(p)));
   uint h = c.x * 73856093u ^ c.y * 19349663u ^ c.z * 83492791u;
   h = (h ^ (h >> 13u)) * 1274126177u;
-  return 1.0 + TINT * (float(h & 255u) / 127.5 - 1.0);
+  return 1.0 + tint * (float(h & 255u) / 127.5 - 1.0);
+}
+
+vec4 picture() {
+  return texture(blocks, vec3(vUv, vLayer));
+}
+
+// The block's picture, or in untextured looks its flat colour; stickers keep their picture.
+vec4 surface() {
+  #ifdef FLAT
+  vec4 flatColor = texelFetch(layerColors, ivec2(int(vLayer + 0.5), 0), 0);
+  if (flatColor.a > 0.75) return picture();
+  return vec4(flatColor.rgb, flatColor.a > 0.25 ? picture().a : 1.0);
+  #else
+  return picture();
+  #endif
 }
 
 void main() {
-  vec4 color = texture(blocks, vec3(vUv, vLayer));
+  vec4 color = surface();
   #ifdef CUTOUT
   if (color.a < 0.5) discard;
   color.a = 1.0;
+  #else
+  color.a *= waterOpacity;
   #endif
-  vec3 lit = max(vec3(daylight), LAMP * vGlow);
-  gl_FragColor = vec4(color.rgb * vShade * tint(vInside) * lit, color.a);
+  vec3 shade = lookLight(vNormal) * mix(ao, vec3(1.0), vAo) * blockTint(vInside);
+  vec3 lit = max(vec3(daylight), lamp * vGlow);
+  vec3 toEye = normalize(cameraPosition - vInside - vNormal * 0.5);
+  gl_FragColor = vec4(color.rgb * shade * lit + lookShine(vNormal, toEye) * daylight, color.a);
   #include <colorspace_fragment>
   #include <fog_fragment>
 }`;
@@ -100,28 +129,6 @@ export function translucentMaterial(blocks: Texture, look: Look): ShaderMaterial
   return chunkMaterial(blocks, look, { transparent: true, depthWrite: false });
 }
 
-/** Redraws a chunk material in another look; its shader recompiles once. */
-export function applyLook(material: ShaderMaterial, look: Look): void {
-  Object.assign(material.defines, lookDefines(look));
-  material.needsUpdate = true;
-}
-
-/** The look's numbers as shader defines, which cost nothing per frame. */
-export function lookDefines(look: Look): Record<string, string> {
-  const n = (v: number) => v.toFixed(2);
-  const { faces, lamp } = look.light;
-  return {
-    TINT: n(look.surface.tint),
-    SHADE_TOP: n(faces.top),
-    SHADE_BOTTOM: n(faces.bottom),
-    SHADE_X: n(faces.x),
-    SHADE_Z: n(faces.z),
-    AO: n(look.light.ao),
-    LAMP: `vec3(${n(lamp.r)}, ${n(lamp.g)}, ${n(lamp.b)})`,
-    LAMP_FADE: n(look.light.lampFade),
-  };
-}
-
 function chunkMaterial(
   blocks: Texture,
   look: Look,
@@ -131,11 +138,12 @@ function chunkMaterial(
   const uniforms = UniformsUtils.merge([UniformsLib.fog]);
   uniforms.blocks = { value: blocks };
   uniforms.daylight = daylight;
+  Object.assign(uniforms, lookUniforms);
   const defines = {
     POSITION_SCALE: POSITION_SCALE.toFixed(1),
     MAX_LIGHT: MAX_LIGHT.toFixed(1),
     METRE: METRE.toFixed(1),
-    ...lookDefines(look),
+    ...lookFeatures(look),
     ...extra?.defines,
   };
   return new ShaderMaterial({
