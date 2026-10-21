@@ -89,9 +89,11 @@ func (h *Herd) spot(k Kind, around motion.Vec, players []Player, g Ground) (moti
 		}
 	}
 	m := Mob{Kind: k, Pos: pos}
-	if _, ok := m.footing(x, z, g); !ok {
+	top, ok := m.footing(pos.X, pos.Z, g)
+	if !ok {
 		return pos, false
 	}
+	pos.Y = top
 	under, _ := g.Block(x, cell(pos.Y)-1, z)
 	return pos, k != Sheep || under == world.Grass
 }

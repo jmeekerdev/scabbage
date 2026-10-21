@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 22;
+  PROTOCOL_VERSION_CURRENT = 23;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -212,12 +212,13 @@ message BlockPos {
   sint32 z = 3;
 }
 
-// Breaks (block 0, air) or places a block. The server answers with BlockChanged: to everyone if
-// the edit was allowed, otherwise to the sender with the block that is really there.
+// Breaks (block 0, air) or places a cube of blocks. The server sends everyone what changed, and the
+// sender what is really in the blocks it refused: BlockChanged for one block, BlockBatch for more.
 message EditBlock {
   BlockPos pos = 1;
   uint32 block = 2;
   uint32 slot = 3; // survival placements: the inventory slot the block comes from
+  uint32 size = 4; // a brush this many blocks a side from pos upward; 0 means 1
 }
 
 // Presses the switch or button at pos.

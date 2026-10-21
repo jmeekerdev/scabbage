@@ -73,6 +73,25 @@ func TestSheepWanderAndStayOnTheGround(t *testing.T) {
 	}
 }
 
+func TestMobsStandOnTheHighestGroundUnderTheirBody(t *testing.T) {
+	g := field{}
+	for x := int32(2); x <= 30; x++ {
+		for z := int32(-30); z <= 30; z++ {
+			g[[3]int32{x, 10, z}] = world.Stone // a ledge one block high
+		}
+	}
+	h := New(1, true)
+	h.Add(Sheep, at(1.5, 10, 0.5), noon) // straddling the ledge's edge
+	_, c := steps(h, noon, 400, []Player{{Pos: at(2, 11, 3)}}, g)
+	w := kinds[Sheep].halfWidth
+	for _, m := range c.Moved {
+		onLedge := cell(m.Pos.X+w) >= 2 && m.Pos.X-w < 30 && m.Pos.Z-w > -30 && m.Pos.Z+w < 30
+		if onLedge && m.Pos.Y < 11 {
+			t.Fatalf("sheep at %+v has legs inside the ledge", m.Pos)
+		}
+	}
+}
+
 func TestMobsClimbOneMetreButNotTwo(t *testing.T) {
 	g := field{}
 	for x := int32(-8); x <= 8; x++ {

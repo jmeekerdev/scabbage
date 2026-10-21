@@ -217,11 +217,7 @@ func (g *Gateway) broadcastPaste(changes []world.Change) {
 		return
 	}
 	if len(changes) <= maxBatchBlocks {
-		batch := &pb.BlockBatch{Blocks: make([]*pb.BlockChanged, 0, len(changes))}
-		for _, c := range changes {
-			batch.Blocks = append(batch.Blocks, blockChanged(c.X, c.Y, c.Z, c.Block).GetBlockChanged())
-		}
-		g.broadcast(&pb.ServerMessage{Body: &pb.ServerMessage_BlockBatch{BlockBatch: batch}})
+		g.broadcast(changesMessage(changes))
 		return
 	}
 	g.broadcast(&pb.ServerMessage{Body: &pb.ServerMessage_ChunksStale{ChunksStale: &pb.ChunksStale{Chunks: staleChunks(changes)}}})

@@ -37,7 +37,7 @@ func TestCollectAfterAShortDelay(t *testing.T) {
 	var f Field
 	d, _ := f.Spawn(world.Dirt, motion.Vec{X: 1.5, Y: 10, Z: 1.5}, t0)
 	feet := motion.Vec{X: 2, Y: 10, Z: 2}
-	took := func(Drop) bool { return true }
+	took := func(d Drop) int { return d.Count }
 	if gone := f.Collect(feet, t0, took); len(gone) != 0 {
 		t.Fatal("picked up the instant it dropped")
 	}
@@ -50,10 +50,22 @@ func TestCollectAfterAShortDelay(t *testing.T) {
 	}
 }
 
+func TestCollectTakesPartOfAPile(t *testing.T) {
+	var f Field
+	d, _ := f.SpawnMany(world.Dirt, 27, motion.Vec{X: 0.5, Y: 10, Z: 0.5}, t0)
+	feet, later := motion.Vec{Y: 10}, t0.Add(time.Second)
+	if gone := f.Collect(feet, later, func(Drop) int { return 20 }); len(gone) != 0 || f.All()[0].Count != 7 {
+		t.Fatalf("after taking 20 of 27: gone %v, %+v left", gone, f.All())
+	}
+	if gone := f.Collect(feet, later, func(d Drop) int { return d.Count }); len(gone) != 1 || gone[0] != d.ID {
+		t.Fatalf("the rest of the pile stayed: %v", gone)
+	}
+}
+
 func TestCollectLeavesWhatDoesNotFit(t *testing.T) {
 	var f Field
 	f.Spawn(world.Dirt, motion.Vec{X: 0.5, Y: 10, Z: 0.5}, t0)
-	if gone := f.Collect(motion.Vec{Y: 10}, t0.Add(time.Second), func(Drop) bool { return false }); len(gone) != 0 || f.Len() != 1 {
+	if gone := f.Collect(motion.Vec{Y: 10}, t0.Add(time.Second), func(Drop) int { return 0 }); len(gone) != 0 || f.Len() != 1 {
 		t.Fatal("a full inventory picked something up")
 	}
 }

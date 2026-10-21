@@ -20,6 +20,7 @@ const (
 type Drop struct {
 	ID    uint64
 	Block world.Block
+	Count int
 	Pos   motion.Vec
 	Born  time.Time
 }
@@ -50,41 +51,53 @@ func highest(boxes []world.Box) float64 {
 	return h
 }
 
-// Spawn adds a drop, returning it and the ids of any pushed out to make room.
+// Spawn adds a drop of one b, returning it and the ids of any pushed out to make room.
 func (f *Field) Spawn(b world.Block, pos motion.Vec, now time.Time) (Drop, []uint64) {
+	return f.SpawnMany(b, 1, pos, now)
+}
+
+// SpawnMany adds a pile of n b as one drop, returning it and the ids of any pushed out to make room.
+func (f *Field) SpawnMany(b world.Block, n int, pos motion.Vec, now time.Time) (Drop, []uint64) {
 	var gone []uint64
 	if len(f.drops) >= Max {
 		gone = append(gone, f.drops[0].ID)
 		f.drops = slices.Delete(f.drops, 0, 1)
 	}
 	f.last++
-	d := Drop{ID: f.last, Block: b, Pos: pos, Born: now}
+	d := Drop{ID: f.last, Block: b, Count: n, Pos: pos, Born: now}
 	f.drops = append(f.drops, d)
 	return d, gone
 }
 
-// Collect hands nearby, settled drops to take and removes those it accepts.
-func (f *Field) Collect(feet motion.Vec, now time.Time, take func(Drop) bool) []uint64 {
+// Collect offers nearby, settled drops to take, which says how many of each it took; drops taken
+// whole are removed.
+func (f *Field) Collect(feet motion.Vec, now time.Time, take func(Drop) int) []uint64 {
 	middle := motion.Vec{X: feet.X, Y: feet.Y + motion.Height/2, Z: feet.Z}
-	return f.remove(func(d Drop) bool {
-		return now.Sub(d.Born) >= PickupDelay && near(middle, d.Pos) && take(d)
+	return f.remove(func(d *Drop) bool {
+		if now.Sub(d.Born) < PickupDelay || !near(middle, d.Pos) {
+			return false
+		}
+		d.Count -= take(*d)
+		return d.Count <= 0
 	})
 }
 
 // Expire removes drops that have lain around for their whole Lifetime.
 func (f *Field) Expire(now time.Time) []uint64 {
-	return f.remove(func(d Drop) bool { return now.Sub(d.Born) >= Lifetime })
+	return f.remove(func(d *Drop) bool { return now.Sub(d.Born) >= Lifetime })
 }
 
-func (f *Field) remove(gone func(Drop) bool) []uint64 {
+func (f *Field) remove(gone func(*Drop) bool) []uint64 {
 	var ids []uint64
-	f.drops = slices.DeleteFunc(f.drops, func(d Drop) bool {
-		if gone(d) {
+	kept := f.drops[:0]
+	for i := range f.drops {
+		if d := &f.drops[i]; gone(d) {
 			ids = append(ids, d.ID)
-			return true
+		} else {
+			kept = append(kept, *d)
 		}
-		return false
-	})
+	}
+	f.drops = kept
 	return ids
 }
 

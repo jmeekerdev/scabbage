@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"slices"
 	"time"
 
 	"scabbage/internal/drops"
@@ -43,36 +44,82 @@ func (g *Gateway) changedLocked(moved []drops.Drop, gone []uint64) {
 	}
 }
 
-// spend applies survival rules to an allowed edit: breaks take digging time, placements use up items.
-func (g *Gateway) spend(s *session, r edit.Request, current world.Block, slot uint32, now time.Time) bool {
+// spend applies survival rules to a brush's allowed cells: a dig takes its mining time, all or
+// nothing, and placements use up items until the slot runs out. It returns the cells that go ahead
+// and those that don't.
+func (g *Gateway) spend(s *session, b edit.Brush, cells []cellEdit, slot uint32, now time.Time) ([]cellEdit, []edit.Request) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	a := g.players[s]
-	if a == nil || a.mode != survival {
-		return true
+	if a == nil || a.mode != survival || len(cells) == 0 {
+		return cells, nil
 	}
-	if r.Block == world.Air {
-		return a.digger.Dig(current, now)
+	if b.Block == world.Air {
+		was := make([]world.Block, len(cells))
+		for i, c := range cells {
+			was[i] = c.was
+		}
+		if a.digger.Dig(edit.DigTime(was, b.Size), now) {
+			return cells, nil
+		}
+		return nil, requests(cells)
 	}
-	if !a.inv.Take(int(slot), r.Block.Item()) {
-		return false
+	n := 0
+	for n < len(cells) && a.inv.Take(int(slot), b.Block.Item()) {
+		n++
 	}
-	s.push(inventoryMessage(&a.inv))
-	return true
+	if n > 0 {
+		s.push(inventoryMessage(&a.inv))
+	}
+	return cells[:n], requests(cells[n:])
 }
 
-// broke drops what a survival player dug up and lets items above the hole fall.
-func (g *Gateway) broke(s *session, r edit.Request, was world.Block, now time.Time) {
+func requests(cells []cellEdit) []edit.Request {
+	out := make([]edit.Request, len(cells))
+	for i, c := range cells {
+		out[i] = c.Request
+	}
+	return out
+}
+
+// broke drops what a survival player dug up, one pile per kind of block in the middle of the
+// brush, and lets items above the holes fall.
+func (g *Gateway) broke(s *session, b edit.Brush, dug []cellEdit, now time.Time) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	moved := g.drops.Resettle(r.X, r.Z, g.cfg.World.Boxes)
+	var moved []drops.Drop
+	columns := map[[2]int32]bool{}
+	for _, c := range dug {
+		if col := [2]int32{c.X, c.Z}; !columns[col] {
+			columns[col] = true
+			moved = append(moved, g.drops.Resettle(c.X, c.Z, g.cfg.World.Boxes)...)
+		}
+	}
 	var gone []uint64
 	if a := g.players[s]; a != nil && a.mode == survival {
-		var d drops.Drop
-		d, gone = g.drops.Spawn(world.Drops(was), drops.Rest(r.X, r.Y, r.Z, g.cfg.World.Boxes), now)
-		moved = append(moved, d)
+		half, top := max(1, b.Size)/2, b.Y+max(1, b.Size)-1
+		at := drops.Rest(b.X+half, top, b.Z+half, g.cfg.World.Boxes)
+		for _, p := range piles(dug) {
+			d, old := g.drops.SpawnMany(p.Block, int(p.Count), at, now)
+			moved, gone = append(moved, d), append(gone, old...)
+		}
 	}
 	g.changedLocked(moved, gone)
+}
+
+// piles counts what dug blocks drop, in the order each kind first appears.
+func piles(dug []cellEdit) []inventory.Stack {
+	var out []inventory.Stack
+	for _, c := range dug {
+		d := world.Drops(c.was)
+		i := slices.IndexFunc(out, func(s inventory.Stack) bool { return s.Block == d })
+		if i < 0 {
+			out = append(out, inventory.Stack{Block: d})
+			i = len(out) - 1
+		}
+		out[i].Count++
+	}
+	return out
 }
 
 // collectLocked hands survival players the items they walk over and clears out old ones.
@@ -85,7 +132,7 @@ func (g *Gateway) collectLocked(now time.Time) {
 		if a.mode != survival {
 			continue
 		}
-		took := g.drops.Collect(a.pos, now, func(d drops.Drop) bool { return a.inv.Add(d.Block, 1) == 0 })
+		took := g.drops.Collect(a.pos, now, func(d drops.Drop) int { return d.Count - a.inv.Add(d.Block, d.Count) })
 		if len(took) > 0 {
 			s.push(inventoryMessage(&a.inv))
 			gone = append(gone, took...)

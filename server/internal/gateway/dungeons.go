@@ -36,8 +36,8 @@ func (g *Gateway) giveLocked(s *session, items []loot.Item, at motion.Vec) {
 	var spilled []drops.Drop
 	var gone []uint64
 	for _, it := range items {
-		for range a.inv.Add(it.Block, it.Count) {
-			d, old := g.drops.Spawn(it.Block, at, now)
+		if left := a.inv.Add(it.Block, it.Count); left > 0 {
+			d, old := g.drops.SpawnMany(it.Block, left, at, now)
 			spilled, gone = append(spilled, d), append(gone, old...)
 		}
 	}

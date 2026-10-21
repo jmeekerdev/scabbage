@@ -16,12 +16,9 @@ type Request struct {
 	Block   world.Block
 }
 
-// Allowed reports whether a player with feet at `feet` may change a block that is now `current`.
-// Solid placements must not overlap any body in `bodies`.
-func Allowed(feet motion.Vec, r Request, current world.Block, bodies []motion.Vec) bool {
-	if !InReach(feet, r.X, r.Y, r.Z) {
-		return false
-	}
+// Allowed reports whether a block that is now `current` may change as r asks; reach is checked
+// separately. Solid placements must not overlap any body in `bodies`.
+func Allowed(r Request, current world.Block, bodies []motion.Vec) bool {
 	if r.Block == world.Air {
 		return world.Info(current).Targetable() && current != world.Bedrock
 	}
@@ -55,7 +52,7 @@ func Occupied(x, y, z int32, bodies []motion.Vec) bool {
 	return false
 }
 
-// Edit rate limits: a held mouse button repeats about 4 times a second.
+// Edit rate limits, per brush: a held mouse button repeats about 6 times a second.
 const (
 	PerSecond = 30
 	Burst     = 60

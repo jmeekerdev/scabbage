@@ -11,13 +11,13 @@ import (
 const (
 	Slots    = 36 // the first Hotbar slots are the hotbar
 	Hotbar   = 9
-	StackMax = 64
+	StackMax = 999 // a brush three blocks wide uses 27 at a time
 )
 
 // Stack is some number of one block; the zero Stack is an empty slot.
 type Stack struct {
 	Block world.Block
-	Count uint8
+	Count uint16
 }
 
 type Inventory [Slots]Stack
@@ -41,7 +41,7 @@ func (inv *Inventory) Add(b world.Block, n int) int {
 // fill tops up the stack from n and returns what is left of n.
 func (s *Stack) fill(n int) int {
 	room := min(n, StackMax-int(s.Count))
-	s.Count += uint8(room)
+	s.Count += uint16(room)
 	return n - room
 }
 
@@ -64,7 +64,7 @@ func (inv *Inventory) Remove(b world.Block, n int) bool {
 	for i := Slots - 1; i >= 0 && n > 0; i-- {
 		if s := &inv[i]; s.Block == b && s.Count > 0 {
 			took := min(n, int(s.Count))
-			if s.Count -= uint8(took); s.Count == 0 {
+			if s.Count -= uint16(took); s.Count == 0 {
 				*s = Stack{}
 			}
 			n -= took
@@ -91,7 +91,7 @@ func (inv *Inventory) Move(from, to int) bool {
 	src, dst := &inv[from], &inv[to]
 	if src.Block == dst.Block && dst.Count > 0 {
 		left := dst.fill(int(src.Count))
-		if src.Count = uint8(left); left == 0 {
+		if src.Count = uint16(left); left == 0 {
 			*src = Stack{}
 		}
 		return true
@@ -100,7 +100,7 @@ func (inv *Inventory) Move(from, to int) bool {
 	return true
 }
 
-const slotBytes = 3 // block uint16 then count
+const slotBytes = 4 // block then count, each uint16
 
 var ErrCorrupt = errors.New("inventory: wrong saved size")
 
@@ -118,7 +118,7 @@ func (inv *Inventory) Encode() []byte {
 	out := make([]byte, 0, Slots*slotBytes)
 	for _, s := range inv {
 		out = binary.LittleEndian.AppendUint16(out, uint16(s.Block))
-		out = append(out, s.Count)
+		out = binary.LittleEndian.AppendUint16(out, s.Count)
 	}
 	return out
 }
@@ -134,7 +134,7 @@ func Decode(data []byte) (Inventory, error) {
 	}
 	for i := range inv {
 		b := world.Block(binary.LittleEndian.Uint16(data[i*slotBytes:]))
-		if n := data[i*slotBytes+2]; n > 0 && b != world.Air && b.Valid() {
+		if n := binary.LittleEndian.Uint16(data[i*slotBytes+2:]); n > 0 && b != world.Air && b.Valid() {
 			inv[i] = Stack{b, min(n, StackMax)}
 		}
 	}

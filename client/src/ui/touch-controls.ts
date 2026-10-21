@@ -59,6 +59,7 @@ export class TouchControls {
         placing: this.placing.due(nowMs),
         picking: false,
         scripting: this.takeScripting(),
+        resizing: false,
       },
     };
   }

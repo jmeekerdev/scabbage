@@ -73,12 +73,12 @@ export function encodeMove(
 
 /** `slot` is the inventory slot a survival placement comes from. */
 export function encodeEditBlock(
-  e: { x: number; y: number; z: number; block: number },
+  e: { x: number; y: number; z: number; block: number; size?: number },
   slot = 0,
 ): Bytes {
   return encode({
     case: "editBlock",
-    value: { pos: { x: e.x, y: e.y, z: e.z }, block: e.block, slot },
+    value: { pos: { x: e.x, y: e.y, z: e.z }, block: e.block, slot, size: e.size ?? 1 },
   });
 }
 

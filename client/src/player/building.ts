@@ -2,6 +2,7 @@ import { lookDirection, raycast, type RayHit, type Vec3 } from "../world/raycast
 import { isStairs, pistonFacing, Shape, stairsFacing } from "../world/shapes";
 import { HALF_WIDTH, HEIGHT, type Body } from "./physics";
 import { METRE } from "../world/constants";
+import { brushCube, cubeCells, type Cell, type Cube } from "./brush";
 
 /** How far the eye reaches; server/internal/edit allows a little more. */
 export const REACH = 5 * METRE;
@@ -21,11 +22,10 @@ export interface BuildWorld {
   inside(x: number, y: number, z: number): boolean;
 }
 
-export interface Edit {
-  x: number;
-  y: number;
-  z: number;
+/** A brush of `block`, and the blocks of it we expect the server to change. */
+export interface Edit extends Cube {
   block: number;
+  cells: Cell[];
 }
 
 /** Building rules for a world as the server describes it. */
@@ -76,10 +76,23 @@ export function aim(eye: Vec3, yaw: number, pitch: number, w: BuildWorld): RayHi
   );
 }
 
-export function breakEdit(hit: RayHit, w: BuildWorld): Edit | undefined {
-  const current = w.blockAt(hit.x, hit.y, hit.z);
-  if (current === undefined || w.unbreakable.has(current)) return undefined;
-  return { x: hit.x, y: hit.y, z: hit.z, block: AIR };
+/** Breaks a brush of `size` into the face that was hit, leaving unbreakable blocks. */
+export function breakEdit(hit: RayHit, w: BuildWorld, size = 1): Edit | undefined {
+  const cube = brushCube(hit, size, false);
+  const cells = cubeCells(cube).filter(({ x, y, z }) => {
+    const b = w.blockAt(x, y, z);
+    return isTargetable(w, b) && !w.unbreakable.has(b!);
+  });
+  return cells.length ? { ...cube, block: AIR, cells } : undefined;
+}
+
+/** How long survival players dig an edit: the slowest block's time for each block of its width. */
+export function digMs(edit: Edit, w: BuildWorld): number {
+  const slowest = Math.max(
+    0,
+    ...edit.cells.map(({ x, y, z }) => w.mineMs[w.blockAt(x, y, z) ?? 0] ?? 0),
+  );
+  return slowest * edit.size;
 }
 
 /** Whether placing at `target` presses it instead; sneaking builds against it, e.g. to stack doors. */
@@ -88,7 +101,7 @@ export function usesBlock(target: number | undefined, sneaking: boolean, w: Buil
 }
 
 /**
- * Places `block` against the face that was hit, if that spot is free and clear of the body.
+ * Places a brush of `block` against the face that was hit, into the free spots clear of the body.
  * Stairs turn to rise away from the player and pistons to push where they look.
  */
 export function placeEdit(
@@ -97,13 +110,16 @@ export function placeEdit(
   body: Body,
   look: { yaw: number; pitch: number },
   w: BuildWorld,
+  size = 1,
 ): Edit | undefined {
-  const [x, y, z] = [hit.x + hit.nx, hit.y + hit.ny, hit.z + hit.nz];
-  const current = w.blockAt(x, y, z);
-  if (block === AIR || w.unbreakable.has(block) || !w.inside(x, y, z)) return undefined;
-  if (current === undefined || isTargetable(w, current)) return undefined;
-  if (w.solid[block] && overlaps(body, x, y, z)) return undefined;
-  return { x, y, z, block: turned(block, look, w) };
+  if (block === AIR || w.unbreakable.has(block)) return undefined;
+  const cube = brushCube(hit, size, true);
+  const cells = cubeCells(cube).filter(({ x, y, z }) => {
+    const current = w.blockAt(x, y, z);
+    if (!w.inside(x, y, z) || current === undefined || isTargetable(w, current)) return false;
+    return !(w.solid[block] && overlaps(body, x, y, z));
+  });
+  return cells.length ? { ...cube, block: turned(block, look, w), cells } : undefined;
 }
 
 function turned(block: number, look: { yaw: number; pitch: number }, w: BuildWorld): number {

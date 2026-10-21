@@ -82,7 +82,16 @@ var (
 	facings         = []string{"", "_east", "_south", "_west", "_up", "_down"}
 )
 
-var blocks = palette()
+var blocks = perSmallBlock(palette())
+
+// perSmallBlock turns the palette's digging times, written for blocks a metre across, into times
+// for blocks a third that size.
+func perSmallBlock(out []BlockInfo) []BlockInfo {
+	for i := range out {
+		out[i].MineMs /= Metre
+	}
+	return out
+}
 
 // palette lists the built-in blocks by ID; only ever append to it.
 func palette() []BlockInfo {
@@ -217,7 +226,7 @@ var (
 )
 
 // customMineMs is how long painted blocks take to dig when they don't say.
-const customMineMs = 750
+const customMineMs = 250
 
 // Register adds or replaces a custom block, e.g. one approved by an admin.
 func Register(b BlockInfo) error {

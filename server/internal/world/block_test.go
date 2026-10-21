@@ -146,6 +146,12 @@ func TestMiningTakesLongerForHarderBlocks(t *testing.T) {
 	}
 }
 
+func TestSmallBlocksDigInAThirdOfAMetreBlocksTime(t *testing.T) {
+	if Info(Stone).MineMs*Metre != 1500 || Info(Dirt).MineMs*Metre < 498 {
+		t.Fatalf("stone %d dirt %d per small block", Info(Stone).MineMs, Info(Dirt).MineMs)
+	}
+}
+
 func TestCustomBlocksTakeTimeToMine(t *testing.T) {
 	id := FirstCustom + 30
 	if err := Register(BlockInfo{ID: id, Name: "tile", Solid: true}); err != nil {

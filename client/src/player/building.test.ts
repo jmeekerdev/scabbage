@@ -3,6 +3,7 @@ import {
   aim,
   breakEdit,
   buildWorldFor,
+  digMs,
   placeEdit,
   PressFilter,
   UseHold,
@@ -83,8 +84,40 @@ describe("breakEdit", () => {
   it("breaks to air, except unbreakable blocks", () => {
     const w = world();
     const hit = { x: 2, y: 9, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 };
-    expect(breakEdit(hit, w)).toEqual({ x: 2, y: 9, z: 0, block: AIR });
+    expect(breakEdit(hit, w)).toEqual({
+      x: 2,
+      y: 9,
+      z: 0,
+      size: 1,
+      block: AIR,
+      cells: [{ x: 2, y: 9, z: 0 }],
+    });
     expect(breakEdit({ ...hit, x: 9, y: 10 }, w)).toBeUndefined();
+  });
+
+  it("breaks only the breakable blocks of a brush", () => {
+    const side = { x: 9, y: 10, z: 1, nx: -1, ny: 0, nz: 0, distance: 2 };
+    const edit = breakEdit(side, world(), 3);
+    expect(edit).toMatchObject({ x: 9, y: 9, z: 0, size: 3 });
+    expect(edit?.cells).toEqual([
+      { x: 9, y: 9, z: 0 },
+      { x: 9, y: 9, z: 1 },
+      { x: 9, y: 9, z: 2 },
+      { x: 10, y: 9, z: 0 },
+      { x: 10, y: 9, z: 1 },
+      { x: 10, y: 9, z: 2 },
+      { x: 11, y: 9, z: 0 },
+      { x: 11, y: 9, z: 1 },
+      { x: 11, y: 9, z: 2 },
+    ]); // stone below y=10; bedrock and air above
+  });
+});
+
+describe("digMs", () => {
+  it("is the slowest block's time for each block of the brush's width", () => {
+    const w = { ...world(), mineMs: [0, 500] };
+    const edit = breakEdit({ x: 2, y: 9, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 }, w, 3)!;
+    expect(digMs(edit, w)).toBe(1500);
   });
 });
 
@@ -97,8 +130,19 @@ describe("placeEdit", () => {
       x: 2,
       y: 10,
       z: 0,
+      size: 1,
       block: STONE,
+      cells: [{ x: 2, y: 10, z: 0 }],
     });
+  });
+
+  it("fills a brush around the player's body and anything already there", () => {
+    const edit = placeEdit(onTopOf(1, 1), STONE, body, { yaw: 0, pitch: 0 }, world(), 3);
+    expect(edit).toMatchObject({ x: 0, y: 10, z: 0, size: 3 });
+    expect(edit?.cells).toHaveLength(27 - 12); // the body fills two by two columns, three high
+    expect(edit?.cells).not.toContainEqual({ x: 1, y: 12, z: 1 });
+    const torch = placeEdit(onTopOf(4, 4), STONE, body, { yaw: 0, pitch: 0 }, world(), 3);
+    expect(torch?.cells).toHaveLength(26);
   });
 
   it("replaces water", () => {

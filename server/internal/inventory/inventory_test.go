@@ -44,7 +44,7 @@ func TestTakeEmptiesTheSlot(t *testing.T) {
 
 func TestMoveMergesOrSwaps(t *testing.T) {
 	var inv Inventory
-	inv[0] = Stack{world.Dirt, 60}
+	inv[0] = Stack{world.Dirt, StackMax - 4}
 	inv[1] = Stack{world.Dirt, 10}
 	inv[2] = Stack{world.Log, 1}
 	inv.Move(1, 0)
@@ -63,7 +63,7 @@ func TestMoveMergesOrSwaps(t *testing.T) {
 func TestEncodeRoundTrips(t *testing.T) {
 	var inv Inventory
 	inv[0] = Stack{world.Dirt, 3}
-	inv[Slots-1] = Stack{world.Torch, 64}
+	inv[Slots-1] = Stack{world.Torch, StackMax}
 	got, err := Decode(inv.Encode())
 	if err != nil || got != inv {
 		t.Fatalf("got %v, %v", got, err)

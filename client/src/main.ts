@@ -50,6 +50,7 @@ import {
   aim,
   breakEdit,
   buildWorldFor,
+  digMs,
   placeEdit,
   PressFilter,
   UseHold,
@@ -57,6 +58,7 @@ import {
   type BuildWorld,
   type Edit,
 } from "./player/building";
+import { brushCube, MAX_BRUSH, nextBrush, type Cell } from "./player/brush";
 import { Hotbar, hotbarBlocks } from "./player/hotbar";
 import { Inventory } from "./player/inventory";
 import { Npcs } from "./player/npcs";
@@ -146,6 +148,7 @@ const backpack = new InventoryView(
   (recipe) => conn?.send(encodeCraft(recipe)),
 );
 const miner = new Miner();
+let brush = MAX_BRUSH; // blocks a side we break and place at once
 const presses = new PressFilter(250); // input repeats held buttons every 250 ms
 const useHold = new UseHold(250);
 const npcs = new Npcs();
@@ -323,7 +326,7 @@ function connect(join?: JoinInit): void {
           audio.play("pop", 0.6);
         } else if (msg.body.case === "questLog") questNews(msg.body.value.quests);
         else if (msg.body.case === "blockChanged") blockChanged(msg.body.value);
-        else if (msg.body.case === "blockBatch") msg.body.value.blocks.forEach(blockChanged);
+        else if (msg.body.case === "blockBatch") blocksChanged(msg.body.value.blocks);
         else if (msg.body.case === "inventory") {
           if (inventory.set(msg.body.value.slots)) audio.play("pop", 0.5);
         } else if (msg.body.case === "itemsChanged")
@@ -507,6 +510,7 @@ function build(
   dt: number,
   near: readonly MobState[],
 ): void {
+  if (act.resizing) resizeBrush();
   const hit = building && aim(eye, player.look.yaw, player.look.pitch, building);
   const aimed = aimedAt(eye, near);
   const npc = npcs.pick(eye, lookDirection(player.look.yaw, player.look.pitch), MOB_REACH);
@@ -541,7 +545,7 @@ function build(
     return;
   }
   const dug = survival ? dig(act.digging, hit, dt) : 0;
-  selection.show(hit, dug);
+  selection.show(hit && brushCube(hit, brush, false), dug);
   if (!hit || !building) return;
   if (act.picking) {
     const block = building.blockAt(hit.x, hit.y, hit.z) ?? 0;
@@ -549,9 +553,9 @@ function build(
   }
   const breaking = survival ? dug === 1 : act.breaking;
   const edit = breaking
-    ? breakEdit(hit, building)
+    ? breakEdit(hit, building, brush)
     : act.placing && !useHold.blocks(performance.now())
-      ? placeEdit(hit, hotbar.current(), player.body, player.look, building)
+      ? placeEdit(hit, hotbar.current(), player.body, player.look, building, brush)
       : undefined;
   if (edit) sendEdit(edit);
 }
@@ -564,14 +568,22 @@ function tellAboutScripts(): void {
   chat.note(`${how} to read or write this script block's script. Using it runs on_touch.`);
 }
 
-/** Survival mining: how far the held block is dug, from 0 to 1 when it breaks. */
+/** Survival mining: how far the held brush is dug, from 0 to 1 when it breaks. */
 function dig(held: boolean, hit: RayHit | undefined, dt: number): number {
-  const block = hit && building?.blockAt(hit.x, hit.y, hit.z);
-  if (!held || !hit || !building || block === undefined || building.unbreakable.has(block)) {
+  const edit = held && hit && building ? breakEdit(hit, building, brush) : undefined;
+  if (!edit || !building) {
     miner.stop();
     return 0;
   }
-  return miner.dig(dt, hit, building.mineMs[block] ?? 0);
+  return miner.dig(dt, edit, digMs(edit, building));
+}
+
+/** Switches to the next brush size and says what it is. */
+function resizeBrush(): void {
+  brush = nextBrush(brush);
+  miner.stop();
+  const wide = brush === MAX_BRUSH ? " (a big block)" : "";
+  chat.note(`Building ${brush} block${brush === 1 ? "" : "s"} wide${wide}. G changes it.`);
 }
 
 /** Says, now and then, that this zone is protected. */
@@ -642,9 +654,16 @@ function sendEdit(edit: Edit): void {
   const pose = moves.flush(player.pose()); // the server checks reach from our latest position
   if (pose) conn.send(encodeMove(pose, moves.teleport));
   conn.send(encodeEditBlock(edit, hotbar.selected));
-  if (survival && edit.block !== 0) inventory.spend(hotbar.selected);
-  world.setBlock(edit.x, edit.y, edit.z, edit.block);
+  for (const c of affordable(edit)) world.setBlock(c.x, c.y, c.z, edit.block);
   audio.play(edit.block === 0 ? "break" : "place");
+}
+
+/** The blocks of an edit we can pay for, spending them; survival placements use up the held slot. */
+function affordable(edit: Edit): Cell[] {
+  if (!survival || edit.block === 0) return edit.cells;
+  let n = 0;
+  while (n < edit.cells.length && inventory.spend(hotbar.selected)) n++;
+  return edit.cells.slice(0, n);
 }
 
 function sendEmote(e: Emote): void {
@@ -659,11 +678,17 @@ function emoteShown(entity: number, e: Emote): void {
   audio.play("pop", 0.4);
 }
 
+/** Many blocks changing at once, like a brush or a circuit, playing each sound only once. */
+function blocksChanged(changes: readonly BlockChanged[]): void {
+  const played = new Set<string>();
+  for (const c of changes) blockChanged(c, played);
+}
+
 /**
  * Someone's edit, or our own echoed back; only changes we haven't already shown make a sound.
  * Logic blocks switching state are quiet, except note blocks, which play.
  */
-function blockChanged(c: BlockChanged): void {
+function blockChanged(c: BlockChanged, played = new Set<string>()): void {
   if (!c.pos) return;
   const { x, y, z } = c.pos;
   const was = world.blockAt(x, y, z);
@@ -673,8 +698,12 @@ function blockChanged(c: BlockChanged): void {
   const gain = distanceGain(Math.hypot(x + 0.5 - b.x, y + 0.5 - b.y, z + 0.5 - b.z));
   const note = noteToPlay(notes, was, c.block);
   const switched = was !== undefined && building?.item[was] === building?.item[c.block];
+  const sound =
+    note !== undefined ? `note ${note}` : switched ? "" : c.block === 0 ? "break" : "place";
+  if (!sound || played.has(sound)) return;
+  played.add(sound);
   if (note !== undefined) audio.playNote(note, gain);
-  else if (!switched) audio.play(c.block === 0 ? "break" : "place", gain);
+  else audio.play(c.block === 0 ? "break" : "place", gain);
 }
 
 /** Applies other players arriving, moving or leaving; false if `msg` is about something else. */

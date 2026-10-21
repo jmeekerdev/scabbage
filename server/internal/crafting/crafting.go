@@ -93,7 +93,7 @@ func stack(name string, n int) (inventory.Stack, error) {
 	if n < 1 || n > inventory.StackMax {
 		return inventory.Stack{}, fmt.Errorf("%w: %d %s", ErrBadRecipe, n, name)
 	}
-	return inventory.Stack{Block: b, Count: uint8(n)}, nil
+	return inventory.Stack{Block: b, Count: uint16(n)}, nil
 }
 
 // Craft trades the recipe's inputs for its output, or leaves inv alone when it can't.

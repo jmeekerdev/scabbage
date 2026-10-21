@@ -341,8 +341,13 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
 - [x] Light and look: light levels 0–30, so lamps light about 10 m and glow fades per metre; light
       floods cost about 8 ms per lit chunk. Each block gets a steady ±6% brightness so ground doesn't
       show a grid, leaves have fewer holes, and view distance shows in metres (fog already follows it)
-- [ ] Building at the new scale: brush sizes 1, 2 and 3 (3 = an old block) for placing and digging,
-      faster mining per block, a higher edit rate and bigger stacks
+- [x] Building at the new scale: brush sizes 1, 2 and 3 (3 = an old block, the default) for placing
+      and digging, switched with G or the right stick. A brush is one EditBlock with a size (protocol
+      23); the server checks each block and answers in one BlockBatch. It snaps to the brush's grid
+      in x and z. A small block digs in a third of a metre block's time, and a brush in that time
+      per block of its width. Held buttons repeat about 6 times a second, stacks hold 999, and a dug
+      brush drops one counted pile per kind of block. Mobs now stand on the highest ground under
+      their whole body, so their legs don't sink into one-block steps
 - [ ] Rescale content: mobs and avatars, dungeons, the sample adventure, zones and arenas; map files keep
       only the heights they use, with a smaller side limit
 - [ ] Generator v3 detail, so it has its own character: finer hills, rocks and boulders, grass tufts,

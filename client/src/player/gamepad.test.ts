@@ -4,7 +4,19 @@ import { Emote } from "../pb/scabbage/v1/net_pb";
 import { Hotbar } from "./hotbar";
 import { Player } from "./player";
 
-const BUTTONS = { a: 0, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8, up: 12, right: 15 };
+const BUTTONS = {
+  a: 0,
+  x: 2,
+  y: 3,
+  lb: 4,
+  rb: 5,
+  lt: 6,
+  rt: 7,
+  back: 8,
+  rs: 11,
+  up: 12,
+  right: 15,
+};
 
 function pad(axes: number[] = [0, 0, 0, 0], held: (keyof typeof BUTTONS)[] = []): PadState {
   const pressed = new Set(held.map((b) => BUTTONS[b]));
@@ -79,8 +91,16 @@ describe("GamepadControls", () => {
       placing: true,
       picking: true,
       scripting: false,
+      resizing: false,
     });
     expect(controls.poll(450).build.picking).toBe(false);
+  });
+
+  it("resizes the brush by clicking the right stick", () => {
+    const { state, controls } = setup();
+    state.current = pad(undefined, ["rs"]);
+    expect(controls.poll(0).build.resizing).toBe(true);
+    expect(controls.poll(50).build.resizing).toBe(false);
   });
 
   it("opens a script block's script with the back button", () => {

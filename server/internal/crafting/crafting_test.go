@@ -28,7 +28,7 @@ func TestParseRejectsBadRecipes(t *testing.T) {
 		"no count":      `[{"make":"planks","from":{"log":1}}]`,
 		"no inputs":     `[{"make":"planks","count":1,"from":{}}]`,
 		"zero input":    `[{"make":"planks","count":1,"from":{"log":0}}]`,
-		"too many":      `[{"make":"planks","count":65,"from":{"log":1}}]`,
+		"too many":      `[{"make":"planks","count":1000,"from":{"log":1}}]`,
 		"air":           `[{"make":"air","count":1,"from":{"log":1}}]`,
 	} {
 		if _, err := Parse([]byte(src)); !errors.Is(err, ErrBadRecipe) {

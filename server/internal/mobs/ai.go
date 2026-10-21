@@ -95,32 +95,40 @@ func (m *Mob) walk(dt float64, now time.Time, g Ground) {
 
 // stride moves the mob a little, hopping up ledges and stopping at walls, water and cliffs.
 func (m *Mob) stride(dt float64, now time.Time, g Ground) {
-	dx, dz := math.Sin(m.Yaw), math.Cos(m.Yaw)
-	to := motion.Vec{X: m.Pos.X + dx*m.speed*dt, Y: m.Pos.Y, Z: m.Pos.Z + dz*m.speed*dt}
-	w := kinds[m.Kind].halfWidth
-	ahead := [2]int32{cell(to.X + dx*w), cell(to.Z + dz*w)}
-	if m.speed > 0 && ahead != [2]int32{cell(m.Pos.X), cell(m.Pos.Z)} {
-		if _, ok := m.footing(ahead[0], ahead[1], g); !ok {
-			m.speed, m.until = 0, now // try another way
-			return
-		}
+	to := motion.Vec{X: m.Pos.X + math.Sin(m.Yaw)*m.speed*dt, Y: m.Pos.Y, Z: m.Pos.Z + math.Cos(m.Yaw)*m.speed*dt}
+	top, ok := m.footing(to.X, to.Z, g)
+	if !ok && m.speed > 0 {
+		m.speed, m.until = 0, now // try another way
+		return
 	}
-	if top, ok := m.footing(cell(to.X), cell(to.Z), g); ok || m.speed == 0 {
-		to.Y = top
-		m.Pos = to
-	}
+	to.Y = top
+	m.Pos = to
 }
 
-// footing is where the mob would stand in column x,z, if it can get there from where it is.
-func (m *Mob) footing(x, z int32, g Ground) (float64, bool) {
-	top := ground(x, z, m.Pos.Y, g)
-	if top-m.Pos.Y > stepUp+0.01 || m.Pos.Y-top > maxDrop || top >= world.MaxY {
+// footing is where the mob would stand with its middle at x,z: on the highest ground under its
+// body, if it can get there from where it is.
+func (m *Mob) footing(x, z float64, g Ground) (float64, bool) {
+	w := kinds[m.Kind].halfWidth
+	top, ok := 0.0, true
+	for cx := cell(x - w); cx <= cell(x+w); cx++ {
+		for cz := cell(z - w); cz <= cell(z+w); cz++ {
+			y := ground(cx, cz, m.Pos.Y, g)
+			b, _ := g.Block(cx, cell(y), cz)
+			ok = ok && b != world.Water
+			top = max(top, y)
+		}
+	}
+	if !ok || top-m.Pos.Y > stepUp+0.01 || m.Pos.Y-top > maxDrop || top >= world.MaxY {
 		return top, false
 	}
-	if b, _ := g.Block(x, cell(top), z); b == world.Water {
-		return top, false
+	for cx := cell(x - w); cx <= cell(x+w); cx++ {
+		for cz := cell(z - w); cz <= cell(z+w); cz++ {
+			if !clear(cx, cz, top, m.height(), g) {
+				return top, false
+			}
+		}
 	}
-	return top, clear(x, z, top, m.height(), g)
+	return top, true
 }
 
 // ground is the top of whatever lies under feet at y in column x,z, looking from one ledge up.

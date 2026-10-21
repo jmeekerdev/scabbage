@@ -7,6 +7,7 @@ export interface BuildActions {
   picking: boolean;
   digging: boolean; // the break button is held, for survival's mining time
   scripting: boolean; // open the aimed script block's script
+  resizing: boolean; // switch to the next brush size
 }
 
 /** What one input device asks for this frame. */
@@ -22,6 +23,7 @@ export const NO_BUILD: BuildActions = {
   picking: false,
   digging: false,
   scripting: false,
+  resizing: false,
 };
 
 /** Merges devices used together, e.g. a pad and a keyboard, capping movement at full speed. */
@@ -48,6 +50,7 @@ export function combineIntents(intents: readonly Intent[]): Intent {
       picking: any((i) => i.build.picking),
       digging: any((i) => i.build.digging),
       scripting: any((i) => i.build.scripting),
+      resizing: any((i) => i.build.resizing),
     },
   };
 }

@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 22
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 23
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		22: "PROTOCOL_VERSION_CURRENT",
+		23: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     22,
+		"PROTOCOL_VERSION_CURRENT":     23,
 	}
 )
 
@@ -2517,13 +2517,14 @@ func (x *BlockPos) GetZ() int32 {
 	return 0
 }
 
-// Breaks (block 0, air) or places a block. The server answers with BlockChanged: to everyone if
-// the edit was allowed, otherwise to the sender with the block that is really there.
+// Breaks (block 0, air) or places a cube of blocks. The server sends everyone what changed, and the
+// sender what is really in the blocks it refused: BlockChanged for one block, BlockBatch for more.
 type EditBlock struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pos           *BlockPos              `protobuf:"bytes,1,opt,name=pos,proto3" json:"pos,omitempty"`
 	Block         uint32                 `protobuf:"varint,2,opt,name=block,proto3" json:"block,omitempty"`
 	Slot          uint32                 `protobuf:"varint,3,opt,name=slot,proto3" json:"slot,omitempty"` // survival placements: the inventory slot the block comes from
+	Size          uint32                 `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"` // a brush this many blocks a side from pos upward; 0 means 1
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2575,6 +2576,13 @@ func (x *EditBlock) GetBlock() uint32 {
 func (x *EditBlock) GetSlot() uint32 {
 	if x != nil {
 		return x.Slot
+	}
+	return 0
+}
+
+func (x *EditBlock) GetSize() uint32 {
+	if x != nil {
+		return x.Size
 	}
 	return 0
 }
@@ -6145,11 +6153,12 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\bBlockPos\x12\f\n" +
 	"\x01x\x18\x01 \x01(\x11R\x01x\x12\f\n" +
 	"\x01y\x18\x02 \x01(\x11R\x01y\x12\f\n" +
-	"\x01z\x18\x03 \x01(\x11R\x01z\"^\n" +
+	"\x01z\x18\x03 \x01(\x11R\x01z\"r\n" +
 	"\tEditBlock\x12'\n" +
 	"\x03pos\x18\x01 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\x12\x14\n" +
 	"\x05block\x18\x02 \x01(\rR\x05block\x12\x12\n" +
-	"\x04slot\x18\x03 \x01(\rR\x04slot\"3\n" +
+	"\x04slot\x18\x03 \x01(\rR\x04slot\x12\x12\n" +
+	"\x04size\x18\x04 \x01(\rR\x04size\"3\n" +
 	"\bUseBlock\x12'\n" +
 	"\x03pos\x18\x01 \x01(\v2\x15.scabbage.v1.BlockPosR\x03pos\"M\n" +
 	"\fBlockChanged\x12'\n" +
@@ -6378,7 +6387,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x06chunks\x18\x01 \x03(\v2\x15.scabbage.v1.ChunkPosR\x06chunks*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x16*\xad\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x17*\xad\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +

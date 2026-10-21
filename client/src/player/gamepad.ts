@@ -11,15 +11,15 @@ export interface PadState {
 }
 
 // Standard-mapping button indices.
-const BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8 } as const;
+const BTN = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8, rs: 11 } as const;
 // D-pad up, right, down, left send the emotes in those directions on the wheel.
 const DPAD_EMOTES: [number, Emote][] = [12, 15, 13, 14].map((b, i) => [b, EMOTES[i * 2].emote]);
 const DEAD_ZONE = 0.2;
 const LOOK_RADIANS_PER_SECOND = 3;
 const FLY_DOUBLE_TAP_MS = 300;
-const BUILD_REPEAT_MS = 250;
+const BUILD_REPEAT_MS = 160;
 
-/** A standard gamepad: left stick walks, right stick looks, triggers build, bumpers pick a slot, D-pad emotes. */
+/** A standard gamepad: left stick walks, right stick looks, triggers build, bumpers pick a slot, D-pad emotes, clicking the right stick resizes the brush. */
 export class GamepadControls {
   /** True once the pad has been used, so phantom pads don't change the HUD. */
   active = false;
@@ -56,6 +56,7 @@ export class GamepadControls {
         placing: this.placing.due(nowMs),
         picking: pressed(BTN.x),
         scripting: pressed(BTN.back),
+        resizing: pressed(BTN.rs),
       },
     };
   }

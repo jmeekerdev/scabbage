@@ -3,7 +3,7 @@ import { DoubleTap, HoldRepeat, moveInputFromKeys, NO_INPUT, type Intent } from 
 import type { Player } from "./player";
 
 const FLY_DOUBLE_TAP_MS = 300;
-const BUILD_REPEAT_MS = 250;
+const BUILD_REPEAT_MS = 160;
 
 // Keys the page would otherwise use to scroll.
 const CAPTURED = new Set(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
@@ -24,6 +24,7 @@ export class KeyboardMouse {
   private readonly placing = new HoldRepeat(BUILD_REPEAT_MS);
   private picking = false;
   private scripting = false;
+  private resizing = false;
   private locked = false;
 
   constructor(
@@ -57,8 +58,8 @@ export class KeyboardMouse {
 
   /** Movement and what to build now; held buttons repeat. */
   poll(nowMs: number): Intent {
-    const { picking, scripting } = this;
-    this.picking = this.scripting = false;
+    const { picking, scripting, resizing } = this;
+    this.picking = this.scripting = this.resizing = false;
     return {
       move: this.locked ? moveInputFromKeys(this.keys) : NO_INPUT,
       build: {
@@ -67,6 +68,7 @@ export class KeyboardMouse {
         placing: this.placing.due(nowMs),
         picking,
         scripting,
+        resizing,
       },
     };
   }
@@ -98,6 +100,7 @@ export class KeyboardMouse {
     if (flyTap || e.code === "KeyF") this.player.toggleFly();
     if (e.code === "KeyE") this.wheel.open();
     if (e.code === "KeyR") this.scripting = true;
+    if (e.code === "KeyG") this.resizing = true;
   }
 
   private keyUp(e: KeyboardEvent): void {
