@@ -210,7 +210,9 @@ func (g *Gateway) padUnder(feet motion.Vec) logic.Pos {
 	return mid
 }
 
-func isPad(b world.Block) bool { return b == world.Portal || b == world.Checkpoint || b == world.Teleporter }
+func isPad(b world.Block) bool {
+	return b == world.Portal || b == world.Checkpoint || b == world.Teleporter
+}
 
 // setIfLocked switches the block at p to next only if it is still was.
 func (g *Gateway) setIfLocked(p logic.Pos, was, next world.Block) error {
