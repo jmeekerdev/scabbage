@@ -1,12 +1,8 @@
+import type { LookSky, Rgb } from "../looks/look";
+
 /** One full day–night cycle; every client derives the time from its clock, so all agree. */
 export const DAY_MS = 20 * 60_000;
 export const MIN_LIGHT = 0.0875; // dark enough that lamps and torches matter
-
-export interface Rgb {
-  r: number;
-  g: number;
-  b: number;
-}
 
 export interface SkyState {
   daylight: number; // MIN_LIGHT at night up to 1 by day
@@ -14,19 +10,15 @@ export interface SkyState {
   sun: { x: number; y: number }; // direction around the z axis; the moon sits opposite
 }
 
-const DAY: Rgb = { r: 0.53, g: 0.81, b: 0.92 };
-const NIGHT: Rgb = { r: 0.04, g: 0.06, b: 0.14 };
-const SUNSET: Rgb = { r: 0.98, g: 0.6, b: 0.35 };
-
-/** The sky at a wall-clock time: sunrise at the start of each cycle, noon a quarter in. */
-export function skyAt(nowMs: number): SkyState {
+/** The sky at a wall-clock time in a look's colors: sunrise at the start of each cycle, noon a quarter in. */
+export function skyAt(nowMs: number, colors: LookSky): SkyState {
   const angle = ((nowMs % DAY_MS) / DAY_MS) * Math.PI * 2;
   const height = Math.sin(angle);
   const day = smoothstep(-0.2, 0.2, height);
   const glow = Math.max(0, 1 - Math.abs(height) / 0.3) ** 2 * 0.7;
   return {
     daylight: MIN_LIGHT + (1 - MIN_LIGHT) * day,
-    color: mix(mix(NIGHT, DAY, day), SUNSET, glow),
+    color: mix(mix(colors.night, colors.day, day), colors.sunset, glow),
     sun: { x: Math.cos(angle), y: height },
   };
 }

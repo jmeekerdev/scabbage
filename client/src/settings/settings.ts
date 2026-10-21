@@ -1,4 +1,5 @@
 import type { KeyValueStore } from "../join/identity";
+import { DEFAULT_LOOK, LOOKS } from "../looks/registry";
 import { CHUNK_SIZE, METRE } from "../world/constants";
 
 export const PRESETS = ["low", "medium", "high"] as const;
@@ -24,6 +25,8 @@ export interface Settings {
   music: boolean;
   /** Lighten graphics automatically when frames fall behind; off once the player picks. */
   auto: boolean;
+  /** Which look the world is drawn in, by its file name. */
+  look: string;
 }
 
 const KEY = "scabbage.settings";
@@ -39,6 +42,7 @@ export function defaultSettings(tier: Preset, touch: boolean): Settings {
     sound: true,
     music: false,
     auto: true,
+    look: DEFAULT_LOOK,
   };
 }
 
@@ -59,6 +63,7 @@ export function sanitize(raw: unknown, d: Settings): Settings {
   const r = (typeof raw === "object" && raw) || {};
   const pick = <K extends keyof Settings>(k: K) => (r as Partial<Settings>)[k];
   const vd = pick("viewDistance");
+  const look = pick("look");
   const flag = (k: "sound" | "music" | "auto") => {
     const v = pick(k);
     return typeof v === "boolean" ? v : d[k];
@@ -73,6 +78,7 @@ export function sanitize(raw: unknown, d: Settings): Settings {
     sound: flag("sound"),
     music: flag("music"),
     auto: flag("auto"),
+    look: typeof look === "string" && LOOKS.has(look) ? look : d.look,
   };
 }
 

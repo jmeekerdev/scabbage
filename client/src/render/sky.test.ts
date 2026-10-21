@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { lookById } from "../looks/registry";
 import { DAY_MS, MIN_LIGHT, skyAt } from "./sky";
 
-const at = (fraction: number) => skyAt(fraction * DAY_MS);
+const TODAY = lookById("today").sky;
+
+const at = (fraction: number) => skyAt(fraction * DAY_MS, TODAY);
 
 describe("skyAt", () => {
   it("is fully bright and blue at noon", () => {
@@ -29,5 +32,10 @@ describe("skyAt", () => {
       expect(Math.abs(at(f + 0.001).daylight - at(f).daylight) / range).toBeLessThan(0.03);
     }
     expect(at(1.3).daylight).toBeCloseTo(at(0.3).daylight);
+  });
+
+  it("takes its colors from the look", () => {
+    const red = { ...TODAY, day: { r: 1, g: 0, b: 0 } };
+    expect(skyAt(0.25 * DAY_MS, red).color).toEqual({ r: 1, g: 0, b: 0 });
   });
 });

@@ -107,6 +107,7 @@ import {
   unlockOnFullscreenExit,
 } from "./ui/pwa";
 import { settingsPanel } from "./ui/settings-panel";
+import { lookById } from "./looks/registry";
 import { TouchControls } from "./ui/touch-controls";
 import { collisionBoxes, FULL_BLOCK, type Box } from "./world/shapes";
 import { lookDirection, type RayHit, type Vec3 } from "./world/raycast";
@@ -138,6 +139,7 @@ const world = createWorldRenderer(
   gameScene,
   (chunks) => conn?.send(encodeRequestChunks(chunks)),
   (columns) => conn?.send(encodeRequestFar(columns)),
+  lookById(settings.look),
 );
 const player = new Player();
 const selection = new Selection(gameScene.scene);
@@ -788,5 +790,6 @@ function changeSettings(s: Settings): void {
   settings = s;
   saveSettings(store, s);
   gameScene.apply(s);
+  world.setLook(lookById(s.look));
   audio.set(s.sound, s.music);
 }

@@ -1,5 +1,7 @@
 import { Fog, PerspectiveCamera, Scene, WebGLRenderer, type Object3D } from "three";
 import { FrameLimiter, pixelRatioFor, qualityFor, type Settings } from "../settings/settings";
+import { lookById } from "../looks/registry";
+import type { Look } from "../looks/look";
 import { CHUNK_SIZE } from "../world/constants";
 import { daylight } from "./chunk-material";
 import { farDistance } from "./far-land";
@@ -11,7 +13,7 @@ import { SkyView } from "./sky-view";
 export interface GameScene {
   readonly scene: Scene;
   readonly camera: PerspectiveCamera;
-  /** Applies new settings live; antialiasing only changes on reload. */
+  /** Applies new settings live, including the look's sky and fog; antialiasing only changes on reload. */
   apply(s: Settings): void;
   /** How lit the world is right now, from MIN_LIGHT at night to 1 by day. */
   daylight(): number;
@@ -55,9 +57,12 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   // iOS fires window resize before layout settles on rotation; the observer sees the final size.
   new ResizeObserver(resize).observe(canvas);
 
+  let look = lookById(initial.look);
   const apply = (s: Settings) => {
+    look = lookById(s.look);
+    sky.setLook(look.sky);
     renderer.setPixelRatio(pixelRatioFor(s.preset, window.devicePixelRatio));
-    setViewDistance(scene.fog as Fog, camera, s.viewDistance);
+    setViewDistance(scene.fog as Fog, camera, s.viewDistance, look);
     limiter.fps = s.fpsCap;
     resize();
   };
@@ -66,7 +71,7 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   /** Runs one frame's hooks and draws it if anything changed, reporting what did. */
   const step = (timeMs: number): Change => {
     for (const fn of frameHooks) fn(timeMs);
-    const now = skyAt(Math.floor(Date.now() / SKY_STEP_MS) * SKY_STEP_MS);
+    const now = skyAt(Math.floor(Date.now() / SKY_STEP_MS) * SKY_STEP_MS, look.sky);
     if (now.daylight !== daylight.value) frame.invalidate();
     daylight.value = now.daylight;
     sky.update(now, camera, camera.far * 0.8);
@@ -137,10 +142,10 @@ function logCulprit(change: Change, o: Object3D | undefined): void {
   console.debug(change, path.join(" > "), o?.position.toArray());
 }
 
-/** Starts fading past the nearer chunks, and fades far land into the sky before the far plane. */
-function setViewDistance(fog: Fog, camera: PerspectiveCamera, chunks: number): void {
+/** Starts fading where the look says, and fades far land into the sky before the far plane. */
+function setViewDistance(fog: Fog, camera: PerspectiveCamera, chunks: number, look: Look): void {
   const far = farDistance(chunks) * CHUNK_SIZE;
-  fog.near = chunks * CHUNK_SIZE * 0.6;
+  fog.near = chunks * CHUNK_SIZE * look.fog.start;
   fog.far = far;
   camera.far = far + CHUNK_SIZE;
   camera.updateProjectionMatrix();

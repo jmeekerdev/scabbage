@@ -37,6 +37,7 @@ describe("settings", () => {
       sound: false,
       music: true,
       auto: false,
+      look: "today",
     } as const;
     saveSettings(store, s);
     expect(loadSettings(store, defaultSettings("high", false))).toEqual(s);
@@ -71,6 +72,13 @@ describe("settings", () => {
     expect(sanitize({ sound: "yes", music: 1 }, d)).toEqual(d);
     expect(sanitize({ sound: false, music: true }, d)).toEqual({ ...d, sound: false, music: true });
     expect(sanitize({ auto: false }, d)).toEqual({ ...d, auto: false });
+  });
+
+  it("starts with the default look and forgets looks that no longer exist", () => {
+    const d = defaultSettings("medium", false);
+    expect(d.look).toBe("today");
+    expect(sanitize({ look: "gone" }, d)).toEqual(d);
+    expect(sanitize({ look: 7 }, d)).toEqual(d);
   });
 });
 

@@ -1,11 +1,12 @@
 import type { ShaderMaterial } from "three";
 import type { ChunkBatch, FarLand as FarLandMessage, WorldInfo } from "../pb/scabbage/v1/net_pb";
+import type { Look } from "../looks/look";
 import type { ChunkPos } from "../world/coords";
 import type { RenderTable } from "../world/mesher";
 import { WorldClient } from "../world/world-client";
 import { buildAtlas, topColors, type Atlas } from "./atlas";
 import { buildRenderTable, type BlockTypeInfo } from "./blocks";
-import { blockTextures, opaqueMaterial, translucentMaterial } from "./chunk-material";
+import { applyLook, blockTextures, opaqueMaterial, translucentMaterial } from "./chunk-material";
 import { ChunkMeshes } from "./chunk-meshes";
 import { FarLand } from "./far-land";
 import type { GameScene } from "./scene";
@@ -24,6 +25,8 @@ export interface WorldRenderer {
   blockAt(x: number, y: number, z: number): number | undefined;
   /** Changes a loaded block, e.g. from a server update or a predicted edit. */
   setBlock(x: number, y: number, z: number, block: number): void;
+  /** Draws the world in another look. */
+  setLook(look: Look): void;
   /** Keeps chunks around block position x,z loaded and drawn; call once per frame. */
   tick(x: number, z: number, viewDistance: number): void;
 }
@@ -38,9 +41,14 @@ export function createWorldRenderer(
   game: GameScene,
   request: (chunks: ChunkPos[]) => void,
   requestFar: (columns: { x: number; z: number }[]) => void,
+  initialLook: Look,
 ): WorldRenderer {
   const textures = blockTextures(buildAtlas([], []));
-  const materials: ShaderMaterial[] = [opaqueMaterial(textures), translucentMaterial(textures)];
+  const materials: ShaderMaterial[] = [
+    opaqueMaterial(textures, initialLook),
+    translucentMaterial(textures, initialLook),
+  ];
+  let look = initialLook;
   const meshes = new ChunkMeshes(materials[0] as ShaderMaterial, materials[1] as ShaderMaterial);
   game.scene.add(meshes.group);
   const mesher = new WorkerMesher();
@@ -76,6 +84,12 @@ export function createWorldRenderer(
     refetch: (chunks) => world.refetch(chunks),
     blockAt: (x, y, z) => world.blockAt(x, y, z),
     setBlock: (x, y, z, block) => world.setBlock(x, y, z, block),
+    setLook(next) {
+      if (next === look) return;
+      look = next;
+      for (const m of materials) applyLook(m, look);
+      game.invalidate();
+    },
     tick(x, z, viewDistance) {
       if (!started) return;
       world.tick(x, z, viewDistance);

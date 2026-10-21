@@ -8,6 +8,8 @@ import {
   type Preset,
   type Settings,
 } from "../settings/settings";
+import { lookCost, type LookCost } from "../looks/look";
+import { LOOKS } from "../looks/registry";
 import { el } from "./dom";
 
 const PRESET_LABELS: Record<Preset, string> = {
@@ -15,6 +17,18 @@ const PRESET_LABELS: Record<Preset, string> = {
   medium: "Medium",
   high: "High (sharpest)",
 };
+
+const COST_LABELS: Record<LookCost, string> = {
+  fastest: "fastest",
+  light: "a little slower",
+  heavier: "slower",
+};
+
+/** A look's picker label: its name, what it is like, and what it costs. */
+export function lookLabel(id: string): string {
+  const look = LOOKS.get(id);
+  return look ? `${look.name}: ${look.about} (${COST_LABELS[lookCost(look)]})` : id;
+}
 
 export interface SettingsPanel {
   readonly node: HTMLElement;
@@ -34,6 +48,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
     value: initial.viewDistance,
   });
   const preset = select(PRESETS, initial.preset, (p) => PRESET_LABELS[p]);
+  const look = select([...LOOKS.keys()], initial.look, lookLabel);
   const fps = select(FPS_CAPS, initial.fpsCap, (f) => (f ? `${f} fps` : "Match screen"));
   const sound = el("input", { type: "checkbox", checked: initial.sound });
   const music = el("input", { type: "checkbox", checked: initial.music });
@@ -46,6 +61,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
     { method: "dialog" },
     el("h1", {}, "Settings"),
     el("label", {}, "View distance ", distanceOut, distance),
+    el("label", {}, "Look", look),
     el("label", {}, "Graphics", preset),
     el("label", {}, "Frame rate limit", fps),
     el("label", { class: "check" }, auto, "Lower graphics when the game is slow"),
@@ -62,6 +78,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
       sound: sound.checked,
       music: music.checked,
       auto: auto.checked,
+      look: look.value,
     };
     distanceOut.textContent = metres(next.viewDistance);
     reloadHint.hidden = qualityFor(next.preset).antialias === qualityFor(initial.preset).antialias;
@@ -73,6 +90,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
     preset.value = s.preset;
     fps.value = String(s.fpsCap);
     auto.checked = s.auto;
+    look.value = s.look;
   };
   return { node: form, show };
 }

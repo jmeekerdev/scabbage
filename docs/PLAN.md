@@ -382,7 +382,7 @@ tilt-shift on the map only, vignette, saturation) and per-block palette override
 without one uses its texture's average colour. Adding a look is adding a file. The mockups and Fable's
 review are in the look book (Today, Clay Diorama, Ink & Cel, Watercolour, Dusk Pastel, Felt & Stitch,
 Smooth Clay). Each step is measured against today's frame time and triangle count.
-- [ ] Look config, registry and picker: a schema; Today moved into a config with no visible change; the
+- [x] Look config, registry and picker: a schema; Today moved into a config with no visible change; the
       choice is a client setting beside the graphics presets; the picker shows each look's cost
       (light, adds an outline pass, rebuilds chunks), worked out from its features
 - [ ] Feature-built block shader: each feature is a small shader chunk switched on by a define from the
