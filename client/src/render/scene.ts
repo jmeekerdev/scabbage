@@ -2,6 +2,7 @@ import { Fog, PerspectiveCamera, Scene, WebGLRenderer, type Object3D } from "thr
 import { FrameLimiter, pixelRatioFor, qualityFor, type Settings } from "../settings/settings";
 import { CHUNK_SIZE } from "../world/constants";
 import { daylight } from "./chunk-material";
+import { farDistance } from "./far-land";
 import { FrameState, type Change } from "./frame-state";
 import { Pacer } from "./pacer";
 import { skyAt } from "./sky";
@@ -56,7 +57,7 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
 
   const apply = (s: Settings) => {
     renderer.setPixelRatio(pixelRatioFor(s.preset, window.devicePixelRatio));
-    setViewDistance(scene.fog as Fog, camera, s.viewDistance * CHUNK_SIZE);
+    setViewDistance(scene.fog as Fog, camera, s.viewDistance);
     limiter.fps = s.fpsCap;
     resize();
   };
@@ -136,10 +137,11 @@ function logCulprit(change: Change, o: Object3D | undefined): void {
   console.debug(change, path.join(" > "), o?.position.toArray());
 }
 
-/** Fades terrain into the sky before the far plane so chunk edges never pop into view. */
-function setViewDistance(fog: Fog, camera: PerspectiveCamera, blocks: number): void {
-  fog.near = blocks * 0.6;
-  fog.far = blocks;
-  camera.far = blocks + CHUNK_SIZE;
+/** Starts fading past the nearer chunks, and fades far land into the sky before the far plane. */
+function setViewDistance(fog: Fog, camera: PerspectiveCamera, chunks: number): void {
+  const far = farDistance(chunks) * CHUNK_SIZE;
+  fog.near = chunks * CHUNK_SIZE * 0.6;
+  fog.far = far;
+  camera.far = far + CHUNK_SIZE;
   camera.updateProjectionMatrix();
 }

@@ -10,6 +10,7 @@ import (
 type Generator interface {
 	Version() uint32
 	Generate(p ChunkPos) *Chunk
+	FarTile(tx, tz int32) FarTile
 }
 
 // LatestGenerator is the version new worlds use.

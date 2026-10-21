@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 23;
+  PROTOCOL_VERSION_CURRENT = 24;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -36,6 +36,7 @@ message ClientMessage {
     TalkTo talk_to = 21;
     Answer answer = 22;
     ImportMap import_map = 23;
+    RequestFar request_far = 24;
   }
 }
 
@@ -73,6 +74,7 @@ message ServerMessage {
     QuestLog quest_log = 29;
     MapExported map_exported = 30;
     ChunksStale chunks_stale = 31;
+    FarLand far_land = 32;
   }
 }
 
@@ -649,4 +651,29 @@ message MapExported {
 // Chunks that changed too much to send block by block; clients holding them fetch them again.
 message ChunksStale {
   repeated ChunkPos chunks = 1;
+}
+
+// A chunk column's x and z.
+message ColumnPos {
+  sint32 x = 1;
+  sint32 z = 2;
+}
+
+// Asks for far land sketches (at most 64 per request); the server answers with one FarLand that
+// leaves out columns too far from the player or outside the border.
+message RequestFar {
+  repeated ColumnPos columns = 1;
+}
+
+message FarLand {
+  repeated FarTile tiles = 1;
+}
+
+// A rough sketch of a chunk column's surface as generated, without players' changes, for drawing
+// it beyond the loaded chunks. It has 8×8 samples, x varying fastest, each the middle block
+// column of its 4×4-block cell.
+message FarTile {
+  ColumnPos pos = 1;
+  repeated uint32 tops = 2; // the y just above each sample's highest block
+  repeated uint32 blocks = 3; // that block's ID
 }

@@ -44,10 +44,13 @@ function setup(slots?: number) {
   const sent: ChunkPos[][] = [];
   const mesher = new FakeMesher(slots);
   const view = new FakeView();
-  const world = new WorldClient({ send: (b) => sent.push(b), mesher, view });
+  const covered = new Set<string>();
+  const cover = (x: number, z: number, yes: boolean) =>
+    yes ? covered.add(`${x},${z}`) : covered.delete(`${x},${z}`);
+  const world = new WorldClient({ send: (b) => sent.push(b), mesher, view, cover });
   world.start(bounds);
   world.setLights(Uint8Array.of(0, 0, 11, 0), Uint8Array.of(1, 0, 1, 1));
-  return { sent, mesher, view, world };
+  return { sent, mesher, view, world, covered };
 }
 
 /** Answers every outstanding request with stone in the bottom layer of chunks and air above. */
@@ -122,6 +125,13 @@ describe("WorldClient", () => {
     expect(view.shown.has(chunkKey(0, 0, 0))).toBe(true);
     world.tick(CHUNK_SIZE * 20, 0, 1);
     expect(view.shown.has(chunkKey(0, 0, 0))).toBe(false);
+  });
+
+  it("tells which columns have every layer drawn, until they are dropped", () => {
+    const env = loaded();
+    expect([...env.covered].sort()).toEqual(["-1,0", "0,-1", "0,0", "0,1", "1,0"]);
+    env.world.tick(CHUNK_SIZE * 20, 0, 1);
+    expect(env.covered.size).toBe(0);
   });
 
   it("re-meshes a changed chunk, and the neighbors whose border holds the block", () => {

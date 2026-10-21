@@ -27,6 +27,7 @@ import {
   encodeMoveItem,
   encodePing,
   encodeRequestChunks,
+  encodeRequestFar,
   encodeSendChat,
   encodeSetAdmin,
   encodeSetGameMode,
@@ -98,6 +99,13 @@ describe("codec", () => {
     expect(body.case).toBe("requestChunks");
     if (body.case !== "requestChunks") return;
     expect(body.value.chunks.map(({ x, y, z }) => [x, y, z])).toEqual([[-3, 2, 7]]);
+  });
+
+  it("encodes a far land request", () => {
+    const body = decodeClient(encodeRequestFar([{ x: -3, z: 7 }]));
+    expect(body.case).toBe("requestFar");
+    if (body.case !== "requestFar") return;
+    expect(body.value.columns.map(({ x, z }) => [x, z])).toEqual([[-3, 7]]);
   });
 
   it("encodes a hello with version, secret and optional join request", () => {

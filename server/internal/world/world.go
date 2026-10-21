@@ -112,6 +112,18 @@ func (w *World) Top(x, z int32) (int32, error) {
 	return top + 1, nil
 }
 
+// FarTile sketches chunk column tx,tz as generated, without players' changes, for drawing it
+// far away; ok is false outside the border.
+func (w *World) FarTile(tx, tz int32) (tile FarTile, ok bool) {
+	if !w.Inside(ChunkPos{tx, 0, tz}) {
+		return FarTile{}, false
+	}
+	w.mu.Lock()
+	gen := w.gen
+	w.mu.Unlock()
+	return gen.FarTile(tx, tz), true
+}
+
 // Chunk returns a loaded chunk, reading it from storage or generating it as needed.
 // The chunk must not be used once other goroutines may change the world.
 func (w *World) Chunk(p ChunkPos) (*Chunk, error) {

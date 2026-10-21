@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 23
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 24
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		23: "PROTOCOL_VERSION_CURRENT",
+		24: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     23,
+		"PROTOCOL_VERSION_CURRENT":     24,
 	}
 )
 
@@ -506,6 +506,7 @@ type ClientMessage struct {
 	//	*ClientMessage_TalkTo
 	//	*ClientMessage_Answer
 	//	*ClientMessage_ImportMap
+	//	*ClientMessage_RequestFar
 	Body          isClientMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -755,6 +756,15 @@ func (x *ClientMessage) GetImportMap() *ImportMap {
 	return nil
 }
 
+func (x *ClientMessage) GetRequestFar() *RequestFar {
+	if x != nil {
+		if x, ok := x.Body.(*ClientMessage_RequestFar); ok {
+			return x.RequestFar
+		}
+	}
+	return nil
+}
+
 type isClientMessage_Body interface {
 	isClientMessage_Body()
 }
@@ -851,6 +861,10 @@ type ClientMessage_ImportMap struct {
 	ImportMap *ImportMap `protobuf:"bytes,23,opt,name=import_map,json=importMap,proto3,oneof"`
 }
 
+type ClientMessage_RequestFar struct {
+	RequestFar *RequestFar `protobuf:"bytes,24,opt,name=request_far,json=requestFar,proto3,oneof"`
+}
+
 func (*ClientMessage_Hello) isClientMessage_Body() {}
 
 func (*ClientMessage_Ping) isClientMessage_Body() {}
@@ -897,6 +911,8 @@ func (*ClientMessage_Answer) isClientMessage_Body() {}
 
 func (*ClientMessage_ImportMap) isClientMessage_Body() {}
 
+func (*ClientMessage_RequestFar) isClientMessage_Body() {}
+
 // Every WebSocket binary frame from the server is one ServerMessage.
 type ServerMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -933,6 +949,7 @@ type ServerMessage struct {
 	//	*ServerMessage_QuestLog
 	//	*ServerMessage_MapExported
 	//	*ServerMessage_ChunksStale
+	//	*ServerMessage_FarLand
 	Body          isServerMessage_Body `protobuf_oneof:"body"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1254,6 +1271,15 @@ func (x *ServerMessage) GetChunksStale() *ChunksStale {
 	return nil
 }
 
+func (x *ServerMessage) GetFarLand() *FarLand {
+	if x != nil {
+		if x, ok := x.Body.(*ServerMessage_FarLand); ok {
+			return x.FarLand
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Body interface {
 	isServerMessage_Body()
 }
@@ -1382,6 +1408,10 @@ type ServerMessage_ChunksStale struct {
 	ChunksStale *ChunksStale `protobuf:"bytes,31,opt,name=chunks_stale,json=chunksStale,proto3,oneof"`
 }
 
+type ServerMessage_FarLand struct {
+	FarLand *FarLand `protobuf:"bytes,32,opt,name=far_land,json=farLand,proto3,oneof"`
+}
+
 func (*ServerMessage_Welcome) isServerMessage_Body() {}
 
 func (*ServerMessage_Pong) isServerMessage_Body() {}
@@ -1443,6 +1473,8 @@ func (*ServerMessage_QuestLog) isServerMessage_Body() {}
 func (*ServerMessage_MapExported) isServerMessage_Body() {}
 
 func (*ServerMessage_ChunksStale) isServerMessage_Body() {}
+
+func (*ServerMessage_FarLand) isServerMessage_Body() {}
 
 // First message on every connection.
 type Hello struct {
@@ -5994,11 +6026,217 @@ func (x *ChunksStale) GetChunks() []*ChunkPos {
 	return nil
 }
 
+// A chunk column's x and z.
+type ColumnPos struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	X             int32                  `protobuf:"zigzag32,1,opt,name=x,proto3" json:"x,omitempty"`
+	Z             int32                  `protobuf:"zigzag32,2,opt,name=z,proto3" json:"z,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ColumnPos) Reset() {
+	*x = ColumnPos{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ColumnPos) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ColumnPos) ProtoMessage() {}
+
+func (x *ColumnPos) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ColumnPos.ProtoReflect.Descriptor instead.
+func (*ColumnPos) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{79}
+}
+
+func (x *ColumnPos) GetX() int32 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *ColumnPos) GetZ() int32 {
+	if x != nil {
+		return x.Z
+	}
+	return 0
+}
+
+// Asks for far land sketches (at most 64 per request); the server answers with one FarLand that
+// leaves out columns too far from the player or outside the border.
+type RequestFar struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Columns       []*ColumnPos           `protobuf:"bytes,1,rep,name=columns,proto3" json:"columns,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestFar) Reset() {
+	*x = RequestFar{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestFar) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestFar) ProtoMessage() {}
+
+func (x *RequestFar) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestFar.ProtoReflect.Descriptor instead.
+func (*RequestFar) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *RequestFar) GetColumns() []*ColumnPos {
+	if x != nil {
+		return x.Columns
+	}
+	return nil
+}
+
+type FarLand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tiles         []*FarTile             `protobuf:"bytes,1,rep,name=tiles,proto3" json:"tiles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FarLand) Reset() {
+	*x = FarLand{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[81]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FarLand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FarLand) ProtoMessage() {}
+
+func (x *FarLand) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[81]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FarLand.ProtoReflect.Descriptor instead.
+func (*FarLand) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{81}
+}
+
+func (x *FarLand) GetTiles() []*FarTile {
+	if x != nil {
+		return x.Tiles
+	}
+	return nil
+}
+
+// A rough sketch of a chunk column's surface as generated, without players' changes, for drawing
+// it beyond the loaded chunks. It has 8×8 samples, x varying fastest, each the middle block
+// column of its 4×4-block cell.
+type FarTile struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pos           *ColumnPos             `protobuf:"bytes,1,opt,name=pos,proto3" json:"pos,omitempty"`
+	Tops          []uint32               `protobuf:"varint,2,rep,packed,name=tops,proto3" json:"tops,omitempty"`     // the y just above each sample's highest block
+	Blocks        []uint32               `protobuf:"varint,3,rep,packed,name=blocks,proto3" json:"blocks,omitempty"` // that block's ID
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FarTile) Reset() {
+	*x = FarTile{}
+	mi := &file_scabbage_v1_net_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FarTile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FarTile) ProtoMessage() {}
+
+func (x *FarTile) ProtoReflect() protoreflect.Message {
+	mi := &file_scabbage_v1_net_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FarTile.ProtoReflect.Descriptor instead.
+func (*FarTile) Descriptor() ([]byte, []int) {
+	return file_scabbage_v1_net_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *FarTile) GetPos() *ColumnPos {
+	if x != nil {
+		return x.Pos
+	}
+	return nil
+}
+
+func (x *FarTile) GetTops() []uint32 {
+	if x != nil {
+		return x.Tops
+	}
+	return nil
+}
+
+func (x *FarTile) GetBlocks() []uint32 {
+	if x != nil {
+		return x.Blocks
+	}
+	return nil
+}
+
 var File_scabbage_v1_net_proto protoreflect.FileDescriptor
 
 const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\n" +
-	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\x80\n" +
+	"\x15scabbage/v1/net.proto\x12\vscabbage.v1\"\xbc\n" +
 	"\n" +
 	"\rClientMessage\x12*\n" +
 	"\x05hello\x18\x01 \x01(\v2\x12.scabbage.v1.HelloH\x00R\x05hello\x12'\n" +
@@ -6033,8 +6271,10 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\atalk_to\x18\x15 \x01(\v2\x13.scabbage.v1.TalkToH\x00R\x06talkTo\x12-\n" +
 	"\x06answer\x18\x16 \x01(\v2\x13.scabbage.v1.AnswerH\x00R\x06answer\x127\n" +
 	"\n" +
-	"import_map\x18\x17 \x01(\v2\x16.scabbage.v1.ImportMapH\x00R\timportMapB\x06\n" +
-	"\x04body\"\xe5\x0e\n" +
+	"import_map\x18\x17 \x01(\v2\x16.scabbage.v1.ImportMapH\x00R\timportMap\x12:\n" +
+	"\vrequest_far\x18\x18 \x01(\v2\x17.scabbage.v1.RequestFarH\x00R\n" +
+	"requestFarB\x06\n" +
+	"\x04body\"\x98\x0f\n" +
 	"\rServerMessage\x120\n" +
 	"\awelcome\x18\x01 \x01(\v2\x14.scabbage.v1.WelcomeH\x00R\awelcome\x12'\n" +
 	"\x04pong\x18\x02 \x01(\v2\x11.scabbage.v1.PongH\x00R\x04pong\x129\n" +
@@ -6076,7 +6316,8 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\bdialogue\x18\x1c \x01(\v2\x15.scabbage.v1.DialogueH\x00R\bdialogue\x124\n" +
 	"\tquest_log\x18\x1d \x01(\v2\x15.scabbage.v1.QuestLogH\x00R\bquestLog\x12=\n" +
 	"\fmap_exported\x18\x1e \x01(\v2\x18.scabbage.v1.MapExportedH\x00R\vmapExported\x12=\n" +
-	"\fchunks_stale\x18\x1f \x01(\v2\x18.scabbage.v1.ChunksStaleH\x00R\vchunksStaleB\x06\n" +
+	"\fchunks_stale\x18\x1f \x01(\v2\x18.scabbage.v1.ChunksStaleH\x00R\vchunksStale\x121\n" +
+	"\bfar_land\x18  \x01(\v2\x14.scabbage.v1.FarLandH\x00R\afarLandB\x06\n" +
 	"\x04body\"\xc0\x01\n" +
 	"\x05Hello\x12)\n" +
 	"\x10protocol_version\x18\x01 \x01(\rR\x0fprotocolVersion\x12\x1f\n" +
@@ -6390,10 +6631,22 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\"<\n" +
 	"\vChunksStale\x12-\n" +
-	"\x06chunks\x18\x01 \x03(\v2\x15.scabbage.v1.ChunkPosR\x06chunks*Q\n" +
+	"\x06chunks\x18\x01 \x03(\v2\x15.scabbage.v1.ChunkPosR\x06chunks\"'\n" +
+	"\tColumnPos\x12\f\n" +
+	"\x01x\x18\x01 \x01(\x11R\x01x\x12\f\n" +
+	"\x01z\x18\x02 \x01(\x11R\x01z\">\n" +
+	"\n" +
+	"RequestFar\x120\n" +
+	"\acolumns\x18\x01 \x03(\v2\x16.scabbage.v1.ColumnPosR\acolumns\"5\n" +
+	"\aFarLand\x12*\n" +
+	"\x05tiles\x18\x01 \x03(\v2\x14.scabbage.v1.FarTileR\x05tiles\"_\n" +
+	"\aFarTile\x12(\n" +
+	"\x03pos\x18\x01 \x01(\v2\x16.scabbage.v1.ColumnPosR\x03pos\x12\x12\n" +
+	"\x04tops\x18\x02 \x03(\rR\x04tops\x12\x16\n" +
+	"\x06blocks\x18\x03 \x03(\rR\x06blocks*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x17*\xcf\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x18*\xcf\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -6463,7 +6716,7 @@ func file_scabbage_v1_net_proto_rawDescGZIP() []byte {
 }
 
 var file_scabbage_v1_net_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 79)
+var file_scabbage_v1_net_proto_msgTypes = make([]protoimpl.MessageInfo, 83)
 var file_scabbage_v1_net_proto_goTypes = []any{
 	(ProtocolVersion)(0),    // 0: scabbage.v1.ProtocolVersion
 	(Shape)(0),              // 1: scabbage.v1.Shape
@@ -6552,6 +6805,10 @@ var file_scabbage_v1_net_proto_goTypes = []any{
 	(*ImportMap)(nil),       // 84: scabbage.v1.ImportMap
 	(*MapExported)(nil),     // 85: scabbage.v1.MapExported
 	(*ChunksStale)(nil),     // 86: scabbage.v1.ChunksStale
+	(*ColumnPos)(nil),       // 87: scabbage.v1.ColumnPos
+	(*RequestFar)(nil),      // 88: scabbage.v1.RequestFar
+	(*FarLand)(nil),         // 89: scabbage.v1.FarLand
+	(*FarTile)(nil),         // 90: scabbage.v1.FarTile
 }
 var file_scabbage_v1_net_proto_depIdxs = []int32{
 	10,  // 0: scabbage.v1.ClientMessage.hello:type_name -> scabbage.v1.Hello
@@ -6577,101 +6834,106 @@ var file_scabbage_v1_net_proto_depIdxs = []int32{
 	79,  // 20: scabbage.v1.ClientMessage.talk_to:type_name -> scabbage.v1.TalkTo
 	81,  // 21: scabbage.v1.ClientMessage.answer:type_name -> scabbage.v1.Answer
 	84,  // 22: scabbage.v1.ClientMessage.import_map:type_name -> scabbage.v1.ImportMap
-	12,  // 23: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
-	70,  // 24: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
-	71,  // 25: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
-	57,  // 26: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
-	58,  // 27: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
-	68,  // 28: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
-	20,  // 29: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
-	23,  // 30: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
-	28,  // 31: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
-	33,  // 32: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
-	34,  // 33: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
-	35,  // 34: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
-	37,  // 35: scabbage.v1.ServerMessage.chat:type_name -> scabbage.v1.Chat
-	39,  // 36: scabbage.v1.ServerMessage.emote_shown:type_name -> scabbage.v1.EmoteShown
-	65,  // 37: scabbage.v1.ServerMessage.art_requests:type_name -> scabbage.v1.ArtRequests
-	16,  // 38: scabbage.v1.ServerMessage.blocks_changed:type_name -> scabbage.v1.BlocksChanged
-	31,  // 39: scabbage.v1.ServerMessage.skin_changed:type_name -> scabbage.v1.SkinChanged
-	61,  // 40: scabbage.v1.ServerMessage.player_list:type_name -> scabbage.v1.PlayerList
-	41,  // 41: scabbage.v1.ServerMessage.vitals:type_name -> scabbage.v1.Vitals
-	44,  // 42: scabbage.v1.ServerMessage.inventory:type_name -> scabbage.v1.Inventory
-	49,  // 43: scabbage.v1.ServerMessage.items_changed:type_name -> scabbage.v1.ItemsChanged
-	51,  // 44: scabbage.v1.ServerMessage.mobs_changed:type_name -> scabbage.v1.MobsChanged
-	54,  // 45: scabbage.v1.ServerMessage.zones_changed:type_name -> scabbage.v1.ZonesChanged
-	29,  // 46: scabbage.v1.ServerMessage.block_batch:type_name -> scabbage.v1.BlockBatch
-	72,  // 47: scabbage.v1.ServerMessage.scoreboard:type_name -> scabbage.v1.Scoreboard
-	76,  // 48: scabbage.v1.ServerMessage.script_shown:type_name -> scabbage.v1.ScriptShown
-	78,  // 49: scabbage.v1.ServerMessage.npcs_changed:type_name -> scabbage.v1.NpcsChanged
-	80,  // 50: scabbage.v1.ServerMessage.dialogue:type_name -> scabbage.v1.Dialogue
-	83,  // 51: scabbage.v1.ServerMessage.quest_log:type_name -> scabbage.v1.QuestLog
-	85,  // 52: scabbage.v1.ServerMessage.map_exported:type_name -> scabbage.v1.MapExported
-	86,  // 53: scabbage.v1.ServerMessage.chunks_stale:type_name -> scabbage.v1.ChunksStale
-	11,  // 54: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
-	40,  // 55: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
-	13,  // 56: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
-	41,  // 57: scabbage.v1.Welcome.vitals:type_name -> scabbage.v1.Vitals
-	44,  // 58: scabbage.v1.Welcome.inventory:type_name -> scabbage.v1.Inventory
-	23,  // 59: scabbage.v1.Welcome.start:type_name -> scabbage.v1.Teleport
-	83,  // 60: scabbage.v1.Welcome.quests:type_name -> scabbage.v1.QuestLog
-	17,  // 61: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
-	14,  // 62: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
-	15,  // 63: scabbage.v1.WorldInfo.textures:type_name -> scabbage.v1.Texture
-	46,  // 64: scabbage.v1.WorldInfo.recipes:type_name -> scabbage.v1.Recipe
-	1,   // 65: scabbage.v1.BlockType.shape:type_name -> scabbage.v1.Shape
-	14,  // 66: scabbage.v1.BlocksChanged.blocks:type_name -> scabbage.v1.BlockType
-	15,  // 67: scabbage.v1.BlocksChanged.textures:type_name -> scabbage.v1.Texture
-	18,  // 68: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
-	21,  // 69: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
-	18,  // 70: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
-	17,  // 71: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
-	17,  // 72: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
-	24,  // 73: scabbage.v1.Teleport.restore:type_name -> scabbage.v1.Restore
-	25,  // 74: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 75: scabbage.v1.UseBlock.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 76: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
-	28,  // 77: scabbage.v1.BlockBatch.blocks:type_name -> scabbage.v1.BlockChanged
-	32,  // 78: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
-	17,  // 79: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
-	30,  // 80: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
-	32,  // 81: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
-	2,   // 82: scabbage.v1.SendEmote.emote:type_name -> scabbage.v1.Emote
-	2,   // 83: scabbage.v1.EmoteShown.emote:type_name -> scabbage.v1.Emote
-	3,   // 84: scabbage.v1.PlayerInfo.mode:type_name -> scabbage.v1.GameMode
-	3,   // 85: scabbage.v1.Vitals.mode:type_name -> scabbage.v1.GameMode
-	4,   // 86: scabbage.v1.Vitals.hurt:type_name -> scabbage.v1.Harm
-	3,   // 87: scabbage.v1.SetGameMode.mode:type_name -> scabbage.v1.GameMode
-	43,  // 88: scabbage.v1.Inventory.slots:type_name -> scabbage.v1.ItemStack
-	43,  // 89: scabbage.v1.Recipe.make:type_name -> scabbage.v1.ItemStack
-	43,  // 90: scabbage.v1.Recipe.from:type_name -> scabbage.v1.ItemStack
-	17,  // 91: scabbage.v1.ItemDrop.pos:type_name -> scabbage.v1.Vec3
-	48,  // 92: scabbage.v1.ItemsChanged.drops:type_name -> scabbage.v1.ItemDrop
-	5,   // 93: scabbage.v1.Mob.kind:type_name -> scabbage.v1.MobKind
-	17,  // 94: scabbage.v1.Mob.pos:type_name -> scabbage.v1.Vec3
-	50,  // 95: scabbage.v1.MobsChanged.mobs:type_name -> scabbage.v1.Mob
-	3,   // 96: scabbage.v1.Zone.mode:type_name -> scabbage.v1.GameMode
-	53,  // 97: scabbage.v1.Zone.marks:type_name -> scabbage.v1.ArenaMark
-	52,  // 98: scabbage.v1.ZonesChanged.zones:type_name -> scabbage.v1.Zone
-	59,  // 99: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
-	40,  // 100: scabbage.v1.PlayerList.players:type_name -> scabbage.v1.PlayerInfo
-	6,   // 101: scabbage.v1.SubmitArt.kind:type_name -> scabbage.v1.ArtKind
-	66,  // 102: scabbage.v1.ArtRequests.requests:type_name -> scabbage.v1.ArtRequest
-	6,   // 103: scabbage.v1.ArtRequest.kind:type_name -> scabbage.v1.ArtKind
-	7,   // 104: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
-	73,  // 105: scabbage.v1.Scoreboard.scores:type_name -> scabbage.v1.Score
-	25,  // 106: scabbage.v1.OpenScript.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 107: scabbage.v1.SaveScript.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 108: scabbage.v1.ScriptShown.pos:type_name -> scabbage.v1.BlockPos
-	25,  // 109: scabbage.v1.Npc.pos:type_name -> scabbage.v1.BlockPos
-	77,  // 110: scabbage.v1.NpcsChanged.npcs:type_name -> scabbage.v1.Npc
-	82,  // 111: scabbage.v1.QuestLog.quests:type_name -> scabbage.v1.Quest
-	18,  // 112: scabbage.v1.ChunksStale.chunks:type_name -> scabbage.v1.ChunkPos
-	113, // [113:113] is the sub-list for method output_type
-	113, // [113:113] is the sub-list for method input_type
-	113, // [113:113] is the sub-list for extension type_name
-	113, // [113:113] is the sub-list for extension extendee
-	0,   // [0:113] is the sub-list for field type_name
+	88,  // 23: scabbage.v1.ClientMessage.request_far:type_name -> scabbage.v1.RequestFar
+	12,  // 24: scabbage.v1.ServerMessage.welcome:type_name -> scabbage.v1.Welcome
+	70,  // 25: scabbage.v1.ServerMessage.pong:type_name -> scabbage.v1.Pong
+	71,  // 26: scabbage.v1.ServerMessage.disconnect:type_name -> scabbage.v1.Disconnect
+	57,  // 27: scabbage.v1.ServerMessage.join_pending:type_name -> scabbage.v1.JoinPending
+	58,  // 28: scabbage.v1.ServerMessage.pending_requests:type_name -> scabbage.v1.PendingRequests
+	68,  // 29: scabbage.v1.ServerMessage.join_code_created:type_name -> scabbage.v1.JoinCodeCreated
+	20,  // 30: scabbage.v1.ServerMessage.chunk_batch:type_name -> scabbage.v1.ChunkBatch
+	23,  // 31: scabbage.v1.ServerMessage.teleport:type_name -> scabbage.v1.Teleport
+	28,  // 32: scabbage.v1.ServerMessage.block_changed:type_name -> scabbage.v1.BlockChanged
+	33,  // 33: scabbage.v1.ServerMessage.players_joined:type_name -> scabbage.v1.PlayersJoined
+	34,  // 34: scabbage.v1.ServerMessage.players_moved:type_name -> scabbage.v1.PlayersMoved
+	35,  // 35: scabbage.v1.ServerMessage.player_left:type_name -> scabbage.v1.PlayerLeft
+	37,  // 36: scabbage.v1.ServerMessage.chat:type_name -> scabbage.v1.Chat
+	39,  // 37: scabbage.v1.ServerMessage.emote_shown:type_name -> scabbage.v1.EmoteShown
+	65,  // 38: scabbage.v1.ServerMessage.art_requests:type_name -> scabbage.v1.ArtRequests
+	16,  // 39: scabbage.v1.ServerMessage.blocks_changed:type_name -> scabbage.v1.BlocksChanged
+	31,  // 40: scabbage.v1.ServerMessage.skin_changed:type_name -> scabbage.v1.SkinChanged
+	61,  // 41: scabbage.v1.ServerMessage.player_list:type_name -> scabbage.v1.PlayerList
+	41,  // 42: scabbage.v1.ServerMessage.vitals:type_name -> scabbage.v1.Vitals
+	44,  // 43: scabbage.v1.ServerMessage.inventory:type_name -> scabbage.v1.Inventory
+	49,  // 44: scabbage.v1.ServerMessage.items_changed:type_name -> scabbage.v1.ItemsChanged
+	51,  // 45: scabbage.v1.ServerMessage.mobs_changed:type_name -> scabbage.v1.MobsChanged
+	54,  // 46: scabbage.v1.ServerMessage.zones_changed:type_name -> scabbage.v1.ZonesChanged
+	29,  // 47: scabbage.v1.ServerMessage.block_batch:type_name -> scabbage.v1.BlockBatch
+	72,  // 48: scabbage.v1.ServerMessage.scoreboard:type_name -> scabbage.v1.Scoreboard
+	76,  // 49: scabbage.v1.ServerMessage.script_shown:type_name -> scabbage.v1.ScriptShown
+	78,  // 50: scabbage.v1.ServerMessage.npcs_changed:type_name -> scabbage.v1.NpcsChanged
+	80,  // 51: scabbage.v1.ServerMessage.dialogue:type_name -> scabbage.v1.Dialogue
+	83,  // 52: scabbage.v1.ServerMessage.quest_log:type_name -> scabbage.v1.QuestLog
+	85,  // 53: scabbage.v1.ServerMessage.map_exported:type_name -> scabbage.v1.MapExported
+	86,  // 54: scabbage.v1.ServerMessage.chunks_stale:type_name -> scabbage.v1.ChunksStale
+	89,  // 55: scabbage.v1.ServerMessage.far_land:type_name -> scabbage.v1.FarLand
+	11,  // 56: scabbage.v1.Hello.join:type_name -> scabbage.v1.JoinRequest
+	40,  // 57: scabbage.v1.Welcome.you:type_name -> scabbage.v1.PlayerInfo
+	13,  // 58: scabbage.v1.Welcome.world:type_name -> scabbage.v1.WorldInfo
+	41,  // 59: scabbage.v1.Welcome.vitals:type_name -> scabbage.v1.Vitals
+	44,  // 60: scabbage.v1.Welcome.inventory:type_name -> scabbage.v1.Inventory
+	23,  // 61: scabbage.v1.Welcome.start:type_name -> scabbage.v1.Teleport
+	83,  // 62: scabbage.v1.Welcome.quests:type_name -> scabbage.v1.QuestLog
+	17,  // 63: scabbage.v1.WorldInfo.spawn:type_name -> scabbage.v1.Vec3
+	14,  // 64: scabbage.v1.WorldInfo.blocks:type_name -> scabbage.v1.BlockType
+	15,  // 65: scabbage.v1.WorldInfo.textures:type_name -> scabbage.v1.Texture
+	46,  // 66: scabbage.v1.WorldInfo.recipes:type_name -> scabbage.v1.Recipe
+	1,   // 67: scabbage.v1.BlockType.shape:type_name -> scabbage.v1.Shape
+	14,  // 68: scabbage.v1.BlocksChanged.blocks:type_name -> scabbage.v1.BlockType
+	15,  // 69: scabbage.v1.BlocksChanged.textures:type_name -> scabbage.v1.Texture
+	18,  // 70: scabbage.v1.RequestChunks.chunks:type_name -> scabbage.v1.ChunkPos
+	21,  // 71: scabbage.v1.ChunkBatch.chunks:type_name -> scabbage.v1.ChunkData
+	18,  // 72: scabbage.v1.ChunkData.pos:type_name -> scabbage.v1.ChunkPos
+	17,  // 73: scabbage.v1.Move.pos:type_name -> scabbage.v1.Vec3
+	17,  // 74: scabbage.v1.Teleport.pos:type_name -> scabbage.v1.Vec3
+	24,  // 75: scabbage.v1.Teleport.restore:type_name -> scabbage.v1.Restore
+	25,  // 76: scabbage.v1.EditBlock.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 77: scabbage.v1.UseBlock.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 78: scabbage.v1.BlockChanged.pos:type_name -> scabbage.v1.BlockPos
+	28,  // 79: scabbage.v1.BlockBatch.blocks:type_name -> scabbage.v1.BlockChanged
+	32,  // 80: scabbage.v1.OtherPlayer.pose:type_name -> scabbage.v1.PlayerPose
+	17,  // 81: scabbage.v1.PlayerPose.pos:type_name -> scabbage.v1.Vec3
+	30,  // 82: scabbage.v1.PlayersJoined.players:type_name -> scabbage.v1.OtherPlayer
+	32,  // 83: scabbage.v1.PlayersMoved.poses:type_name -> scabbage.v1.PlayerPose
+	2,   // 84: scabbage.v1.SendEmote.emote:type_name -> scabbage.v1.Emote
+	2,   // 85: scabbage.v1.EmoteShown.emote:type_name -> scabbage.v1.Emote
+	3,   // 86: scabbage.v1.PlayerInfo.mode:type_name -> scabbage.v1.GameMode
+	3,   // 87: scabbage.v1.Vitals.mode:type_name -> scabbage.v1.GameMode
+	4,   // 88: scabbage.v1.Vitals.hurt:type_name -> scabbage.v1.Harm
+	3,   // 89: scabbage.v1.SetGameMode.mode:type_name -> scabbage.v1.GameMode
+	43,  // 90: scabbage.v1.Inventory.slots:type_name -> scabbage.v1.ItemStack
+	43,  // 91: scabbage.v1.Recipe.make:type_name -> scabbage.v1.ItemStack
+	43,  // 92: scabbage.v1.Recipe.from:type_name -> scabbage.v1.ItemStack
+	17,  // 93: scabbage.v1.ItemDrop.pos:type_name -> scabbage.v1.Vec3
+	48,  // 94: scabbage.v1.ItemsChanged.drops:type_name -> scabbage.v1.ItemDrop
+	5,   // 95: scabbage.v1.Mob.kind:type_name -> scabbage.v1.MobKind
+	17,  // 96: scabbage.v1.Mob.pos:type_name -> scabbage.v1.Vec3
+	50,  // 97: scabbage.v1.MobsChanged.mobs:type_name -> scabbage.v1.Mob
+	3,   // 98: scabbage.v1.Zone.mode:type_name -> scabbage.v1.GameMode
+	53,  // 99: scabbage.v1.Zone.marks:type_name -> scabbage.v1.ArenaMark
+	52,  // 100: scabbage.v1.ZonesChanged.zones:type_name -> scabbage.v1.Zone
+	59,  // 101: scabbage.v1.PendingRequests.requests:type_name -> scabbage.v1.PendingRequest
+	40,  // 102: scabbage.v1.PlayerList.players:type_name -> scabbage.v1.PlayerInfo
+	6,   // 103: scabbage.v1.SubmitArt.kind:type_name -> scabbage.v1.ArtKind
+	66,  // 104: scabbage.v1.ArtRequests.requests:type_name -> scabbage.v1.ArtRequest
+	6,   // 105: scabbage.v1.ArtRequest.kind:type_name -> scabbage.v1.ArtKind
+	7,   // 106: scabbage.v1.Disconnect.code:type_name -> scabbage.v1.DisconnectCode
+	73,  // 107: scabbage.v1.Scoreboard.scores:type_name -> scabbage.v1.Score
+	25,  // 108: scabbage.v1.OpenScript.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 109: scabbage.v1.SaveScript.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 110: scabbage.v1.ScriptShown.pos:type_name -> scabbage.v1.BlockPos
+	25,  // 111: scabbage.v1.Npc.pos:type_name -> scabbage.v1.BlockPos
+	77,  // 112: scabbage.v1.NpcsChanged.npcs:type_name -> scabbage.v1.Npc
+	82,  // 113: scabbage.v1.QuestLog.quests:type_name -> scabbage.v1.Quest
+	18,  // 114: scabbage.v1.ChunksStale.chunks:type_name -> scabbage.v1.ChunkPos
+	87,  // 115: scabbage.v1.RequestFar.columns:type_name -> scabbage.v1.ColumnPos
+	90,  // 116: scabbage.v1.FarLand.tiles:type_name -> scabbage.v1.FarTile
+	87,  // 117: scabbage.v1.FarTile.pos:type_name -> scabbage.v1.ColumnPos
+	118, // [118:118] is the sub-list for method output_type
+	118, // [118:118] is the sub-list for method input_type
+	118, // [118:118] is the sub-list for extension type_name
+	118, // [118:118] is the sub-list for extension extendee
+	0,   // [0:118] is the sub-list for field type_name
 }
 
 func init() { file_scabbage_v1_net_proto_init() }
@@ -6703,6 +6965,7 @@ func file_scabbage_v1_net_proto_init() {
 		(*ClientMessage_TalkTo)(nil),
 		(*ClientMessage_Answer)(nil),
 		(*ClientMessage_ImportMap)(nil),
+		(*ClientMessage_RequestFar)(nil),
 	}
 	file_scabbage_v1_net_proto_msgTypes[1].OneofWrappers = []any{
 		(*ServerMessage_Welcome)(nil),
@@ -6736,6 +6999,7 @@ func file_scabbage_v1_net_proto_init() {
 		(*ServerMessage_QuestLog)(nil),
 		(*ServerMessage_MapExported)(nil),
 		(*ServerMessage_ChunksStale)(nil),
+		(*ServerMessage_FarLand)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -6743,7 +7007,7 @@ func file_scabbage_v1_net_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scabbage_v1_net_proto_rawDesc), len(file_scabbage_v1_net_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   79,
+			NumMessages:   83,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -60,6 +60,10 @@ export function encodeRequestChunks(chunks: readonly { x: number; y: number; z: 
   });
 }
 
+export function encodeRequestFar(columns: readonly { x: number; z: number }[]): Bytes {
+  return encode({ case: "requestFar", value: { columns: columns.map(({ x, z }) => ({ x, z })) } });
+}
+
 export function encodeMove(
   p: { x: number; y: number; z: number; yaw: number; pitch: number; flying?: boolean },
   teleport: number,

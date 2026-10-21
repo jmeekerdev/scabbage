@@ -365,7 +365,13 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       aim and build through, and they go when the ground under them is dug. Measured: a surface chunk
       takes ~1.5 ms to generate (was ~0.75 ms), and a chunk column averages 26 tufts and 5 flowers,
       about 500 extra quads
-- [ ] Far land: a cheap low-detail ring past the view distance, if the finer world needs it
+- [x] Far land: past the chunks, out to three times the view distance, the land is drawn as one smooth
+      surface per 8×8 chunk columns, coloured by each block's top texture and shaded by slope, fading into
+      the fog. The server sketches each column from the generator (ground, sea and tree crowns, without
+      players' changes) as 8×8 samples (protocol 24: RequestFar / FarLand). Far land hides only over
+      columns whose chunks are all drawn, so it also fills holes while chunks load. Measured: a sketch
+      takes ~0.1 ms to make and ~160 bytes to send, so the widest ring (27 chunks, ~2300 columns) costs
+      ~0.2 s of server time and ~370 KB once, and a few milliseconds per chunk walked
 
 ## Open questions
 

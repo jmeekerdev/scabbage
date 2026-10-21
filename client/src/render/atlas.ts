@@ -1,3 +1,4 @@
+import type { RenderTable } from "../world/mesher";
 import { paintTextures, TEXTURE_NAMES, TEXTURE_SIZE } from "./textures";
 
 const LAYER_BYTES = TEXTURE_SIZE * TEXTURE_SIZE * 4;
@@ -61,4 +62,26 @@ export function flipRows(layer: Uint8Array): Uint8Array {
   for (let y = 0; y < TEXTURE_SIZE; y++)
     out.set(layer.subarray(y * row, (y + 1) * row), (TEXTURE_SIZE - 1 - y) * row);
   return out;
+}
+
+/** Each block's top face as one sRGB color, RGB per block ID, from its picture's solid pixels. */
+export function topColors(atlas: Atlas, table: RenderTable): Uint8Array {
+  const n = table.shape.length;
+  const out = new Uint8Array(n * 3);
+  for (let id = 0; id < n; id++) {
+    const layer = table.layers[id * 6 + 2];
+    if (layer >= 0) out.set(averageColor(atlas.pixels, layer), id * 3);
+  }
+  return out;
+}
+
+function averageColor(pixels: Uint8Array, layer: number): number[] {
+  const sum = [0, 0, 0];
+  let count = 0;
+  for (let i = layer * LAYER_BYTES; i < (layer + 1) * LAYER_BYTES; i += 4) {
+    if (pixels[i + 3] < 128) continue;
+    for (let c = 0; c < 3; c++) sum[c] += pixels[i + c];
+    count++;
+  }
+  return sum.map((v) => Math.round(v / Math.max(1, count)));
 }

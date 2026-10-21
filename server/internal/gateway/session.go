@@ -140,6 +140,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.createJoinCode(ctx, body.CreateJoinCode)
 	case *pb.ClientMessage_RequestChunks:
 		return s.sendChunks(ctx, body.RequestChunks)
+	case *pb.ClientMessage_RequestFar:
+		return s.sendFar(ctx, body.RequestFar)
 	case *pb.ClientMessage_Move:
 		return s.move(ctx, body.Move)
 	case *pb.ClientMessage_EditBlock:

@@ -30,12 +30,12 @@ func (g *Gateway) worldInfo() *pb.WorldInfo {
 	}
 }
 
-// nearPlayer reports whether chunk p's column is within maxChunkRange of the player's.
-func (s *session) nearPlayer(p *pb.ChunkPos) bool {
+// nearPlayer reports whether chunk column x,z is within reach chunks of the player's.
+func (s *session) nearPlayer(x, z, reach int32) bool {
 	at := s.body.Pos()
-	dx := int64(p.X) - int64(math.Floor(at.X/world.Size))
-	dz := int64(p.Z) - int64(math.Floor(at.Z/world.Size))
-	return dx*dx+dz*dz <= maxChunkRange*maxChunkRange
+	dx := int64(x) - int64(math.Floor(at.X/world.Size))
+	dz := int64(z) - int64(math.Floor(at.Z/world.Size))
+	return dx*dx+dz*dz <= int64(reach)*int64(reach)
 }
 
 // sendChunks answers a request with one batch in the order asked, minus far-away chunks.
@@ -48,7 +48,7 @@ func (s *session) sendChunks(ctx context.Context, req *pb.RequestChunks) error {
 	}
 	batch := &pb.ChunkBatch{Chunks: make([]*pb.ChunkData, 0, len(req.Chunks))}
 	for _, p := range req.Chunks {
-		if !s.nearPlayer(p) {
+		if !s.nearPlayer(p.X, p.Z, maxChunkRange) {
 			continue
 		}
 		data, err := s.gw.cfg.World.EncodedChunk(world.ChunkPos{X: p.X, Y: p.Y, Z: p.Z})

@@ -21,6 +21,7 @@ import {
   encodeCraft,
   encodeMoveItem,
   encodeRequestChunks,
+  encodeRequestFar,
   encodeImportMap,
   encodeSendChat,
   encodeSubmitArt,
@@ -133,7 +134,11 @@ const touch = device.touch;
 let settings = loadSettings(store, defaultSettings(deviceTier(device), touch));
 const autoQuality = new AutoQuality();
 const gameScene = startScene($("#game"), settings);
-const world = createWorldRenderer(gameScene, (chunks) => conn?.send(encodeRequestChunks(chunks)));
+const world = createWorldRenderer(
+  gameScene,
+  (chunks) => conn?.send(encodeRequestChunks(chunks)),
+  (columns) => conn?.send(encodeRequestFar(columns)),
+);
 const player = new Player();
 const selection = new Selection(gameScene.scene);
 const hotbar = new Hotbar([]);
@@ -312,6 +317,7 @@ function connect(join?: JoinInit): void {
       onRejected: (d) => show(screenForRejection(d)),
       onMessage: (msg) => {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
+        else if (msg.body.case === "farLand") world.receiveFar(msg.body.value);
         else if (msg.body.case === "chunksStale") world.refetch(msg.body.value.chunks);
         else if (msg.body.case === "mapExported")
           downloadMap(msg.body.value.name, msg.body.value.data);

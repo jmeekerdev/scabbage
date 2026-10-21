@@ -23,6 +23,8 @@ export interface WorldClientDeps {
   send(positions: ChunkPos[]): void;
   mesher: Mesher;
   view: ChunkView;
+  /** Told when a chunk column starts or stops having every layer drawn. */
+  cover?(x: number, z: number, covered: boolean): void;
 }
 
 export interface ReceivedChunk {
@@ -42,6 +44,8 @@ export class WorldClient {
   private transparent: Uint8Array = new Uint8Array(0); // 1 where light passes, per block ID
   private readonly glowing = new Map<ChunkKey, boolean>(); // cached: holds a glowing block
   private readonly stale = new Set<ChunkKey>(); // shown, but being fetched again
+  private readonly drawn = new Map<string, Set<number>>(); // column → layers with a finished mesh
+  private layers = 0;
 
   constructor(private readonly deps: WorldClientDeps) {}
 
@@ -54,6 +58,10 @@ export class WorldClient {
     this.meshed.clear();
     this.glowing.clear();
     this.stale.clear();
+    for (const [column, layers] of this.drawn)
+      if (layers.size === this.layers) this.uncover(column);
+    this.drawn.clear();
+    this.layers = Math.ceil(bounds.height / CHUNK_SIZE);
     this.deps.view.clear();
   }
 
@@ -199,12 +207,38 @@ export class WorldClient {
         ? this.store.region(p.x, p.y, p.z, LIGHT_MARGIN)
         : this.store.padded(p.x, p.y, p.z);
       mesher.mesh(volume, (mesh) => {
-        if (this.meshed.get(key) === job) view.show(key, p, mesh);
+        if (this.meshed.get(key) !== job) return;
+        view.show(key, p, mesh);
+        this.markDrawn(p);
       });
     }
   }
 
+  private markDrawn({ x, y, z }: ChunkPos): void {
+    const column = `${x},${z}`;
+    const layers = this.drawn.get(column) ?? new Set<number>();
+    this.drawn.set(column, layers);
+    const was = layers.size;
+    layers.add(y);
+    if (was < this.layers && layers.size === this.layers) this.deps.cover?.(x, z, true);
+  }
+
+  /** Forgets a layer's mesh, telling when that leaves its column partly drawn. */
+  private undraw({ x, y, z }: ChunkPos): void {
+    const column = `${x},${z}`;
+    const layers = this.drawn.get(column);
+    if (!layers?.delete(y)) return;
+    if (layers.size === this.layers - 1) this.uncover(column);
+    if (layers.size === 0) this.drawn.delete(column);
+  }
+
+  private uncover(column: string): void {
+    const [x, z] = column.split(",").map(Number);
+    this.deps.cover?.(x, z, false);
+  }
+
   private drop(key: ChunkKey): void {
+    this.undraw(parseKey(key));
     this.store.delete(key);
     this.glowing.delete(key);
     this.toMesh.delete(key);
