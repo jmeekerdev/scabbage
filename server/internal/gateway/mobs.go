@@ -14,10 +14,14 @@ import (
 const hitEvery = 250 * time.Millisecond
 
 func mobProto(m mobs.Mob) *pb.Mob {
-	return &pb.Mob{
+	out := &pb.Mob{
 		Id: m.ID, Kind: pb.MobKind(m.Kind), Yaw: float32(m.Yaw), Sheared: m.Sheared, Hurt: m.Hurt,
 		Pos: &pb.Vec3{X: float32(m.Pos.X), Y: float32(m.Pos.Y), Z: float32(m.Pos.Z)},
 	}
+	if m.Boss() {
+		out.Health, out.MaxHealth = uint32(m.Health()), uint32(m.MaxHealth())
+	}
+	return out
 }
 
 // mobsChanged lists mobs that appeared or moved and ids that went; nil when there are none.
@@ -32,7 +36,7 @@ func mobsChanged(moved []mobs.Mob, gone []uint32) *pb.ServerMessage {
 	return &pb.ServerMessage{Body: &pb.ServerMessage_MobsChanged{MobsChanged: out}}
 }
 
-// stepMobsLocked moves the herd every mobs.Every, tells everyone and lets slimes bite.
+// stepMobsLocked moves the herd every mobs.Every, tells everyone and lets monsters bite.
 func (g *Gateway) stepMobsLocked(now time.Time) {
 	if now.Sub(g.mobsAt) < mobs.Every {
 		return
@@ -48,21 +52,21 @@ func (g *Gateway) stepMobsLocked(now time.Time) {
 	if msg := mobsChanged(c.Moved, c.Gone); msg != nil {
 		g.broadcastLocked(msg)
 	}
-	for _, i := range c.Bitten {
-		g.biteLocked(sessions[i], now)
+	for _, b := range c.Bitten {
+		g.biteLocked(sessions[b.Player], b.Damage, now)
 	}
 }
 
-func (g *Gateway) biteLocked(s *session, now time.Time) {
+func (g *Gateway) biteLocked(s *session, damage int, now time.Time) {
 	a := g.players[s]
-	fainted := a.vitals.Hurt(mobs.BiteDamage, now)
+	fainted := a.vitals.Hurt(damage, now)
 	s.push(vitalsMessage(a, pb.Harm_HARM_MOB))
 	if fainted {
 		s.faint()
 	}
 }
 
-// hitMob hits a mob in reach; a sheep's wool drops for survival players.
+// hitMob hits a mob in reach; a sheep's wool drops for survival players, and a boss's reward for anyone.
 func (s *session) hitMob(m *pb.HitMob) error {
 	if s.console {
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "the console has no hands")
@@ -82,9 +86,12 @@ func (s *session) hitMob(m *pb.HitMob) error {
 	}
 	a.hitAt = now
 	if hit.Gone {
-		g.broadcastLocked(mobsChanged(nil, []uint32{hit.Mob.ID}))
+		g.broadcastLocked(mobsChanged(hit.Spawned, []uint32{hit.Mob.ID}))
+		if hit.Mob.Boss() {
+			g.bossBeatenLocked(s, hit.Mob)
+		}
 	} else {
-		g.broadcastLocked(mobsChanged([]mobs.Mob{hit.Mob}, nil))
+		g.broadcastLocked(mobsChanged(append(hit.Spawned, hit.Mob), nil))
 	}
 	if hit.Drop != world.Air && a.mode == survival {
 		d, gone := g.drops.Spawn(hit.Drop, hit.Mob.Pos, now)

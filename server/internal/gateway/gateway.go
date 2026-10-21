@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"sync"
 	"time"
@@ -62,6 +63,7 @@ type Gateway struct {
 	rounds      map[string]*rounds.Round // games being played, by lowercased zone name; guarded by mu
 	roundEvents []roundEvent             // starts and ends for scripts to hear on the next tick; guarded by mu
 	dialogue    uint32                   // last Dialogue id handed out; guarded by mu
+	rng         *rand.Rand               // rolls loot; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.
@@ -79,6 +81,7 @@ func New(cfg Config) (*Gateway, error) {
 		cfg.Recipes = crafting.Default()
 	}
 	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}, rounds: map[string]*rounds.Round{},
+		rng:      rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), 0x6c6f6f74)),
 		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}, scriptErrAt: map[world.Pos]time.Time{}}
 	var err error
 	if g.scripts, err = scripts.New(cfg.ScriptDB, g.scriptHost, g.npcChanged); err != nil {

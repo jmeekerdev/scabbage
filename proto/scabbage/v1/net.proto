@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 19;
+  PROTOCOL_VERSION_CURRENT = 20;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -384,6 +384,8 @@ enum MobKind {
   MOB_KIND_UNSPECIFIED = 0;
   MOB_KIND_SHEEP = 1; // hitting it drops its wool, which grows back
   MOB_KIND_SLIME = 2; // comes out at night and bites survival players; pops after three hits
+  MOB_KIND_KING_SLIME = 3; // a boss woken at an altar; lets out slimes as it weakens
+  MOB_KIND_GOLEM = 4; // a boss woken at an altar; slow, steady and hits hard
 }
 
 message Mob {
@@ -393,6 +395,8 @@ message Mob {
   float yaw = 4; // faces (sin yaw, cos yaw) in x,z
   bool sheared = 5;
   bool hurt = 6; // just got hit
+  uint32 health = 7; // bosses only, for their health bar
+  uint32 max_health = 8;
 }
 
 // Mobs that appeared or moved, and the ids of ones gone; all of them on join.

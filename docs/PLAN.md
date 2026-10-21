@@ -293,7 +293,16 @@ Each phase ends with something the family can play. Compact the model context be
       and booleans per player for any script (100 each); `quest`/`finish_quest` fill a quest log (Q or the
       Quests button, 50 entries) that comes in the Welcome; `take_item` takes blocks, always true in creative
       and admin-only for survival; journals save with players; a Story category in the blocks)
-- [ ] Dungeons/structures in world gen, loot, a couple of bosses
+- [x] Dungeons/structures in world gen, loot, a couple of bosses
+      (generator v2 is v1's land plus a cobblestone room in about one 64×64 region in three, never by
+      spawn, each holding two chests and a boss altar, reached by stone stairs from a torch-topped arch;
+      `-upgrade-world` / `SCABBAGE_UPGRADE_WORLD=1` moves a v1 world to v2 and, since
+      generated land is saved, digs in each dungeon whose saved chunks still match v1's land exactly; using a chest gives gold, two other things and sometimes a gem, then it
+      stays open; using an altar wakes its boss, a King Slime that lets out slimes as it weakens or a
+      steady Stone Golem that hits hard, one per place at a time; bosses bite survival players, never melt
+      and give gems to whoever lands the last hit; a health bar shows near one; scripts can place chests
+      and altars for adventure maps; admins can `/tp X Z`, `/tp X Y Z` or `/tp NAME`, and the HUD shows
+      everyone's block coordinates and facing)
 - [ ] Family-authored adventure maps using phases 4–6
 
 ## Open questions

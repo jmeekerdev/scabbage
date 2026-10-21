@@ -98,6 +98,19 @@ func TestGenV1Golden(t *testing.T) {
 	}
 }
 
+// Golden hashes pin generator v2, through the dungeon in region 2,0.
+func TestGenV2Golden(t *testing.T) {
+	g := NewGenV2(42)
+	h := sha256.New()
+	for _, p := range []ChunkPos{{0, 1, 0}, {11, 1, 1}, {10, 1, 1}, {10, 2, 1}} {
+		h.Write(Encode(g.Generate(p)))
+	}
+	const want = "b1f3c36bf3f993663892173683d44fdc670c445645976292db78c56f00464c96"
+	if got := hex.EncodeToString(h.Sum(nil)); got != want {
+		t.Fatalf("generator v2 output changed: %s", got)
+	}
+}
+
 func blockAt(g Generator, x, y, z int32) Block {
 	p, lx, ly, lz := ChunkOf(x, y, z)
 	return g.Generate(p).Get(lx, ly, lz)

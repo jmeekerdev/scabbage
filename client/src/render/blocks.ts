@@ -76,6 +76,11 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   portal: same("portal"),
   ...Object.fromEntries(numbered("note_block", "note", 8)),
   ...Object.fromEntries(WOOL_COLORS.map((c) => [`${c}_wool`, same(`${c}_wool`)])),
+  chest: { top: "chest_top", side: "chest_side", bottom: "planks" },
+  chest_open: { top: "chest_open_top", side: "chest_side", bottom: "planks" },
+  boss_altar: { top: "altar_top", side: "altar_side", bottom: "cobblestone" },
+  gold_block: same("gold_block"),
+  gem_block: same("gem_block"),
 };
 
 export interface BlockTypeInfo {

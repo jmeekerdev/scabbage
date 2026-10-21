@@ -32,6 +32,14 @@ describe("Mobs", () => {
     expect(m.sample(1000)[0]?.hurt).toBe(false);
   });
 
+  it("keeps a boss's health up to date", () => {
+    const m = new Mobs(100);
+    const king = { kind: MobKind.KING_SLIME, health: 24, maxHealth: 24 };
+    m.change([sheep(0, king)], [], 0);
+    m.change([sheep(0, { ...king, health: 17 })], [], 50);
+    expect(m.sample(60)[0]).toMatchObject({ health: 17, maxHealth: 24 });
+  });
+
   it("forgets mobs that are gone", () => {
     const m = new Mobs(100);
     m.change([sheep(0)], [], 0);
@@ -49,6 +57,12 @@ describe("pickMob", () => {
     const hit = pickMob([0, 10.5, 0], [0, 0, -1], mobs, 4);
     expect(hit?.id).toBe(7);
     expect(hit?.distance).toBeCloseTo(3 - 0.45);
+  });
+
+  it("hits a golem's tall body", () => {
+    const g = new Mobs(100);
+    g.change([sheep(0, { kind: MobKind.GOLEM, pos: { x: 0, y: 10, z: -3 } })], [], 0);
+    expect(pickMob([0, 12.3, 0], [0, 0, -1], g.sample(0), 4)?.id).toBe(7);
   });
 
   it("misses mobs off to the side or out of reach", () => {

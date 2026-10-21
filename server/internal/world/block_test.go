@@ -55,13 +55,14 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 		Timer: "timer", Counter + 19: "counter_9_on", Teleporter: "teleporter", NoteBlock + 15: "note_block_7_on", Portal: "portal",
 		CountingDown: "counter_down_1", CountingDown + 15: "counter_down_8_on",
 		ScriptBlock: "script_block", ScriptBlock + 1: "script_block_on",
+		Chest: "chest", Chest + 1: "chest_open", BossAltar: "boss_altar", GoldBlock: "gold_block", GemBlock: "gem_block",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(ScriptBlock)+2 {
+	if len(blocks) != int(GemBlock)+1 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -215,5 +216,23 @@ func TestOpenDoorsLetPlayersThrough(t *testing.T) {
 func TestOnlyTimersTick(t *testing.T) {
 	if !Info(Timer).Ticks || !Info(Timer+1).Ticks || Info(Wire).Ticks || Info(Counter).Ticks {
 		t.Fatal("timers alone tick")
+	}
+}
+
+func TestChestsOpenOnceAndBreakIntoPlanks(t *testing.T) {
+	if !Info(Chest).Usable || Info(Chest+1).Usable || !Placeable(Chest) || Placeable(Chest+1) {
+		t.Fatalf("chest = %+v, open = %+v", Info(Chest), Info(Chest+1))
+	}
+	if Drops(Chest) != Planks || Drops(Chest+1) != Planks {
+		t.Errorf("chests drop %v and %v", Drops(Chest), Drops(Chest+1))
+	}
+}
+
+func TestTreasureGlowsAndAltarsAreUsed(t *testing.T) {
+	if !Info(BossAltar).Usable || Info(BossAltar).Light == 0 || Info(GemBlock).Light == 0 {
+		t.Errorf("altar = %+v, gem = %+v", Info(BossAltar), Info(GemBlock))
+	}
+	if !Info(GoldBlock).Solid || Info(GoldBlock).MineMs == 0 {
+		t.Errorf("gold = %+v", Info(GoldBlock))
 	}
 }

@@ -1,3 +1,5 @@
+import { coordsText } from "./ui/coords";
+import { BossBar, bossNear } from "./ui/boss-bar";
 import "./style.css";
 import { distanceGain, Footsteps } from "./audio/cues";
 import { noteTable, noteToPlay } from "./audio/notes";
@@ -49,6 +51,7 @@ import {
   buildWorldFor,
   placeEdit,
   PressFilter,
+  UseHold,
   usesBlock,
   type BuildWorld,
   type Edit,
@@ -111,6 +114,7 @@ import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 const overlay = $("#overlay");
 const statusEl = $("#status");
 const pingEl = $("#ping");
+const coordsEl = $("#coords");
 const hintEl = $("#hint");
 const crosshairEl = $("#crosshair");
 const store = browserStore();
@@ -141,6 +145,7 @@ const backpack = new InventoryView(
 );
 const miner = new Miner();
 const presses = new PressFilter(250); // input repeats held buttons every 250 ms
+const useHold = new UseHold(250);
 const npcs = new Npcs();
 const dialogue = new DialogueView((id, choice) => conn?.send(encodeAnswer(id, choice)));
 const questLog = new QuestLogView();
@@ -189,6 +194,8 @@ const scriptEditor = new ScriptEditor(
 let scriptBlocks = new Set<number>(); // ids of the script block and its powered state
 let toldAboutScripts = false; // whether we said how to open a script block
 const mobView = new MobView(gameScene.scene);
+const bossBar = new BossBar();
+document.body.append(bossBar.node);
 let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
 let mobs: Mobs | undefined; // set while in the world
@@ -214,6 +221,8 @@ gameScene.onFrame((timeMs) => {
   world.tick(eye.x, eye.z, settings.viewDistance);
   const near = mobs?.sample(performance.now()) ?? [];
   mobView.update(near, dt * 1000);
+  bossBar.update(moves && bossNear(near, player.body));
+  showCoords(moves ? coordsText(player.body, player.look.yaw) : "");
   build(intent.build, intent.move.descend, [eye.x, eye.y, eye.z], dt, near);
   drops.update(timeMs);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
@@ -470,6 +479,10 @@ function teleport(t: Teleport): void {
 }
 
 /** Outlines the block in reach and carries out this frame's building actions, or hits a mob or player. */
+function showCoords(text: string): void {
+  if (coordsEl.textContent !== text) coordsEl.textContent = text;
+}
+
 function build(
   act: BuildActions,
   sneaking: boolean,
@@ -501,6 +514,7 @@ function build(
     miner.stop();
     selection.show(hit);
     if (presses.fresh(performance.now())) sendUse(hit);
+    useHold.used(performance.now());
     return;
   }
   if (hit && !zones.canBuild(hit.x, hit.z)) {
@@ -519,7 +533,7 @@ function build(
   const breaking = survival ? dug === 1 : act.breaking;
   const edit = breaking
     ? breakEdit(hit, building)
-    : act.placing
+    : act.placing && !useHold.blocks(performance.now())
       ? placeEdit(hit, hotbar.current(), player.body, player.look, building)
       : undefined;
   if (edit) sendEdit(edit);

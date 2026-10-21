@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 19
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 20
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		19: "PROTOCOL_VERSION_CURRENT",
+		20: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     19,
+		"PROTOCOL_VERSION_CURRENT":     20,
 	}
 )
 
@@ -307,6 +307,8 @@ const (
 	MobKind_MOB_KIND_UNSPECIFIED MobKind = 0
 	MobKind_MOB_KIND_SHEEP       MobKind = 1 // hitting it drops its wool, which grows back
 	MobKind_MOB_KIND_SLIME       MobKind = 2 // comes out at night and bites survival players; pops after three hits
+	MobKind_MOB_KIND_KING_SLIME  MobKind = 3 // a boss woken at an altar; lets out slimes as it weakens
+	MobKind_MOB_KIND_GOLEM       MobKind = 4 // a boss woken at an altar; slow, steady and hits hard
 )
 
 // Enum value maps for MobKind.
@@ -315,11 +317,15 @@ var (
 		0: "MOB_KIND_UNSPECIFIED",
 		1: "MOB_KIND_SHEEP",
 		2: "MOB_KIND_SLIME",
+		3: "MOB_KIND_KING_SLIME",
+		4: "MOB_KIND_GOLEM",
 	}
 	MobKind_value = map[string]int32{
 		"MOB_KIND_UNSPECIFIED": 0,
 		"MOB_KIND_SHEEP":       1,
 		"MOB_KIND_SLIME":       2,
+		"MOB_KIND_KING_SLIME":  3,
+		"MOB_KIND_GOLEM":       4,
 	}
 )
 
@@ -3779,7 +3785,9 @@ type Mob struct {
 	Pos           *Vec3                  `protobuf:"bytes,3,opt,name=pos,proto3" json:"pos,omitempty"`   // feet center
 	Yaw           float32                `protobuf:"fixed32,4,opt,name=yaw,proto3" json:"yaw,omitempty"` // faces (sin yaw, cos yaw) in x,z
 	Sheared       bool                   `protobuf:"varint,5,opt,name=sheared,proto3" json:"sheared,omitempty"`
-	Hurt          bool                   `protobuf:"varint,6,opt,name=hurt,proto3" json:"hurt,omitempty"` // just got hit
+	Hurt          bool                   `protobuf:"varint,6,opt,name=hurt,proto3" json:"hurt,omitempty"`     // just got hit
+	Health        uint32                 `protobuf:"varint,7,opt,name=health,proto3" json:"health,omitempty"` // bosses only, for their health bar
+	MaxHealth     uint32                 `protobuf:"varint,8,opt,name=max_health,json=maxHealth,proto3" json:"max_health,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3854,6 +3862,20 @@ func (x *Mob) GetHurt() bool {
 		return x.Hurt
 	}
 	return false
+}
+
+func (x *Mob) GetHealth() uint32 {
+	if x != nil {
+		return x.Health
+	}
+	return 0
+}
+
+func (x *Mob) GetMaxHealth() uint32 {
+	if x != nil {
+		return x.MaxHealth
+	}
+	return 0
 }
 
 // Mobs that appeared or moved, and the ids of ones gone; all of them on join.
@@ -6001,14 +6023,17 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x03pos\x18\x03 \x01(\v2\x11.scabbage.v1.Vec3R\x03pos\"O\n" +
 	"\fItemsChanged\x12+\n" +
 	"\x05drops\x18\x01 \x03(\v2\x15.scabbage.v1.ItemDropR\x05drops\x12\x12\n" +
-	"\x04gone\x18\x02 \x03(\x04R\x04gone\"\xa4\x01\n" +
+	"\x04gone\x18\x02 \x03(\x04R\x04gone\"\xdb\x01\n" +
 	"\x03Mob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12(\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x14.scabbage.v1.MobKindR\x04kind\x12#\n" +
 	"\x03pos\x18\x03 \x01(\v2\x11.scabbage.v1.Vec3R\x03pos\x12\x10\n" +
 	"\x03yaw\x18\x04 \x01(\x02R\x03yaw\x12\x18\n" +
 	"\asheared\x18\x05 \x01(\bR\asheared\x12\x12\n" +
-	"\x04hurt\x18\x06 \x01(\bR\x04hurt\"G\n" +
+	"\x04hurt\x18\x06 \x01(\bR\x04hurt\x12\x16\n" +
+	"\x06health\x18\a \x01(\rR\x06health\x12\x1d\n" +
+	"\n" +
+	"max_health\x18\b \x01(\rR\tmaxHealth\"G\n" +
 	"\vMobsChanged\x12$\n" +
 	"\x04mobs\x18\x01 \x03(\v2\x10.scabbage.v1.MobR\x04mobs\x12\x12\n" +
 	"\x04gone\x18\x02 \x03(\rR\x04gone\"\xdb\x01\n" +
@@ -6141,7 +6166,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x06quests\x18\x01 \x03(\v2\x12.scabbage.v1.QuestR\x06quests*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x13*\xad\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x14*\xad\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -6173,11 +6198,13 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x10HARM_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tHARM_FALL\x10\x01\x12\f\n" +
 	"\bHARM_MOB\x10\x02\x12\x0f\n" +
-	"\vHARM_PLAYER\x10\x03*K\n" +
+	"\vHARM_PLAYER\x10\x03*x\n" +
 	"\aMobKind\x12\x18\n" +
 	"\x14MOB_KIND_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eMOB_KIND_SHEEP\x10\x01\x12\x12\n" +
-	"\x0eMOB_KIND_SLIME\x10\x02*`\n" +
+	"\x0eMOB_KIND_SLIME\x10\x02\x12\x17\n" +
+	"\x13MOB_KIND_KING_SLIME\x10\x03\x12\x12\n" +
+	"\x0eMOB_KIND_GOLEM\x10\x04*`\n" +
 	"\aArtKind\x12\x18\n" +
 	"\x14ART_KIND_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rART_KIND_SKIN\x10\x01\x12\x12\n" +

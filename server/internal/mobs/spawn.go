@@ -22,7 +22,7 @@ const (
 
 // leaves reports whether a mob goes away this step: far from everyone, or a slime in daylight.
 func (h *Herd) leaves(m *Mob, players []Player, night bool) bool {
-	if kinds[m.Kind].chases && !night && h.rng.IntN(meltOdds) == 0 {
+	if k := kinds[m.Kind]; k.chases && !k.boss && !night && h.rng.IntN(meltOdds) == 0 {
 		return true
 	}
 	for _, p := range players {

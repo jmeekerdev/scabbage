@@ -1,5 +1,6 @@
 /** Procedural 16×16 pixel-art block textures: no image files to download. */
 import { MACHINE_PAINTERS } from "./machine-textures";
+import { TREASURE_PAINTERS } from "./treasure-textures";
 
 export const TEXTURE_SIZE = 16;
 
@@ -145,6 +146,7 @@ const PAINTERS: Record<string, Painter> = {
   },
   ...Object.fromEntries(WOOL.map(([name, rgb]) => [`${name}_wool`, wool(rgb)])),
   ...MACHINE_PAINTERS,
+  ...TREASURE_PAINTERS,
 };
 
 export const TEXTURE_NAMES = Object.keys(PAINTERS);

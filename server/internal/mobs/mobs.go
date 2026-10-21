@@ -1,4 +1,5 @@
-// Package mobs runs the sheep that graze near players and the slimes that come out at night.
+// Package mobs runs the sheep that graze near players, the slimes that come out at night and
+// the bosses woken at dungeon altars.
 package mobs
 
 import (
@@ -16,6 +17,8 @@ type Kind uint8
 const (
 	Sheep Kind = iota + 1
 	Slime
+	KingSlime
+	Golem
 )
 
 const (
@@ -44,6 +47,10 @@ type Mob struct {
 }
 
 func (m *Mob) height() float64 { return kinds[m.Kind].height }
+
+func (m Mob) Health() int    { return m.health }
+func (m Mob) MaxHealth() int { return kinds[m.Kind].health }
+func (m Mob) Boss() bool     { return kinds[m.Kind].boss }
 
 // Player is someone mobs can see; slimes only go after Prey (survival players).
 type Player struct {
@@ -93,11 +100,11 @@ func (h *Herd) Len() int { return len(h.mobs) }
 // Clear removes every mob, e.g. once no one is left to see them.
 func (h *Herd) Clear() { h.mobs = nil }
 
-// Changes is what one step did; Bitten indexes the players slimes bit.
+// Changes is what one step did.
 type Changes struct {
 	Moved  []Mob
 	Gone   []uint32
-	Bitten []int
+	Bitten []Bite
 }
 
 // Step moves every mob on by the time since the last step, spawning and removing some.
@@ -129,8 +136,8 @@ func (h *Herd) live(m *Mob, now time.Time, dt float64, players []Player, g Groun
 	pos, yaw, sheared := m.Pos, m.Yaw, m.Sheared
 	h.think(m, now, players)
 	m.walk(dt, now, g)
-	if i, ok := m.bite(now, players); ok {
-		c.Bitten = append(c.Bitten, i)
+	if b, ok := m.bite(now, players); ok {
+		c.Bitten = append(c.Bitten, b)
 	}
 	if m.Sheared && !now.Before(m.regrow) {
 		m.Sheared = false
@@ -138,11 +145,12 @@ func (h *Herd) live(m *Mob, now time.Time, dt float64, players []Player, g Groun
 	return m.Pos != pos || m.Yaw != yaw || m.Sheared != sheared
 }
 
-// Hit is what hitting a mob did: what it dropped and whether it popped.
+// Hit is what hitting a mob did: what it dropped, whether it popped and any mobs it let out.
 type Hit struct {
-	Mob  Mob
-	Drop world.Block // Air for nothing
-	Gone bool
+	Mob     Mob
+	Drop    world.Block // Air for nothing
+	Gone    bool
+	Spawned []Mob
 }
 
 // Hit lets someone whose eye is at `from` hit mob id; false when it isn't there or is out of reach.
@@ -153,7 +161,7 @@ func (h *Herd) Hit(id uint32, from motion.Vec, now time.Time) (Hit, bool) {
 	}
 	m := h.mobs[i]
 	middle := motion.Vec{X: m.Pos.X, Y: m.Pos.Y + m.height()/2, Z: m.Pos.Z}
-	if motion.Distance(from, middle) > reach {
+	if motion.Distance(from, middle) > reach+kinds[m.Kind].halfWidth {
 		return Hit{}, false
 	}
 	var out Hit
@@ -163,11 +171,15 @@ func (h *Herd) Hit(id uint32, from motion.Vec, now time.Time) (Hit, bool) {
 		if !m.Sheared {
 			m.Sheared, m.regrow, out.Drop = true, now.Add(Regrow), world.WhiteWool
 		}
-	case Slime:
-		m.flee(from, now, 5, 300*time.Millisecond)
+	default:
+		if !kinds[m.Kind].steady {
+			m.flee(from, now, 5, 300*time.Millisecond)
+		}
 		if m.health--; m.health <= 0 {
 			h.mobs = slices.Delete(h.mobs, i, i+1)
 			out.Gone = true
+		} else if m.Kind == KingSlime && m.health%shedEvery == 0 {
+			out.Spawned = append(out.Spawned, h.Add(Slime, m.Pos, now))
 		}
 	}
 	out.Mob = *m

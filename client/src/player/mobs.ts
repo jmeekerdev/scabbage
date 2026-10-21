@@ -11,6 +11,8 @@ const HURT_MS = 300;
 export const MOB_SIZE: Record<number, { halfWidth: number; height: number }> = {
   [MobKind.SHEEP]: { halfWidth: 0.45, height: 1.3 },
   [MobKind.SLIME]: { halfWidth: 0.4, height: 0.8 },
+  [MobKind.KING_SLIME]: { halfWidth: 1, height: 2 },
+  [MobKind.GOLEM]: { halfWidth: 0.6, height: 2.6 },
 };
 
 export interface MobInfo {
@@ -20,6 +22,8 @@ export interface MobInfo {
   yaw: number;
   sheared: boolean;
   hurt: boolean;
+  health?: number; // bosses only
+  maxHealth?: number;
 }
 
 export interface MobState {
@@ -31,11 +35,15 @@ export interface MobState {
   yaw: number;
   sheared: boolean;
   hurt: boolean; // flashing from a hit
+  health: number; // bosses only; 0 for others
+  maxHealth: number;
 }
 
 interface Tracked {
   kind: MobKind;
   sheared: boolean;
+  health: number;
+  maxHealth: number;
   hurtUntil: number;
   snaps: Snapshot[];
 }
@@ -61,6 +69,8 @@ export class Mobs {
         this.mobs.set(m.id, {
           kind: m.kind,
           sheared: m.sheared,
+          health: m.health ?? 0,
+          maxHealth: m.maxHealth ?? 0,
           hurtUntil: 0,
           snaps: [{ atMs: nowMs, pose }],
         });
@@ -68,6 +78,8 @@ export class Mobs {
       }
       this.moved(t, pose, nowMs);
       t.sheared = m.sheared;
+      t.health = m.health ?? 0;
+      t.maxHealth = m.maxHealth ?? 0;
       if (m.hurt) t.hurtUntil = nowMs + HURT_MS;
     }
   }
@@ -80,7 +92,8 @@ export class Mobs {
     const at = nowMs - 2 * this.stepMs;
     return [...this.mobs].map(([id, t]) => {
       const { x, y, z, yaw } = sampleAt(t.snaps, at);
-      return { id, kind: t.kind, x, y, z, yaw, sheared: t.sheared, hurt: nowMs < t.hurtUntil };
+      const { kind, sheared, health, maxHealth } = t;
+      return { id, kind, x, y, z, yaw, sheared, hurt: nowMs < t.hurtUntil, health, maxHealth };
     });
   }
 

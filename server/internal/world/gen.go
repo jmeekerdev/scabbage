@@ -12,13 +12,15 @@ type Generator interface {
 }
 
 // LatestGenerator is the version new worlds use.
-const LatestGenerator = 1
+const LatestGenerator = 2
 
 // NewGenerator returns the generator for a stored version.
 func NewGenerator(version uint32, seed int64) (Generator, error) {
 	switch version {
 	case 1:
 		return NewGenV1(seed), nil
+	case 2:
+		return NewGenV2(seed), nil
 	}
 	return nil, fmt.Errorf("unknown world generator version %d", version)
 }
@@ -171,4 +173,36 @@ func abs(v int32) int32 {
 		return -v
 	}
 	return v
+}
+
+// GenV2 is version 1's land with dungeons under it.
+type GenV2 struct {
+	*GenV1
+	dungeons uint64
+}
+
+// NewGenV2 returns a version 2 generator for seed.
+func NewGenV2(seed int64) *GenV2 {
+	return &GenV2{GenV1: NewGenV1(seed), dungeons: mix(uint64(seed) ^ 0x64756e67656f6e)}
+}
+
+// Version implements Generator.
+func (g *GenV2) Version() uint32 { return 2 }
+
+// Generate implements Generator.
+func (g *GenV2) Generate(p ChunkPos) *Chunk {
+	c := g.GenV1.Generate(p)
+	ox, oy, oz := p.Origin()
+	d, ok := g.dungeonIn(regionOf(ox), regionOf(oz))
+	if !ok || oy > d.floor+maxStairs+8 || oy+Size <= d.floor {
+		return c
+	}
+	d.build(func(x, y, z int32, b Block) {
+		lx, ly, lz := x-ox, y-oy, z-oz
+		if lx >= 0 && ly >= 0 && lz >= 0 && lx < Size && ly < Size && lz < Size {
+			c.Set(int(lx), int(ly), int(lz), b)
+		}
+	})
+	c.compact()
+	return c
 }

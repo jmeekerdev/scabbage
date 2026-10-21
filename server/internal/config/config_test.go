@@ -89,3 +89,14 @@ func TestGameMode(t *testing.T) {
 		t.Fatal("expected error for an unknown mode")
 	}
 }
+
+func TestUpgradeWorldFromFlagOrEnv(t *testing.T) {
+	byFlag, err := Load([]string{"-upgrade-world"}, env(nil))
+	if err != nil || !byFlag.Upgrade {
+		t.Fatalf("flag: %+v, %v", byFlag, err)
+	}
+	byEnv, err := Load(nil, env(map[string]string{"SCABBAGE_UPGRADE_WORLD": "1"}))
+	if err != nil || !byEnv.Upgrade {
+		t.Fatalf("env: %+v, %v", byEnv, err)
+	}
+}

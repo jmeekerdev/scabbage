@@ -5,6 +5,7 @@ import {
   buildWorldFor,
   placeEdit,
   PressFilter,
+  UseHold,
   usesBlock,
   type BuildWorld,
 } from "./building";
@@ -174,5 +175,15 @@ describe("PressFilter", () => {
       true,
       true,
     ]);
+  });
+});
+
+describe("UseHold", () => {
+  it("keeps a held press that used a block from placing until it is let go", () => {
+    const hold = new UseHold(250);
+    expect(hold.blocks(0)).toBe(false);
+    hold.used(0);
+    expect([250, 500, 750].map((t) => hold.blocks(t))).toEqual([true, true, true]);
+    expect(hold.blocks(1500)).toBe(false);
   });
 });

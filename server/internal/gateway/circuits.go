@@ -45,8 +45,14 @@ func (g *Gateway) use(s *session, p logic.Pos) (bool, error) {
 	if !edit.InReach(s.body.Pos(), p.X, p.Y, p.Z) {
 		return false, nil
 	}
-	if b, _ := g.cfg.World.Block(p.X, p.Y, p.Z); b.Item() == world.ScriptBlock {
+	switch b, _ := g.cfg.World.Block(p.X, p.Y, p.Z); {
+	case b.Item() == world.ScriptBlock:
 		g.touchScriptLocked(s, p)
+		return true, nil
+	case b == world.Chest:
+		return true, g.openChest(s, p)
+	case b == world.BossAltar:
+		g.wakeBoss(s, p)
 		return true, nil
 	}
 	changes, used, err := logic.Use(circuitWorld{g}, p)

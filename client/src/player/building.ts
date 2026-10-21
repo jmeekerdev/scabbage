@@ -136,3 +136,21 @@ export class PressFilter {
     return fresh;
   }
 }
+
+/** Stops a held place button that used a block, like a chest, from then building against it. */
+export class UseHold {
+  private untilMs = -Infinity;
+
+  constructor(private readonly repeatMs: number) {}
+
+  used(nowMs: number): void {
+    this.untilMs = nowMs + this.repeatMs * 1.5;
+  }
+
+  /** Whether this place press continues a use; each repeat keeps the hold going. */
+  blocks(nowMs: number): boolean {
+    if (nowMs >= this.untilMs) return false;
+    this.used(nowMs);
+    return true;
+  }
+}

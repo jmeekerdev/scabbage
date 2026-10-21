@@ -14,18 +14,22 @@ type kind struct {
 	health            int
 	walk              float64 // blocks per second while wandering or chasing
 	chases            bool
+	damage            int  // a bite's harm
+	boss              bool // woken at an altar; never melts
+	steady            bool // stands its ground when hit
 }
 
 var kinds = map[Kind]kind{
-	Sheep: {height: 1.3, halfWidth: 0.45, health: 1, walk: 1},
-	Slime: {height: 0.8, halfWidth: 0.4, health: 3, walk: 2.5, chases: true},
+	Sheep:     {height: 1.3, halfWidth: 0.45, health: 1, walk: 1},
+	Slime:     {height: 0.8, halfWidth: 0.4, health: 3, walk: 2.5, chases: true, damage: 2},
+	KingSlime: {height: 2, halfWidth: 1, health: 24, walk: 2, chases: true, damage: 4, boss: true},
+	Golem:     {height: 2.6, halfWidth: 0.6, health: 40, walk: 1.6, chases: true, damage: 6, boss: true, steady: true},
 }
 
 const (
 	chaseRange = 16.0
-	biteReach  = 0.9 // horizontally, between the slime's and the player's centers
+	biteGap    = 0.5 // between the mob's side and the player's center, horizontally
 	biteEvery  = 1500 * time.Millisecond
-	BiteDamage = 2
 	stepUp     = 1.0 // highest ledge a mob hops onto
 	maxDrop    = 3.0 // deepest it will jump down
 )
@@ -124,19 +128,23 @@ func clear(x, z int32, bottom, height float64, g Ground) bool {
 	return true
 }
 
-// bite lets a slime touching prey hurt them, now and then; it returns whom.
-func (m *Mob) bite(now time.Time, players []Player) (int, bool) {
-	if !kinds[m.Kind].chases || now.Before(m.biteAt) {
-		return 0, false
+// Bite is a mob hurting the player at index Player.
+type Bite struct{ Player, Damage int }
+
+// bite lets a monster touching prey hurt them, now and then.
+func (m *Mob) bite(now time.Time, players []Player) (Bite, bool) {
+	k := kinds[m.Kind]
+	if !k.chases || now.Before(m.biteAt) {
+		return Bite{}, false
 	}
 	for i, p := range players {
 		dy := p.Pos.Y - m.Pos.Y
-		if p.Prey && math.Hypot(p.Pos.X-m.Pos.X, p.Pos.Z-m.Pos.Z) <= biteReach && dy > -motion.Height && dy < m.height() {
+		if p.Prey && math.Hypot(p.Pos.X-m.Pos.X, p.Pos.Z-m.Pos.Z) <= k.halfWidth+biteGap && dy > -motion.Height && dy < m.height() {
 			m.biteAt = now.Add(biteEvery)
-			return i, true
+			return Bite{i, k.damage}, true
 		}
 	}
-	return 0, false
+	return Bite{}, false
 }
 
 func cell(v float64) int32 { return int32(math.Floor(v)) }

@@ -70,6 +70,12 @@ describe("buildRenderTable", () => {
     expect(BLOCK_STYLES.script_block_on?.side).toBe("script_block_on");
   });
 
+  it("paints dungeon treasure", () => {
+    for (const name of ["chest", "chest_open", "boss_altar", "gold_block", "gem_block"])
+      expect(BLOCK_STYLES[name], name).toBeDefined();
+    expect(BLOCK_STYLES.chest.top).not.toBe(BLOCK_STYLES.chest_open.top);
+  });
+
   it("shows unknown blocks with a placeholder texture instead of failing", () => {
     expect(t.layers[4 * 6]).toBe(layer("missing"));
   });

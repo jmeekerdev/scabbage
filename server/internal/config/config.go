@@ -20,6 +20,7 @@ type Config struct {
 	Mode       string   // game mode for players without their own: creative or survival
 	SpawnZone  int      // half-width of the admins-only zone around spawn; 0 turns it off
 	Origins    []string // extra allowed WebSocket Origin hosts
+	Upgrade    bool     // add dungeons to a world made before them
 }
 
 // Load parses args (without the program name); getenv supplies defaults for unset flags.
@@ -54,6 +55,8 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	fs.StringVar(&c.Mode, "mode", or("SCABBAGE_MODE", "creative"), "game mode for new players: creative or survival")
 	fs.IntVar(&c.SpawnZone, "spawn-zone", ints["SCABBAGE_SPAWN_ZONE"], "half-width of the admins-only zone around spawn (0 = off)")
 	fs.StringVar(&origins, "origins", or("SCABBAGE_ORIGINS", ""), "comma-separated extra allowed WebSocket origins")
+	fs.BoolVar(&c.Upgrade, "upgrade-world", or("SCABBAGE_UPGRADE_WORLD", "") == "1",
+		"add dungeons to an older world where no one has built (set SCABBAGE_UPGRADE_WORLD=1)")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
 	}

@@ -123,9 +123,9 @@ func TestSlimesChaseAndBiteOnlyPrey(t *testing.T) {
 	if len(c.Bitten) == 0 {
 		t.Fatal("the slime never bit")
 	}
-	for _, i := range c.Bitten {
-		if i != 1 {
-			t.Fatalf("bit player %d, who is not prey", i)
+	for _, b := range c.Bitten {
+		if b.Player != 1 || b.Damage != 2 {
+			t.Fatalf("bite %+v: player 1 is the prey and slimes bite for 2", b)
 		}
 	}
 	if len(c.Bitten) > 4 {

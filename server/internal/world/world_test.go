@@ -32,7 +32,7 @@ func openWorld(t *testing.T, db *sql.DB) *World {
 func TestOpenCreatesWorldOnceAndKeepsSeed(t *testing.T) {
 	db := openDB(t)
 	w := openWorld(t, db)
-	if w.Meta().Seed != 42 || w.Meta().Generator != 1 || w.Meta().Radius != 64 {
+	if w.Meta().Seed != 42 || w.Meta().Generator != LatestGenerator || w.Meta().Radius != 64 {
 		t.Fatalf("meta = %+v", w.Meta())
 	}
 	again, err := Open(NewStore(db), "main", Defaults{Seed: 7, Radius: 16})
@@ -251,5 +251,84 @@ func TestTickingBlocksAreIndexedWhileLoaded(t *testing.T) {
 	}
 	if got := w.Ticking(); len(got) != 1 {
 		t.Fatalf("loading the chunk again should find its timer: %v", got)
+	}
+}
+
+func TestUpgradeAddsDungeonsToVersion1Worlds(t *testing.T) {
+	db := openDB(t)
+	if _, err := db.Exec(`INSERT INTO worlds (name, seed, generator, radius, created_ms) VALUES ('main', 42, 1, 64, 0)`); err != nil {
+		t.Fatal(err)
+	}
+	if w, err := Open(NewStore(db), "main", Defaults{}); err != nil || w.Meta().Generator != 1 {
+		t.Fatalf("without upgrade: %+v, %v", w.Meta(), err)
+	}
+	w, err := Open(NewStore(db), "main", Defaults{Upgrade: true})
+	if err != nil || w.Meta().Generator != 2 {
+		t.Fatalf("upgraded: %+v, %v", w.Meta(), err)
+	}
+	if again, _ := Open(NewStore(db), "main", Defaults{}); again.Meta().Generator != 2 {
+		t.Fatal("the upgrade wasn't kept")
+	}
+}
+
+func TestTopIsJustAboveAColumnsHighestBlock(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	y, err := w.Top(5, 5)
+	if err != nil || y <= NewGenV2(42).SurfaceY(5, 5) {
+		t.Fatalf("top = %d, %v", y, err)
+	}
+	if err := w.SetBlock(5, y+3, 5, Stone); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := w.Top(5, 5); again != y+4 {
+		t.Fatalf("top under a floating block = %d, want %d", again, y+4)
+	}
+	if _, err := w.Top(10000, 0); err == nil {
+		t.Fatal("no error beyond the border")
+	}
+}
+
+func TestAddDungeonsFillsUntouchedSavedLand(t *testing.T) {
+	db := openDB(t)
+	if _, err := db.Exec(`INSERT INTO worlds (name, seed, generator, radius, created_ms) VALUES ('main', 42, 1, 256, 0)`); err != nil {
+		t.Fatal(err)
+	}
+	old, err := Open(NewStore(db), "main", Defaults{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := NewGenV2(42)
+	untouched, _ := g.dungeonIn(2, 0)
+	built, _ := g.dungeonIn(-3, 2)
+	for _, d := range []dungeon{untouched, built} {
+		for _, p := range d.chunks() {
+			if _, err := old.Chunk(p); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := old.SetBlock(built.x0, built.floor, built.z0, Glass); err != nil {
+		t.Fatal(err)
+	}
+	if err := old.Unload(); err != nil {
+		t.Fatal(err)
+	}
+
+	w, err := Open(NewStore(db), "main", Defaults{Upgrade: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, err := w.AddDungeons(); err != nil || n != 1 {
+		t.Fatalf("added %d dungeons, %v", n, err)
+	}
+	back := untouched.x0 + roomOuter - 2
+	if b, _ := w.Block(back, untouched.floor+1, untouched.door()); b != BossAltar {
+		t.Errorf("untouched land has %v where the altar goes", b)
+	}
+	if b, _ := w.Block(built.x0, built.floor, built.z0); b != Glass {
+		t.Errorf("a built-on dungeon was dug in: %v", b)
+	}
+	if n, _ := w.AddDungeons(); n != 0 {
+		t.Errorf("a second run added %d", n)
 	}
 }

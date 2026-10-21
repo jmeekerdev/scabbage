@@ -46,6 +46,10 @@ const (
 	Portal       = NoteBlock + 16    // a lobby pad that joins an arena's round
 	CountingDown = Portal + 1        // a counter past 9 counting 1 to 8 back down, each with its powered state
 	ScriptBlock  = CountingDown + 16 // runs its Lua when used or powered, then its powered state
+	Chest        = ScriptBlock + 2   // gives loot when first used, then stays open
+	BossAltar    = Chest + 2         // wakes a boss when used
+	GoldBlock    = BossAltar + 1
+	GemBlock     = GoldBlock + 1
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block.
@@ -155,7 +159,19 @@ func machines() []BlockInfo {
 	out = append(out, numbered(BlockInfo{Name: "note_block", Solid: true, Usable: true, MineMs: 300}, 8)...)
 	out = append(out, BlockInfo{Name: "portal", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
 	out = append(out, countingDown()...)
-	return append(out, withOn(BlockInfo{Name: "script_block", Solid: true, Usable: true, MineMs: 300}, "_on", 0)...)
+	out = append(out, withOn(BlockInfo{Name: "script_block", Solid: true, Usable: true, MineMs: 300}, "_on", 0)...)
+	return append(out, treasures()...)
+}
+
+// treasures are what dungeons hold: chests, the boss altar and the riches only loot gives.
+func treasures() []BlockInfo {
+	return []BlockInfo{
+		{Name: "chest", Solid: true, Usable: true, MineMs: 800, Drop: Planks},
+		{Name: "chest_open", Solid: true, MineMs: 800, Drop: Planks, Variant: 1},
+		{Name: "boss_altar", Solid: true, Usable: true, Light: MaxLight / 2, MineMs: 3000, Drop: Cobblestone},
+		{Name: "gold_block", Solid: true, MineMs: 800},
+		{Name: "gem_block", Solid: true, Light: MaxLight / 3, MineMs: 800},
+	}
 }
 
 // countingDown is the counter's states on its way back from 9, held as a counter.

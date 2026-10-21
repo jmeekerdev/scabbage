@@ -49,11 +49,18 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	defer func() { _ = db.Close() }()
-	w, err := world.Open(world.NewStore(db), "main", world.Defaults{})
+	w, err := world.Open(world.NewStore(db), "main", world.Defaults{Upgrade: cfg.Upgrade})
 	if err != nil {
 		return err
 	}
 	defer saveWorld(w, logger)
+	if cfg.Upgrade {
+		added, err := w.AddDungeons()
+		if err != nil {
+			return err
+		}
+		logger.Info("dungeons added to explored land", "count", added)
+	}
 	logger.Info("world ready", "seed", w.Meta().Seed, "generator", w.Meta().Generator, "radius", w.Meta().Radius)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

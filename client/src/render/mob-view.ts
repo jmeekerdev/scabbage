@@ -15,6 +15,12 @@ const shapes = {
   jelly: box(0.8, 0.8, 0.8),
   core: box(0.4, 0.4, 0.4),
   eye: box(0.12, 0.16, 0.02),
+  crownBand: box(0.5, 0.08, 0.5),
+  crownPoint: box(0.08, 0.14, 0.08),
+  golemBody: box(1.2, 1.1, 0.7),
+  golemHead: box(0.6, 0.55, 0.55),
+  golemArm: box(0.34, 1.2, 0.34),
+  golemLeg: box(0.42, 0.95, 0.42),
 };
 const paints = {
   wool: paint(0xf4f4f0),
@@ -24,6 +30,10 @@ const paints = {
   core: paint(0x2e8b3e),
   eye: paint(0x101010),
   hurt: paint(0xff5050),
+  gold: paint(0xf0c43c),
+  rock: paint(0x8a8a90),
+  mossy: paint(0x6f8a5a),
+  glow: paint(0xffa030),
 };
 
 function part(shape: BoxGeometry, material: Material, x: number, y: number, z: number): Mesh {
@@ -56,13 +66,48 @@ function slime(): Group {
   return g;
 }
 
+const KING_SIZE = 2.5; // a king slime is a slime this many times bigger
+
+function kingSlime(): Group {
+  const g = slime();
+  g.add(part(shapes.crownBand, paints.gold, 0, 0.84, 0));
+  for (const [x, z] of [
+    [-0.21, -0.21],
+    [0.21, -0.21],
+    [-0.21, 0.21],
+    [0.21, 0.21],
+  ] as const)
+    g.add(part(shapes.crownPoint, paints.gold, x, 0.95, z));
+  const outer = new Group();
+  g.scale.setScalar(KING_SIZE);
+  outer.add(g);
+  return outer;
+}
+
+function golem(): Group {
+  const g = new Group();
+  g.add(part(shapes.golemBody, paints.rock, 0, 1.5, 0));
+  g.add(part(shapes.golemHead, paints.mossy, 0, 2.33, 0.05));
+  g.add(part(shapes.eye, paints.glow, -0.14, 2.38, 0.33));
+  g.add(part(shapes.eye, paints.glow, 0.14, 2.38, 0.33));
+  for (const x of [-0.78, 0.78]) g.add(part(shapes.golemArm, paints.rock, x, 1.35, 0));
+  for (const x of [-0.3, 0.3]) g.add(part(shapes.golemLeg, paints.mossy, x, 0.475, 0));
+  return g;
+}
+
+const BUILDERS: Partial<Record<MobKind, () => Group>> = {
+  [MobKind.SLIME]: slime,
+  [MobKind.KING_SLIME]: kingSlime,
+  [MobKind.GOLEM]: golem,
+};
+
 interface Figure {
   group: Group;
   hopMs: number; // time spent moving, for the slime's bounce
   last?: MobState;
 }
 
-/** Sheep and slimes, built from a few shared boxes. */
+/** Sheep, slimes and bosses, built from a few shared boxes. */
 export class MobView {
   private readonly figures = new Map<number, Figure>();
 
@@ -83,7 +128,7 @@ export class MobView {
   }
 
   private add(m: MobState): Figure {
-    const f = { group: m.kind === MobKind.SLIME ? slime() : sheep(), hopMs: 0 };
+    const f = { group: (BUILDERS[m.kind] ?? sheep)(), hopMs: 0 };
     f.group.name = `mob ${m.id}`;
     this.scene.add(f.group);
     this.figures.set(m.id, f);
@@ -96,13 +141,13 @@ export class MobView {
     f.last = m;
     f.group.position.set(m.x, m.y, m.z);
     f.group.rotation.y = m.yaw;
-    if (m.kind === MobKind.SLIME) bounce(f.group, f.hopMs);
+    if (m.kind === MobKind.SLIME || m.kind === MobKind.KING_SLIME) bounce(f.group, f.hopMs);
+    if (m.kind === MobKind.GOLEM) f.group.rotation.z = 0.05 * Math.sin(f.hopMs / 250);
     const wool = f.group.children[0] as Mesh;
     if (m.kind === MobKind.SHEEP) wool.userData.paint = m.sheared ? paints.skin : paints.wool;
-    for (const c of f.group.children) {
-      const mesh = c as Mesh;
-      mesh.material = m.hurt ? paints.hurt : (mesh.userData.paint as Material);
-    }
+    f.group.traverse((c) => {
+      if (c instanceof Mesh) c.material = m.hurt ? paints.hurt : (c.userData.paint as Material);
+    });
   }
 }
 

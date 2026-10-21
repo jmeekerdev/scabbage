@@ -72,15 +72,28 @@ func (w *World) EncodedChunk(p ChunkPos) ([]byte, error) {
 
 // Spawn returns the center of the column at the world's middle, just above its top block.
 func (w *World) Spawn() (x, y, z float64) {
+	top, err := w.Top(0, 0)
+	if err != nil {
+		top = MaxY
+	}
+	return 0.5, float64(top), 0.5
+}
+
+// Top is the y just above column x,z's highest block, where someone could stand.
+func (w *World) Top(x, z int32) (int32, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	top := int32(MaxY - 1)
 	for ; top > MinY; top-- {
-		if b, err := w.block(0, top, 0); err != nil || b != Air {
+		b, err := w.block(x, top, z)
+		if err != nil {
+			return 0, err
+		}
+		if b != Air {
 			break
 		}
 	}
-	return 0.5, float64(top + 1), 0.5
+	return top + 1, nil
 }
 
 // Chunk returns a loaded chunk, reading it from storage or generating it as needed.

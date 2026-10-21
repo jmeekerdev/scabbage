@@ -1004,3 +1004,37 @@ body.page .requests {
 .quests .quest.done {
   opacity: 0.6;
 }
+
+.boss-bar {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100vw - 32px));
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  text-shadow: 0 0 3px #000;
+  pointer-events: none;
+}
+
+.boss-bar .track {
+  height: 10px;
+  margin-top: 4px;
+  border: 2px solid #000;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 50%);
+  overflow: hidden;
+}
+
+.boss-bar .fill {
+  height: 100%;
+  background: linear-gradient(#f66, #b22);
+  transition: width 0.2s;
+}
+
+@media (max-width: 1100px) {
+  .boss-bar {
+    top: calc(max(8px, env(safe-area-inset-top)) + 136px);
+  }
+}

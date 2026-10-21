@@ -25,8 +25,9 @@ type Meta struct {
 
 // Defaults apply only when a world is first created. Zero values pick a random seed and DefaultRadius.
 type Defaults struct {
-	Seed   int64
-	Radius int32
+	Seed    int64
+	Radius  int32
+	Upgrade bool // move a version 1 world to version 2: the same land, with dungeons where no one built
 }
 
 // Store reads and writes worlds and chunks in SQLite.
@@ -51,6 +52,11 @@ func (s *Store) world(name string, d Defaults) (Meta, error) {
 		VALUES (?, ?, ?, ?, ?)`, name, seed, LatestGenerator, radius, time.Now().UnixMilli())
 	if err != nil {
 		return Meta{}, err
+	}
+	if d.Upgrade {
+		if _, err := s.db.Exec(`UPDATE worlds SET generator = 2 WHERE name = ? AND generator = 1`, name); err != nil {
+			return Meta{}, err
+		}
 	}
 	m := Meta{Name: name}
 	err = s.db.QueryRow(`SELECT id, seed, generator, radius FROM worlds WHERE name = ?`, name).
@@ -82,6 +88,21 @@ func (s *Store) saveChunks(world int64, chunks map[ChunkPos][]byte) error {
 	}
 	for p, data := range chunks {
 		if _, err := stmt.Exec(world, p.X, p.Y, p.Z, data); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// deleteChunks forgets stored chunks, so they generate afresh.
+func (s *Store) deleteChunks(world int64, ps []ChunkPos) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	for _, p := range ps {
+		if _, err := tx.Exec(`DELETE FROM chunks WHERE world_id = ? AND x = ? AND y = ? AND z = ?`, world, p.X, p.Y, p.Z); err != nil {
 			return err
 		}
 	}
