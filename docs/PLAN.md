@@ -272,7 +272,10 @@ Each phase ends with something the family can play. Compact the model context be
       a scoreboard in the corner shows status, clock, points and flags; anyone can `/leave`)
 
 ### Phase 6 — Kid-Friendly Scripting
-- [ ] Blockly (visual blocks) in the browser, generating Lua
+- [x] Blockly (visual blocks) in the browser, generating Lua
+      (a lazy chunk loaded when the script editor opens; "when" blocks for each event plus place, give,
+      teleport, points and wait blocks, placed relative to `here`; the blocks ride along in a trailing Lua
+      comment so scripts reopen as blocks; Lua edits switch the script to text)
 - [x] Sandboxed `gopher-lua` on the server: CPU/memory/instruction limits, a whitelisted API
       (`on_touch`, `say`, `set_block`, `give_item`, `teleport`, timers)
       (`internal/script`: base, string, table and math only; 10 ms per run, and a script that overruns

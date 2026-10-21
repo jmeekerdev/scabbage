@@ -16,6 +16,7 @@ type Host interface {
 	GiveItem(player, item string, count int) error
 	Teleport(player string, x, y, z float64) error
 	AddPoints(player string, n int) error // in the round of the arena the script is in
+	Where() (x, y, z int32)               // the script's own block
 }
 
 const (
@@ -30,8 +31,15 @@ const (
 	maxDelay = time.Hour
 )
 
-// register gives the script its world calls: say, set_block, give_item, teleport, add_points and after.
+// register gives the script its world calls: say, set_block, give_item, teleport, add_points and after,
+// and `here`, where its block is.
 func (s *Script) register() {
+	x, y, z := s.host.Where()
+	here := s.L.NewTable()
+	here.RawSetString("x", lua.LNumber(x))
+	here.RawSetString("y", lua.LNumber(y))
+	here.RawSetString("z", lua.LNumber(z))
+	s.L.SetGlobal("here", here)
 	for name, fn := range map[string]lua.LGFunction{
 		"say":        s.say,
 		"set_block":  s.setBlock,

@@ -289,6 +289,9 @@ func (h scriptHost) AddPoints(player string, n int) error {
 	return nil
 }
 
+// Where is the script block's own position.
+func (h scriptHost) Where() (x, y, z int32) { return h.at.X, h.at.Y, h.at.Z }
+
 // nearLocked finds the in-world player called name within reach of the script; call with g.mu held.
 func (h scriptHost) nearLocked(name string) (*session, *avatar) {
 	for s, a := range h.g.players {

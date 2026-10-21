@@ -77,6 +77,7 @@ import { emojiFor } from "./social/emotes";
 import { HealthView } from "./ui/health-view";
 import { ScoreboardView } from "./ui/scoreboard-view";
 import { ScriptEditor } from "./ui/script-editor";
+import { scriptBlockNames } from "./ui/script-names";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { BlockPicker } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
@@ -405,6 +406,7 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   building = buildWorldFor({ ...bounds, blocks }, blockAt);
   notes = noteTable(blocks);
   scriptBlocks = new Set(blocks.filter((b) => b.name.startsWith("script_block")).map((b) => b.id));
+  scriptEditor.setBlockNames(scriptBlockNames(blocks));
   const name = (id: number) => blocks.find((b) => b.id === id)?.name ?? "missing";
   const icon = blockIconPainter(atlas, table);
   mountHotbar($("#hotbar"), hotbar, name, icon);

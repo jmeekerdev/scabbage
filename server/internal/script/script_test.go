@@ -40,6 +40,9 @@ func (h *fakeHost) Teleport(player string, x, y, z float64) error {
 	return h.refusing
 }
 
+// Where puts every fake script block at 5 6 7.
+func (h *fakeHost) Where() (x, y, z int32) { return 5, 6, 7 }
+
 var t0 = time.Unix(1000, 0)
 
 func load(t *testing.T, src string) (*Script, *fakeHost) {
@@ -60,6 +63,16 @@ func TestTouchRunsTheHandlerWithThePlayersName(t *testing.T) {
 	}
 	if !slices.Equal(h.said, []string{"hi ada"}) {
 		t.Fatalf("said %q", h.said)
+	}
+}
+
+func TestScriptsKnowWhereTheirBlockIs(t *testing.T) {
+	s, h := load(t, `function on_touch() set_block(here.x, here.y + 1, here.z, "lamp") end`)
+	if err := s.Touch("ada", t0); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(h.blocks, []string{"5 7 7 lamp"}) {
+		t.Fatalf("blocks %q", h.blocks)
 	}
 }
 

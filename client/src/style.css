@@ -863,7 +863,7 @@ body.page .requests {
 
 /* Script editor. */
 .script-editor {
-  width: min(640px, 100%);
+  width: min(960px, 100%);
   max-height: 100%;
   overflow-y: auto;
 }
@@ -897,6 +897,37 @@ body.page .requests {
   tab-size: 2;
   user-select: text;
   -webkit-user-select: text;
+}
+
+.script-editor .modes {
+  display: flex;
+  gap: 8px;
+}
+
+.script-editor .modes button {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 16px;
+  letter-spacing: 0;
+  opacity: 0.6;
+}
+
+.script-editor .modes button[aria-pressed="true"] {
+  opacity: 1;
+  outline: 2px solid #7fd4ff;
+}
+
+.script-editor .blocks {
+  height: min(62vh, 560px);
+  min-height: 280px;
+  border: 2px solid #3a4560;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.script-editor .blocks[hidden],
+.script-editor textarea[hidden] {
+  display: none;
 }
 
 .script-editor .status {

@@ -37,6 +37,7 @@ func (h fakeHost) SetBlock(x, y, z int32, name string) error {
 func (fakeHost) GiveItem(string, string, int) error               { return nil }
 func (fakeHost) Teleport(string, float64, float64, float64) error { return nil }
 func (fakeHost) AddPoints(string, int) error                      { return nil }
+func (h fakeHost) Where() (x, y, z int32)                         { return h.at.X, h.at.Y, h.at.Z }
 
 type env struct {
 	svc   *Service
