@@ -50,6 +50,7 @@ const (
 	BossAltar    = Chest + 2         // wakes a boss when used
 	GoldBlock    = BossAltar + 1
 	GemBlock     = GoldBlock + 1
+	Checkpoint   = GemBlock + 1 // a pad that remembers where you come back after fainting
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block.
@@ -160,7 +161,8 @@ func machines() []BlockInfo {
 	out = append(out, BlockInfo{Name: "portal", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
 	out = append(out, countingDown()...)
 	out = append(out, withOn(BlockInfo{Name: "script_block", Solid: true, Usable: true, MineMs: 300}, "_on", 0)...)
-	return append(out, treasures()...)
+	out = append(out, treasures()...)
+	return append(out, BlockInfo{Name: "checkpoint", Transparent: true, Shape: Flat, Light: MaxLight / 3, MineMs: 300})
 }
 
 // treasures are what dungeons hold: chests, the boss altar and the riches only loot gives.
@@ -239,6 +241,13 @@ func Register(b BlockInfo) error {
 	return nil
 }
 
+// ForgetCustomBlocks unregisters every custom block, e.g. when the world is wiped.
+func ForgetCustomBlocks() {
+	customMu.Lock()
+	defer customMu.Unlock()
+	custom.Store(nil)
+}
+
 // Blocks returns every known block in ID order: built-ins (indexed by ID), then custom blocks.
 func Blocks() []BlockInfo {
 	out := slices.Clone(blocks)
@@ -263,6 +272,21 @@ func Builtin(name string) (Block, bool) {
 	for _, b := range blocks {
 		if b.Name == name {
 			return b.ID, true
+		}
+	}
+	return Air, false
+}
+
+// Named finds the built-in or custom block called name.
+func Named(name string) (Block, bool) {
+	if b, ok := Builtin(name); ok {
+		return b, true
+	}
+	if m := custom.Load(); m != nil {
+		for _, info := range *m {
+			if info.Name == name {
+				return info.ID, true
+			}
 		}
 	}
 	return Air, false

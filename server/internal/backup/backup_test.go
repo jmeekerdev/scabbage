@@ -86,3 +86,26 @@ func TestSnapshotKeepsNewest(t *testing.T) {
 		t.Fatalf("files = %v, want %v", names, want)
 	}
 }
+
+func TestNamedSnapshotsAreNeverPrunedWithNightlyOnes(t *testing.T) {
+	dir := t.TempDir()
+	db, err := store.Open(filepath.Join(dir, "scabbage.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = db.Close() }()
+	kept := Backups{DB: db, Dir: filepath.Join(dir, "backups"), Prefix: "before-wipe-"}
+	path, err := kept.Snapshot(time.Date(2026, 5, 1, 4, 0, 0, 0, time.UTC))
+	if err != nil || filepath.Base(path) != "before-wipe-20260501-040000.db" {
+		t.Fatalf("snapshot %q, %v", path, err)
+	}
+	nightly := Backups{DB: db, Dir: kept.Dir, Keep: 1}
+	for day := 2; day <= 3; day++ {
+		if _, err := nightly.Snapshot(time.Date(2026, 5, day, 4, 0, 0, 0, time.UTC)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatal("nightly pruning removed the named snapshot")
+	}
+}

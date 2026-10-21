@@ -100,12 +100,18 @@ func TestSavesAreRemembered(t *testing.T) {
 	if got, err := f.svc.Saved(p.ID); err != nil || got.Placed || got.Health != 20 || len(got.Inventory) != 0 {
 		t.Fatalf("new player has %+v, %v", got, err)
 	}
-	want := Save{Placed: true, X: 1.5, Y: 70, Z: -3.25, Yaw: 0.5, Pitch: -0.25, Flying: true, Health: 7, Inventory: []byte{1, 2, 3}}
+	want := Save{Placed: true, X: 1.5, Y: 70, Z: -3.25, Yaw: 0.5, Pitch: -0.25, Flying: true, Health: 7, Inventory: []byte{1, 2, 3},
+		Checkpoint: &[3]int32{4, -5, 6}}
 	if err := f.svc.Store(p.ID, want); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := f.svc.Saved(p.ID); !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v", got)
+	}
+	want.Checkpoint = nil
+	_ = f.svc.Store(p.ID, want)
+	if got, _ := f.svc.Saved(p.ID); got.Checkpoint != nil {
+		t.Fatalf("checkpoint stayed: %v", got.Checkpoint)
 	}
 	if _, err := f.svc.Saved(99); !errors.Is(err, ErrNoPlayer) {
 		t.Fatalf("err = %v, want ErrNoPlayer", err)

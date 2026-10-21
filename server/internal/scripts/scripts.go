@@ -179,6 +179,16 @@ func (s *Service) Forget() {
 	}
 }
 
+// Wipe deletes every script and character, e.g. when the world starts over.
+func (s *Service) Wipe() error {
+	if _, err := s.db.Exec(`DELETE FROM scripts`); err != nil {
+		return err
+	}
+	s.loaded, s.queue = map[world.Pos]*entry{}, nil
+	s.npcs.byPos, s.npcs.unsaved = map[world.Pos]NPC{}, map[world.Pos]struct{}{}
+	return nil
+}
+
 // dispatch runs ev, then whatever it set off, unless a script is already running.
 func (s *Service) dispatch(ev event) []Failure {
 	s.queue = append(s.queue, ev)

@@ -76,6 +76,10 @@ describe("buildRenderTable", () => {
     expect(BLOCK_STYLES.chest.top).not.toBe(BLOCK_STYLES.chest_open.top);
   });
 
+  it("paints checkpoints for adventure maps", () => {
+    expect(BLOCK_STYLES.checkpoint?.top).toBe("checkpoint");
+  });
+
   it("shows unknown blocks with a placeholder texture instead of failing", () => {
     expect(t.layers[4 * 6]).toBe(layer("missing"));
   });

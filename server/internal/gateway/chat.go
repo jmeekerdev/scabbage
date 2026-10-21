@@ -10,7 +10,7 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 )
 
-const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /tp X Z, /tp X Y Z, /tp NAME, /zone, /arena; anyone can /leave a game"
+const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /tp X Z, /tp X Y Z, /tp NAME, /zone, /arena, /map, /world; anyone can /leave a game"
 
 // sendChat runs a command or shares a line with everyone in the world.
 func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
@@ -21,10 +21,14 @@ func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
 	if !ok {
 		return nil
 	}
+	cmd, isCommand := chat.ParseCommand(text)
+	if isCommand && s.player.Admin {
+		return s.command(ctx, cmd) // only the admin sees what commands say, so building maps isn't slowed
+	}
 	if !s.talk.Take(time.Now()) {
 		return s.notice(ctx, "Slow down a little!")
 	}
-	if cmd, ok := chat.ParseCommand(text); ok {
+	if isCommand {
 		return s.command(ctx, cmd)
 	}
 	s.log.Info("chat", "name", s.player.Name, "text", text)
@@ -74,6 +78,10 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 		return s.arenaCommand(ctx, c.Arg)
 	case "tp":
 		return s.tpCommand(ctx, c.Arg)
+	case "map":
+		return s.mapCommand(ctx, c.Arg)
+	case "world":
+		return s.worldCommand(ctx, c.Arg)
 	default:
 		return s.notice(ctx, commandHelp)
 	}

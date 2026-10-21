@@ -2,6 +2,7 @@
 package backup
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"os"
@@ -17,11 +18,13 @@ const (
 	stamp  = "20060102-150405"
 )
 
-// Backups snapshots DB into Dir, keeping the newest Keep copies.
+// Backups snapshots DB into Dir, keeping the newest Keep copies. Snapshots with their own Prefix
+// are kept until someone deletes them.
 type Backups struct {
-	DB   *sql.DB
-	Dir  string
-	Keep int
+	DB     *sql.DB
+	Dir    string
+	Keep   int
+	Prefix string // "scabbage-" when empty
 }
 
 // Snapshot writes a consistent copy named for now, then removes the oldest beyond Keep.
@@ -29,10 +32,14 @@ func (b Backups) Snapshot(now time.Time) (string, error) {
 	if err := os.MkdirAll(b.Dir, 0o750); err != nil {
 		return "", err
 	}
-	path := filepath.Join(b.Dir, prefix+now.Format(stamp)+suffix)
+	name := cmp.Or(b.Prefix, prefix)
+	path := filepath.Join(b.Dir, name+now.Format(stamp)+suffix)
 	_ = os.Remove(path) // VACUUM INTO refuses to overwrite
 	if _, err := b.DB.Exec(`VACUUM INTO ?`, path); err != nil {
 		return "", err
+	}
+	if name != prefix {
+		return path, nil
 	}
 	return path, b.prune()
 }

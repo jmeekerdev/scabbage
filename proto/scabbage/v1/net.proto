@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 20;
+  PROTOCOL_VERSION_CURRENT = 21;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -35,6 +35,7 @@ message ClientMessage {
     SaveScript save_script = 20;
     TalkTo talk_to = 21;
     Answer answer = 22;
+    ImportMap import_map = 23;
   }
 }
 
@@ -70,6 +71,8 @@ message ServerMessage {
     NpcsChanged npcs_changed = 27;
     Dialogue dialogue = 28;
     QuestLog quest_log = 29;
+    MapExported map_exported = 30;
+    ChunksStale chunks_stale = 31;
   }
 }
 
@@ -626,4 +629,21 @@ message Quest {
 // The recipient's whole quest log, newest first; in the Welcome and whenever it changes.
 message QuestLog {
   repeated Quest quests = 1;
+}
+
+// An admin's .scabmap file, to place as a new zone centred on them.
+message ImportMap {
+  string name = 1;
+  bytes data = 2;
+}
+
+// A saved map as a .scabmap file, for the admin who asked to export it.
+message MapExported {
+  string name = 1;
+  bytes data = 2;
+}
+
+// Chunks that changed too much to send block by block; clients holding them fetch them again.
+message ChunksStale {
+  repeated ChunkPos chunks = 1;
 }

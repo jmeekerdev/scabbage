@@ -101,3 +101,13 @@ func TestRemoveLeavesTheInventoryAloneWhenShort(t *testing.T) {
 		t.Fatalf("removed from too few: %+v", inv[5])
 	}
 }
+
+func TestForgetCustomEmptiesCustomBlockSlots(t *testing.T) {
+	var inv Inventory
+	inv[0] = Stack{world.Stone, 5}
+	inv[3] = Stack{world.FirstCustom + 2, 9}
+	inv.ForgetCustom()
+	if inv[0] != (Stack{world.Stone, 5}) || inv[3] != (Stack{}) {
+		t.Fatalf("inventory = %v", inv[:4])
+	}
+}

@@ -16,6 +16,8 @@ export interface WorldRenderer {
   /** Swaps in a new block list and textures, e.g. after an admin approves a block. */
   setBlocks(blocks: readonly BlockTypeInfo[], textures: WorldInfo["textures"]): BlockArt;
   receive(batch: ChunkBatch): void;
+  /** Fetches chunks again that changed too much on the server to send block by block. */
+  refetch(chunks: readonly ChunkPos[]): void;
   /** The block at world position x,y,z, or undefined if it isn't loaded. */
   blockAt(x: number, y: number, z: number): number | undefined;
   /** Changes a loaded block, e.g. from a server update or a predicted edit. */
@@ -62,6 +64,7 @@ export function createWorldRenderer(
     receive(batch) {
       world.receive(batch.chunks.flatMap((c) => (c.pos ? [{ pos: c.pos, data: c.data }] : [])));
     },
+    refetch: (chunks) => world.refetch(chunks),
     blockAt: (x, y, z) => world.blockAt(x, y, z),
     setBlock: (x, y, z, block) => world.setBlock(x, y, z, block),
     tick(x, z, viewDistance) {

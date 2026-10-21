@@ -43,6 +43,22 @@ func Open(s *Store, name string, d Defaults) (*World, error) {
 		chunks: map[ChunkPos]*Chunk{}, dirty: map[ChunkPos]struct{}{}, ticking: map[Pos]struct{}{}}, nil
 }
 
+// Wipe forgets every change and starts the world over from seed, as if it were new.
+func (w *World) Wipe(seed int64) error {
+	gen, err := NewGenerator(w.meta.Generator, seed)
+	if err != nil {
+		return err
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if err := w.store.wipe(w.meta.ID, seed); err != nil {
+		return err
+	}
+	w.meta.Seed, w.gen = seed, gen
+	w.chunks, w.dirty, w.ticking = map[ChunkPos]*Chunk{}, map[ChunkPos]struct{}{}, map[Pos]struct{}{}
+	return nil
+}
+
 // Meta returns the world's stored identity.
 func (w *World) Meta() Meta { return w.meta }
 

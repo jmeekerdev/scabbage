@@ -174,6 +174,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.talkTo(body.TalkTo)
 	case *pb.ClientMessage_Answer:
 		return s.answer(body.Answer)
+	case *pb.ClientMessage_ImportMap:
+		return s.importMap(ctx, body.ImportMap)
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

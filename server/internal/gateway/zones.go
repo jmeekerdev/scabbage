@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -98,6 +99,10 @@ func (s *session) zoneCommand(ctx context.Context, arg string) error {
 	case "add":
 		err = s.addZone(f[1], f[2])
 	case "remove":
+		if _, kept, err := s.gw.cfg.Maps.Under(f[1]); err != nil || kept {
+			return cmp.Or(err, s.notice(ctx, fmt.Sprintf("%s covers land kept from before its map was placed. "+
+				"/map remove %s puts that land back; /map forget %s first to keep the map's blocks instead.", f[1], f[1], f[1])))
+		}
 		err = s.gw.cfg.Zones.Remove(f[1])
 	case "allow", "disallow":
 		err = s.allowInZone(f[1], f[2], f[0] == "allow")

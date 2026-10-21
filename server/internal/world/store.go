@@ -14,7 +14,7 @@ const (
 	Unbounded     int32 = -1
 )
 
-// Meta is a world's stored identity. Generator and Seed never change after creation.
+// Meta is a world's stored identity. Only wiping the world changes its seed.
 type Meta struct {
 	ID        int64
 	Name      string
@@ -108,6 +108,25 @@ func (s *Store) deleteChunks(world int64, ps []ChunkPos) error {
 	}
 	return tx.Commit()
 }
+
+// wipe deletes every saved chunk and gives the world a new seed.
+func (s *Store) wipe(world, seed int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`DELETE FROM chunks WHERE world_id = ?`, world); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE worlds SET seed = ? WHERE id = ?`, seed, world); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// RandomSeed picks a seed for a new world.
+func RandomSeed() int64 { return randomSeed() }
 
 func randomSeed() int64 {
 	var b [8]byte

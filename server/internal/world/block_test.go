@@ -13,6 +13,15 @@ func TestRegisterAddsCustomBlock(t *testing.T) {
 	if !id.Valid() || Info(id).Name != "flower tile" || !Info(id).Solid {
 		t.Fatalf("Info = %+v", Info(id))
 	}
+	if b, ok := Named("flower tile"); !ok || b != id {
+		t.Fatalf("Named found %v, %v", b, ok)
+	}
+	if b, ok := Named("brick"); !ok || b != Brick {
+		t.Fatal("Named missed a built-in")
+	}
+	if _, ok := Named("nothing"); ok {
+		t.Fatal("Named made up a block")
+	}
 	last := Blocks()[len(Blocks())-1]
 	if last.ID < id {
 		t.Fatalf("Blocks() is missing the custom block, ends with %+v", last)
@@ -56,13 +65,14 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 		CountingDown: "counter_down_1", CountingDown + 15: "counter_down_8_on",
 		ScriptBlock: "script_block", ScriptBlock + 1: "script_block_on",
 		Chest: "chest", Chest + 1: "chest_open", BossAltar: "boss_altar", GoldBlock: "gold_block", GemBlock: "gem_block",
+		Checkpoint: "checkpoint",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(GemBlock)+1 {
+	if len(blocks) != int(Checkpoint)+1 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -234,5 +244,16 @@ func TestTreasureGlowsAndAltarsAreUsed(t *testing.T) {
 	}
 	if !Info(GoldBlock).Solid || Info(GoldBlock).MineMs == 0 {
 		t.Errorf("gold = %+v", Info(GoldBlock))
+	}
+}
+
+func TestForgetCustomBlocks(t *testing.T) {
+	id := FirstCustom + 40
+	if err := Register(BlockInfo{ID: id, Name: "to forget", Solid: true}); err != nil {
+		t.Fatal(err)
+	}
+	ForgetCustomBlocks()
+	if id.Valid() || Info(Stone).Name != "stone" {
+		t.Fatal("custom block stayed or a built-in went")
 	}
 }

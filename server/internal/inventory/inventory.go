@@ -104,6 +104,15 @@ const slotBytes = 3 // block uint16 then count
 
 var ErrCorrupt = errors.New("inventory: wrong saved size")
 
+// ForgetCustom empties the slots holding custom blocks, e.g. when they are wiped.
+func (inv *Inventory) ForgetCustom() {
+	for i, s := range inv {
+		if s.Block >= world.FirstCustom {
+			inv[i] = Stack{}
+		}
+	}
+}
+
 // Encode packs the inventory for storage.
 func (inv *Inventory) Encode() []byte {
 	out := make([]byte, 0, Slots*slotBytes)

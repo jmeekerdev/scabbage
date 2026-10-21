@@ -237,3 +237,21 @@ func TestPixelsAreOpaqueOrClear(t *testing.T) {
 		t.Fatal("block with clear pixels is not transparent")
 	}
 }
+
+func TestWipeForgetsAllArt(t *testing.T) {
+	f := newFixture(t)
+	mia := f.player(t, "Mia")
+	_, _ = f.svc.Submit(mia, true, Block, "one", block)
+	_, _ = f.svc.Submit(mia, false, Block, "two", block)
+	if err := f.svc.Wipe(); err != nil {
+		t.Fatal(err)
+	}
+	blocks, _ := f.svc.Blocks()
+	pending, _ := f.svc.Pending()
+	if len(blocks) != 0 || len(pending) != 0 {
+		t.Fatalf("blocks %v, pending %v", blocks, pending)
+	}
+	if f.changes == 0 {
+		t.Fatal("admins weren't told the pending art went")
+	}
+}

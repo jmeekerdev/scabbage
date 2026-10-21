@@ -21,6 +21,7 @@ import (
 	"scabbage/internal/config"
 	"scabbage/internal/crafting"
 	"scabbage/internal/gateway"
+	"scabbage/internal/maps"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
 	"scabbage/internal/web"
@@ -103,6 +104,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Recipes:        recipes,
 		Zones:          areas,
 		Arenas:         arenas.New(db),
+		Maps:           maps.New(db),
+		Backup:         wipeBackup(db, cfg, logger),
 		ScriptDB:       db,
 		ServerName:     cfg.ServerName,
 		Mode:           access.Mode(cfg.Mode),
@@ -157,6 +160,18 @@ func nightlyBackup(db *sql.DB, w *world.World, cfg config.Config, logger *slog.L
 			return
 		}
 		logger.Info("backed up", "path", path)
+	}
+}
+
+// wipeBackup copies the database into data/backups before the world is wiped, never pruned.
+func wipeBackup(db *sql.DB, cfg config.Config, logger *slog.Logger) func() error {
+	b := backup.Backups{DB: db, Dir: filepath.Join(cfg.DataDir, "backups"), Prefix: "before-wipe-"}
+	return func() error {
+		path, err := b.Snapshot(time.Now())
+		if err == nil {
+			logger.Info("backed up before wiping the world", "path", path)
+		}
+		return err
 	}
 }
 

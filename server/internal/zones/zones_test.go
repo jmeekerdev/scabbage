@@ -153,3 +153,16 @@ func TestNamedIgnoresCase(t *testing.T) {
 		t.Fatal("found a zone that isn't there")
 	}
 }
+
+func TestWipeRemovesSavedZonesButKeepsTheBuiltInSpawn(t *testing.T) {
+	s := newService(t, 16)
+	if err := s.Put("Home", 0, 0, 5, 5); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Wipe(); err != nil {
+		t.Fatal(err)
+	}
+	if all := s.All(); len(all) != 1 || all[0].Name != SpawnName {
+		t.Fatalf("zones = %+v", all)
+	}
+}

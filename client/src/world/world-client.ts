@@ -41,6 +41,7 @@ export class WorldClient {
   private emits: Uint8Array = new Uint8Array(0); // light level per block ID
   private transparent: Uint8Array = new Uint8Array(0); // 1 where light passes, per block ID
   private readonly glowing = new Map<ChunkKey, boolean>(); // cached: holds a glowing block
+  private readonly stale = new Set<ChunkKey>(); // shown, but being fetched again
 
   constructor(private readonly deps: WorldClientDeps) {}
 
@@ -48,9 +49,11 @@ export class WorldClient {
   start(bounds: WorldBounds): void {
     this.store = new ChunkStore(bounds);
     this.streamer = new ChunkStreamer(bounds);
+    this.center = { cx: 0, cz: 0, vd: 0 }; // so the first tick centers the new streamer, even in the same spot
     this.toMesh.clear();
     this.meshed.clear();
     this.glowing.clear();
+    this.stale.clear();
     this.deps.view.clear();
   }
 
@@ -69,9 +72,20 @@ export class WorldClient {
     }
     this.streamer.received(chunks.map((c) => c.pos));
     for (const { pos } of chunks) {
+      if (this.stale.delete(chunkKey(pos.x, pos.y, pos.z)))
+        this.remeshAround(pos.x, pos.y, pos.z, () => true);
       this.consider(pos.x, pos.y, pos.z);
       for (const [dx, dy, dz] of FACE_NORMALS) this.consider(pos.x + dx, pos.y + dy, pos.z + dz);
       if (this.glows(pos.x, pos.y, pos.z)) this.remeshAround(pos.x, pos.y, pos.z, () => true);
+    }
+  }
+
+  /** Fetches chunks again that changed on the server, showing the old ones until they arrive. */
+  refetch(chunks: readonly ChunkPos[]): void {
+    for (const p of chunks) {
+      const key = chunkKey(p.x, p.y, p.z);
+      if (this.streamer.refetch(key)) this.stale.add(key);
+      else this.drop(key);
     }
   }
 

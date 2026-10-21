@@ -10,6 +10,7 @@ import (
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/vitals"
+	"scabbage/internal/world"
 )
 
 // saveEvery is how often changed players are saved while they stay online.
@@ -22,6 +23,7 @@ type snapshot struct {
 	flying     bool
 	health     int
 	inv        inventory.Inventory
+	checkpoint checkpoint
 }
 
 // spot is where to move a player, and how they faced when it restores a save.
@@ -31,22 +33,26 @@ type spot struct {
 }
 
 func (a *avatar) snapshot() snapshot {
-	return snapshot{a.pos, a.yaw, a.pitch, a.flying, a.vitals.Health, a.inv}
+	return snapshot{a.pos, a.yaw, a.pitch, a.flying, a.vitals.Health, a.inv, a.checkpoint}
 }
 
 // load puts the avatar in the state of a save it now matches.
 func (a *avatar) load(v snapshot) {
-	a.pos, a.yaw, a.pitch, a.flying, a.inv = v.pos, v.yaw, v.pitch, v.flying, v.inv
+	a.pos, a.yaw, a.pitch, a.flying, a.inv, a.checkpoint = v.pos, v.yaw, v.pitch, v.flying, v.inv, v.checkpoint
 	a.vitals.Health = v.health
 	a.vitals.Settle()
 	a.saved = v
 }
 
 func (v snapshot) record() access.Save {
-	return access.Save{
+	out := access.Save{
 		Placed: true, X: v.pos.X, Y: v.pos.Y, Z: v.pos.Z, Yaw: v.yaw, Pitch: v.pitch,
 		Flying: v.flying, Health: v.health, Inventory: v.inv.Encode(),
 	}
+	if c := v.checkpoint; c.set {
+		out.Checkpoint = &[3]int32{c.at.X, c.at.Y, c.at.Z}
+	}
+	return out
 }
 
 func (v snapshot) restore() *pb.Restore {
@@ -65,6 +71,9 @@ func (s *session) loadSave() error {
 	if at := (motion.Vec{X: v.X, Y: v.Y, Z: v.Z}); v.Placed && !motion.Blocked(at, s.gw.cfg.World.Boxes) {
 		s.saved.pos, s.saved.yaw, s.saved.pitch, s.saved.flying = at, v.Yaw, v.Pitch, v.Flying
 		s.resumed = true
+	}
+	if c := v.Checkpoint; c != nil {
+		s.saved.checkpoint = checkpoint{at: world.Pos{X: c[0], Y: c[1], Z: c[2]}, set: true}
 	}
 	if v.Health > 0 && v.Health <= vitals.Max {
 		s.saved.health = v.Health

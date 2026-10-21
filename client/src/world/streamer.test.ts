@@ -97,6 +97,20 @@ describe("ChunkStreamer", () => {
     expect(s.update(1, 0, 2)).toEqual([]);
   });
 
+  it("fetches chunks again that changed on the server, if they're still wanted", () => {
+    const s = new ChunkStreamer(big, { batchSize: 64 });
+    s.update(0, 0, 2);
+    drain(s);
+    expect(s.refetch(chunkKey(1, 0, 0))).toBe(true);
+    expect(s.has(chunkKey(1, 0, 0))).toBe(false);
+    expect(drain(s)).toEqual([{ x: 1, y: 0, z: 0 }]);
+    expect(s.refetch(chunkKey(40, 0, 0))).toBe(false); // never loaded
+    s.update(3, 0, 2);
+    drain(s);
+    expect(s.refetch(chunkKey(-1, 0, 0))).toBe(false); // kept just past the edge, not fetched again
+    expect(s.has(chunkKey(-1, 0, 0))).toBe(false);
+  });
+
   it("reset forgets everything, e.g. after reconnecting", () => {
     const s = new ChunkStreamer(big, { batchSize: 8, maxInFlight: 1 });
     s.update(0, 0, 2);

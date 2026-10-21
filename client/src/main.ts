@@ -21,6 +21,7 @@ import {
   encodeCraft,
   encodeMoveItem,
   encodeRequestChunks,
+  encodeImportMap,
   encodeSendChat,
   encodeSubmitArt,
   type Bytes,
@@ -110,6 +111,7 @@ import { solidQuery } from "./world/solid";
 import { zoneGreeting, Zones } from "./world/zones";
 import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
+import { downloadMap, mapImportName, MAX_MAP_BYTES, pickMapFile } from "./ui/map-files";
 
 const overlay = $("#overlay");
 const statusEl = $("#status");
@@ -161,7 +163,11 @@ inventory.onChange = () => {
 let locked = false;
 const chat = new ChatView(
   $("#chat"),
-  (text) => conn?.send(encodeSendChat(text)),
+  (text) => {
+    const importing = mapImportName(text);
+    if (importing === undefined) conn?.send(encodeSendChat(text));
+    else void importMap(importing);
+  },
   (sent) =>
     sent &&
     !touch &&
@@ -303,6 +309,9 @@ function connect(join?: JoinInit): void {
       onRejected: (d) => show(screenForRejection(d)),
       onMessage: (msg) => {
         if (msg.body.case === "chunkBatch") world.receive(msg.body.value);
+        else if (msg.body.case === "chunksStale") world.refetch(msg.body.value.chunks);
+        else if (msg.body.case === "mapExported")
+          downloadMap(msg.body.value.name, msg.body.value.data);
         else if (msg.body.case === "teleport") teleport(msg.body.value);
         else if (msg.body.case === "vitals") applyVitals(msg.body.value);
         else if (msg.body.case === "scoreboard") scoreboard.show(msg.body.value);
@@ -338,6 +347,14 @@ function connect(join?: JoinInit): void {
     },
   );
   conn.start();
+}
+
+/** Picks a .scabmap file and sends it to be placed as the zone `name` around us. */
+async function importMap(name: string): Promise<void> {
+  const data = await pickMapFile();
+  if (!data) return;
+  if (data.length > MAX_MAP_BYTES) chat.note(`Map files can be at most ${MAX_MAP_BYTES >> 20} MB.`);
+  else conn?.send(encodeImportMap(name, data));
 }
 
 function show(screen: Screen): void {

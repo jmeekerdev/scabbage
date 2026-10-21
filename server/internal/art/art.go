@@ -215,6 +215,15 @@ func (s *Service) checkRoom(tx *sql.Tx, p Piece, admin bool) error {
 	return nil
 }
 
+// Wipe deletes every skin, custom block and repainted texture, approved or waiting.
+func (s *Service) Wipe() error {
+	if _, err := s.db.Exec(`DELETE FROM art`); err != nil {
+		return err
+	}
+	s.opts.OnPendingChange()
+	return nil
+}
+
 // Decide approves or drops waiting art, returning it as it now stands.
 func (s *Service) Decide(id int64, ok bool) (Piece, error) {
 	tx, err := s.db.Begin()

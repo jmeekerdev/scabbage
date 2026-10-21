@@ -71,13 +71,21 @@ type Save struct {
 	Yaw, Pitch float32
 	Flying     bool
 	Health     int
-	Inventory  []byte // as inventory.Encode stored it
+	Inventory  []byte    // as inventory.Encode stored it
+	Checkpoint *[3]int32 // the checkpoint block they come back to after fainting, if any
 }
 
 func (s *Service) Saved(id int64) (Save, error) {
 	var v Save
-	err := s.db.QueryRow(`SELECT placed, x, y, z, yaw, pitch, flying, health, inventory FROM players WHERE id = ?`, id).
-		Scan(&v.Placed, &v.X, &v.Y, &v.Z, &v.Yaw, &v.Pitch, &v.Flying, &v.Health, &v.Inventory)
+	var checkpoint bool
+	var cp [3]int32
+	err := s.db.QueryRow(`SELECT placed, x, y, z, yaw, pitch, flying, health, inventory,
+		checkpoint, checkpoint_x, checkpoint_y, checkpoint_z FROM players WHERE id = ?`, id).
+		Scan(&v.Placed, &v.X, &v.Y, &v.Z, &v.Yaw, &v.Pitch, &v.Flying, &v.Health, &v.Inventory,
+			&checkpoint, &cp[0], &cp[1], &cp[2])
+	if checkpoint {
+		v.Checkpoint = &cp
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return Save{}, ErrNoPlayer
 	}
@@ -91,7 +99,13 @@ func (s *Service) Store(id int64, v Save) error {
 	if v.Inventory == nil {
 		v.Inventory = []byte{} // an empty blob, not NULL
 	}
-	_, err := s.db.Exec(`UPDATE players SET placed = ?, x = ?, y = ?, z = ?, yaw = ?, pitch = ?, flying = ?, health = ?, inventory = ?
-		WHERE id = ?`, v.Placed, v.X, v.Y, v.Z, v.Yaw, v.Pitch, v.Flying, v.Health, v.Inventory, id)
+	var cp [3]int32
+	if v.Checkpoint != nil {
+		cp = *v.Checkpoint
+	}
+	_, err := s.db.Exec(`UPDATE players SET placed = ?, x = ?, y = ?, z = ?, yaw = ?, pitch = ?, flying = ?, health = ?, inventory = ?,
+		checkpoint = ?, checkpoint_x = ?, checkpoint_y = ?, checkpoint_z = ? WHERE id = ?`,
+		v.Placed, v.X, v.Y, v.Z, v.Yaw, v.Pitch, v.Flying, v.Health, v.Inventory,
+		v.Checkpoint != nil, cp[0], cp[1], cp[2], id)
 	return err
 }

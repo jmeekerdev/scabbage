@@ -44,6 +44,9 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 		}
 	}
 	s.player = res.Player
+	if s.player.Admin {
+		s.conn.SetReadLimit(maxAdminMessageBytes)
+	}
 	if hello.Console && !s.player.Admin {
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_NOT_ADMIN, "the admin console is for admins")
 	}

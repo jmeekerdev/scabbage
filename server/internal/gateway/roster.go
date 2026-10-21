@@ -30,6 +30,7 @@ type avatar struct {
 	round      *rounds.Round // the minigame they joined, if any
 	journal    *journal.Journal
 	asked      *question // what a script last asked them, until they answer
+	checkpoint checkpoint
 }
 
 func (a *avatar) pose() *pb.PlayerPose {

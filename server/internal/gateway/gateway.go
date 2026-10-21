@@ -4,6 +4,7 @@ package gateway
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"math/rand/v2"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 	"scabbage/internal/art"
 	"scabbage/internal/crafting"
 	"scabbage/internal/drops"
-	"scabbage/internal/logic"
+	"scabbage/internal/maps"
 	"scabbage/internal/mobs"
 	"scabbage/internal/rounds"
 	"scabbage/internal/scripts"
@@ -36,7 +37,9 @@ type Config struct {
 	Mobs           *mobs.Herd        // a new herd when nil; guarded by the gateway's mu
 	Zones          *zones.Service
 	Arenas         *arenas.Service
-	ScriptDB       *sql.DB // where script blocks keep their Lua and characters, and players their journals
+	Maps           *maps.Service
+	ScriptDB       *sql.DB      // where script blocks keep their Lua and characters, and players their journals
+	Backup         func() error // copies the database, e.g. before the world is wiped
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -64,6 +67,7 @@ type Gateway struct {
 	roundEvents []roundEvent             // starts and ends for scripts to hear on the next tick; guarded by mu
 	dialogue    uint32                   // last Dialogue id handed out; guarded by mu
 	rng         *rand.Rand               // rolls loot; guarded by mu
+	wipe        *wipeRequest             // an admin asking to start the world over; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.
@@ -80,9 +84,12 @@ func New(cfg Config) (*Gateway, error) {
 	if cfg.Recipes == nil {
 		cfg.Recipes = crafting.Default()
 	}
+	if cfg.Backup == nil {
+		cfg.Backup = func() error { return errors.New("this server has no backups set up") }
+	}
 	g := &Gateway{cfg: cfg, admins: map[*session]struct{}{}, players: map[*session]*avatar{}, rounds: map[string]*rounds.Round{},
 		rng:      rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), 0x6c6f6f74)),
-		circuits: circuits{letGo: map[logic.Pos]time.Time{}, held: map[logic.Pos]bool{}}, scriptErrAt: map[world.Pos]time.Time{}}
+		circuits: newCircuits(), scriptErrAt: map[world.Pos]time.Time{}}
 	var err error
 	if g.scripts, err = scripts.New(cfg.ScriptDB, g.scriptHost, g.npcChanged); err != nil {
 		return nil, err

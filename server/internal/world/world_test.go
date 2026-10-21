@@ -1,6 +1,7 @@
 package world
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -330,5 +331,35 @@ func TestAddDungeonsFillsUntouchedSavedLand(t *testing.T) {
 	}
 	if n, _ := w.AddDungeons(); n != 0 {
 		t.Errorf("a second run added %d", n)
+	}
+}
+
+func TestWipeForgetsEditsAndCanChangeTheSeed(t *testing.T) {
+	db := openDB(t)
+	w := openWorld(t, db)
+	if err := w.SetBlock(1, 100, 1, Brick); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Wipe(42); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := w.Block(1, 100, 1); b != Air || w.Meta().Seed != 42 {
+		t.Fatalf("after reset: block %v, seed %d", b, w.Meta().Seed)
+	}
+	fresh, _ := Open(NewStore(openDB(t)), "main", Defaults{Seed: 7, Radius: 64})
+	want, _ := fresh.EncodedChunk(ChunkPos{0, 2, 0})
+	if err := w.Wipe(7); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := w.EncodedChunk(ChunkPos{0, 2, 0})
+	if w.Meta().Seed != 7 || !bytes.Equal(got, want) {
+		t.Fatal("the new world isn't seed 7's land")
+	}
+	again, _ := Open(NewStore(db), "main", Defaults{})
+	if again.Meta().Seed != 7 {
+		t.Fatalf("stored seed %d", again.Meta().Seed)
 	}
 }

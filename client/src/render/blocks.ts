@@ -81,6 +81,7 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   boss_altar: { top: "altar_top", side: "altar_side", bottom: "cobblestone" },
   gold_block: same("gold_block"),
   gem_block: same("gem_block"),
+  checkpoint: same("checkpoint"),
 };
 
 export interface BlockTypeInfo {

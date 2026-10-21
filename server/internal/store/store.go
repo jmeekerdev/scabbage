@@ -117,6 +117,16 @@ var migrations = []string{
 		place     INTEGER NOT NULL,
 		PRIMARY KEY (player_id, title)
 	) WITHOUT ROWID;`,
+	`CREATE TABLE maps (
+		zone_id  INTEGER PRIMARY KEY REFERENCES zones(id) ON DELETE CASCADE,
+		data     BLOB NOT NULL,
+		saved_ms INTEGER NOT NULL
+	);
+	ALTER TABLE players ADD COLUMN checkpoint INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN checkpoint_x INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN checkpoint_y INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE players ADD COLUMN checkpoint_z INTEGER NOT NULL DEFAULT 0;`,
+	`ALTER TABLE maps ADD COLUMN under BLOB;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

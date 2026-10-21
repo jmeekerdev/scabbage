@@ -122,6 +122,10 @@ export function encodeSendChat(text: string): Bytes {
   return encode({ case: "sendChat", value: { text } });
 }
 
+export function encodeImportMap(name: string, data: Uint8Array): Bytes {
+  return encode({ case: "importMap", value: { name, data } });
+}
+
 export function encodeEmote(emote: Emote): Bytes {
   return encode({ case: "sendEmote", value: { emote } });
 }

@@ -1,4 +1,4 @@
-/** Textures for dungeon treasure: chests, the boss altar, gold and gems. */
+/** Textures for adventures: chests, the boss altar, gold, gems and checkpoints. */
 import type { Painter, RGB } from "./textures";
 
 const shade = ([r, g, b]: RGB, k: number): [number, number, number, number] => [
@@ -57,6 +57,14 @@ const gem: Painter = (x, y, n) => {
   return shade(GEM, facet < 4 ? 1.15 : facet < 8 ? 1 : 0.7);
 };
 
+/** A red flag on a pole over a white pad. */
+const checkpoint: Painter = (x, y, n) => {
+  if (x === 5 && y >= 2 && y <= 13) return shade([90, 60, 40], 0.9 + n() * 0.2);
+  if (x >= 6 && x <= 11 && y >= 2 && y <= 6 - Math.abs(x - 8.5) / 3)
+    return shade([230, 50, 50], 0.9 + n() * 0.2);
+  return shade([235, 235, 225], edge(x, y) ? 0.7 : 0.9 + n() * 0.1);
+};
+
 export const TREASURE_PAINTERS: Record<string, Painter> = {
   chest_side: chestSide,
   chest_top: chestTop(false),
@@ -65,4 +73,5 @@ export const TREASURE_PAINTERS: Record<string, Painter> = {
   altar_side: altarSide,
   gold_block: gold,
   gem_block: gem,
+  checkpoint,
 };

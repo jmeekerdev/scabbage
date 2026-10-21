@@ -64,6 +64,14 @@ describe("WorldClient", () => {
     expect(sent[0][0]).toEqual({ x: 0, y: 0, z: 0 });
   });
 
+  it("requests chunks again after restarting where it already was, e.g. on reconnecting", () => {
+    const { sent, world } = loaded();
+    world.start(bounds);
+    world.tick(0, 0, 1);
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0][0]).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
   it("meshes chunks within view once their neighbors arrive, and shows the result", () => {
     const { sent, mesher, view, world } = setup();
     world.tick(0, 0, 1);
@@ -165,6 +173,19 @@ describe("WorldClient", () => {
     world.setBlock(6, 5, 5, 1);
     world.tick(0, 0, 1);
     expect(mesher.jobs.length).toBe(10);
+  });
+
+  it("keeps showing a stale chunk until it arrives again, then re-meshes it", () => {
+    const { sent, mesher, view, world } = loaded();
+    world.refetch([{ x: 0, y: 0, z: 0 }]);
+    world.tick(0, 0, 1);
+    expect(sent).toEqual([[{ x: 0, y: 0, z: 0 }]]);
+    expect(view.shown.has(chunkKey(0, 0, 0))).toBe(true);
+    expect(world.blockAt(0, 5, 0)).toBe(1);
+    world.receive([{ pos: { x: 0, y: 0, z: 0 }, data: AIR }]);
+    world.tick(0, 0, 1);
+    expect(world.blockAt(0, 5, 0)).toBe(0);
+    expect(mesher.jobs.length).toBeGreaterThan(0);
   });
 
   it("ignores changes to chunks that aren't loaded", () => {

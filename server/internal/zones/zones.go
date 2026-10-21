@@ -142,6 +142,14 @@ func (s *Service) Remove(name string) error {
 	return s.load()
 }
 
+// Wipe deletes every saved zone with its arena and map; the built-in spawn zone stays.
+func (s *Service) Wipe() error {
+	if _, err := s.db.Exec(`DELETE FROM zones`); err != nil {
+		return err
+	}
+	return s.load()
+}
+
 // Named finds a zone by name, ignoring case.
 func (s *Service) Named(name string) (Zone, bool) {
 	for _, z := range s.All() {

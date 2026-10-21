@@ -15,6 +15,7 @@ import (
 	"scabbage/internal/access"
 	"scabbage/internal/arenas"
 	"scabbage/internal/art"
+	"scabbage/internal/maps"
 	"scabbage/internal/mobs"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/sim"
@@ -34,6 +35,7 @@ type testServer struct {
 	arenas *arenas.Service
 	gw     *Gateway
 	url    string
+	backup func() error // what the gateway's Backup does; succeeds when nil
 }
 
 func startServer(t *testing.T) *testServer {
@@ -59,13 +61,20 @@ func startServer(t *testing.T) *testServer {
 		t.Fatal(err)
 	}
 	games := arenas.New(db)
-	gw, err = New(Config{Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
+	ts := &testServer{}
+	gw, err = New(Config{Backup: func() error {
+		if ts.backup != nil {
+			return ts.backup()
+		}
+		return nil
+	}, Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, Maps: maps.New(db), ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	return &testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, arenas: games, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	*ts = testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, arenas: games, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	return ts
 }
 
 func dial(t *testing.T, url string) *websocket.Conn {

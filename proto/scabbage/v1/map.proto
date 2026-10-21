@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package scabbage.v1;
+
+option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
+
+// An adventure map: a zone's blocks and scripts. Saved maps and exported .scabmap files are gzipped MapFiles.
+message MapFile {
+  string name = 1;
+  int32 width = 2; // along x
+  int32 depth = 3; // along z
+  int32 height = 4; // the world height it was made in, all of which it holds
+  bytes blocks = 5; // the server's block-list encoding, x first, then z, then y
+  repeated MapBlock palette = 6; // the name of every block ID it uses, so other servers can read it
+  repeated MapScript scripts = 7;
+  MapStart start = 8;
+  string mode = 9; // the zone's game mode: "", "creative" or "survival"
+}
+
+message MapBlock {
+  uint32 id = 1;
+  string name = 2;
+}
+
+// A script block's Lua, at a position from the map's corner.
+message MapScript {
+  int32 x = 1;
+  int32 y = 2;
+  int32 z = 3;
+  string source = 4;
+  int64 owner = 5; // who saved it, on the server that saved the map
+}
+
+// Where players begin, from the map's corner.
+message MapStart {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  float yaw = 4;
+}

@@ -303,7 +303,25 @@ Each phase ends with something the family can play. Compact the model context be
       and give gems to whoever lands the last hit; a health bar shows near one; scripts can place chests
       and altars for adventure maps; admins can `/tp X Z`, `/tp X Y Z` or `/tp NAME`, and the HUD shows
       everyone's block coordinates and facing)
-- [ ] Family-authored adventure maps using phases 4–6
+- [x] Family-authored adventure maps using phases 4–6
+      (a map is a saved zone: `/map save ZONE` keeps every block in its columns plus its script blocks'
+      Lua, and `/map reset ZONE` puts them back, closing looted chests and flipped switches, and sends
+      everyone inside to the start marked with `/map start ZONE`; `/map export ZONE` downloads a gzipped
+      `.scabmap` file and `/map import NAME` uploads one as a new zone centred on the admin, refusing to
+      cover other zones, and keeps the land it covers so `/map remove ZONE` can put it back (also for
+      `/map sample`; `/zone remove` refuses such zones until the map is removed or forgotten); blocks travel by name, so other servers' custom blocks become air, and maps keep
+      their heights; `/map sample NAME` lays down Captain Pip's treasure, a starter adventure with a
+      quest, a pit, a checkpoint and a hidden switch whose script opens the treasure house; checkpoint pads
+      remember where survival players come back after fainting, while they faint in the checkpoint's zone;
+      big pastes tell clients to fetch the changed chunks again; admins' commands skip the chat limit)
+- [x] Starting the world over (added with adventure maps)
+      (`/world reset` asks to start this world over from its seed and `/world new [SEED]` asks for a new one;
+      every admin is told a four-letter code, and a different admin approves with `/world approve CODE` within
+      10 minutes, or the only admin approves their own; `/world deny` stops it; the database is copied to
+      `data/backups/before-wipe-*.db` first, never pruned, and nothing changes if that fails; it wipes land,
+      zones with their arenas and maps, scripts and characters, art and custom blocks, mobs and drops, keeps
+      players, inventories (minus custom blocks) and journals, sends everyone to the new spawn and has their
+      clients reconnect; refused while a game is being played)
 
 ## Open questions
 

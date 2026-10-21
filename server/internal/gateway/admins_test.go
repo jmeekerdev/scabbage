@@ -33,7 +33,7 @@ func playerNamed(t *testing.T, admin *websocket.Conn, name string) *pb.PlayerInf
 // expectClosed waits for the server to drop c without a Disconnect message.
 func expectClosed(t *testing.T, c *websocket.Conn) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // past a wipe's kickDelay
 	defer cancel()
 	for {
 		if _, _, err := c.Read(ctx); err != nil {

@@ -98,6 +98,19 @@ export class ChunkStreamer {
     for (const p of got) this.loaded.add(chunkKey(p.x, p.y, p.z));
   }
 
+  /**
+   * Forgets a loaded chunk that changed on the server. It is fetched again if it is still
+   * wanted, which returns true; otherwise the caller should drop it.
+   */
+  refetch(key: ChunkKey): boolean {
+    if (!this.loaded.delete(key)) return false;
+    const [x, , z] = key.split(",").map(Number);
+    const c = this.center;
+    const wanted = !!c && (x - c.cx) ** 2 + (z - c.cz) ** 2 <= (c.vd + 1) ** 2;
+    if (wanted) this.cursor = 0; // the queue skips what's loaded, so rescanning is cheap
+    return wanted;
+  }
+
   has(key: ChunkKey): boolean {
     return this.loaded.has(key);
   }

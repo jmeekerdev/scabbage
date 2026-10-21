@@ -16,19 +16,22 @@ var errCorrupt = errors.New("corrupt chunk data")
 // Layout: version, uvarint palette size, palette IDs, then (uvarint run length, uvarint
 // palette index) pairs in storage order. A one-entry palette has no runs.
 func Encode(c *Chunk) []byte {
-	out := []byte{encodingVersion}
 	if c.blocks == nil {
-		out = binary.AppendUvarint(out, 1)
-		return binary.AppendUvarint(out, uint64(c.fill))
+		return EncodeBlocks([]Block{c.fill})
 	}
+	return EncodeBlocks(c.blocks[:])
+}
+
+// EncodeBlocks serializes any list of blocks in Encode's layout.
+func EncodeBlocks(blocks []Block) []byte {
 	type run struct {
 		length int
 		block  Block
 	}
 	var runs []run
 	var palette []Block
-	for i, b := range c.blocks {
-		if i > 0 && b == c.blocks[i-1] {
+	for i, b := range blocks {
+		if i > 0 && b == blocks[i-1] {
 			runs[len(runs)-1].length++
 			continue
 		}
@@ -37,6 +40,7 @@ func Encode(c *Chunk) []byte {
 			palette = append(palette, b)
 		}
 	}
+	out := []byte{encodingVersion}
 	out = binary.AppendUvarint(out, uint64(len(palette)))
 	for _, b := range palette {
 		out = binary.AppendUvarint(out, uint64(b))
@@ -64,11 +68,45 @@ func paletteIndex(palette []Block, b Block) int {
 // Decode parses data produced by Encode, rejecting anything malformed.
 func Decode(data []byte) (*Chunk, error) {
 	r := reader{data: data}
+	palette, err := readPalette(&r, Volume)
+	if err != nil {
+		return nil, err
+	}
+	c := NewChunk(palette[0])
+	if len(palette) > 1 {
+		c.blocks = new([Volume]Block)
+		if err := decodeRuns(&r, palette, c.blocks[:]); err != nil {
+			return nil, err
+		}
+	}
+	return c, r.finish()
+}
+
+// DecodeBlocks parses data produced by EncodeBlocks, which must hold exactly n blocks.
+func DecodeBlocks(data []byte, n int) ([]Block, error) {
+	r := reader{data: data}
+	palette, err := readPalette(&r, n)
+	if err != nil {
+		return nil, err
+	}
+	blocks := make([]Block, n)
+	if len(palette) == 1 {
+		for i := range blocks {
+			blocks[i] = palette[0]
+		}
+	} else if err := decodeRuns(&r, palette, blocks); err != nil {
+		return nil, err
+	}
+	return blocks, r.finish()
+}
+
+// readPalette reads the version and a palette of at most most blocks.
+func readPalette(r *reader, most int) ([]Block, error) {
 	if r.byte() != encodingVersion {
 		return nil, fmt.Errorf("%w: unknown version", errCorrupt)
 	}
 	n := r.uvarint()
-	if n == 0 || n > Volume {
+	if n == 0 || n > uint64(most) {
 		return nil, fmt.Errorf("%w: palette size %d", errCorrupt, n)
 	}
 	palette := make([]Block, n)
@@ -79,23 +117,13 @@ func Decode(data []byte) (*Chunk, error) {
 		}
 		palette[i] = Block(id)
 	}
-	c := NewChunk(palette[0])
-	if n > 1 {
-		c.blocks = new([Volume]Block)
-		if err := decodeRuns(&r, palette, c.blocks); err != nil {
-			return nil, err
-		}
-	}
-	if r.err || r.off != len(data) {
-		return nil, fmt.Errorf("%w: bad length", errCorrupt)
-	}
-	return c, nil
+	return palette, nil
 }
 
-func decodeRuns(r *reader, palette []Block, blocks *[Volume]Block) error {
-	for i := 0; i < Volume; {
+func decodeRuns(r *reader, palette []Block, blocks []Block) error {
+	for i := 0; i < len(blocks); {
 		run, idx := r.uvarint(), r.uvarint()
-		if r.err || run == 0 || run > uint64(Volume-i) || idx >= uint64(len(palette)) {
+		if r.err || run == 0 || run > uint64(len(blocks)-i) || idx >= uint64(len(palette)) {
 			return fmt.Errorf("%w: bad run at %d", errCorrupt, i)
 		}
 		for end := i + int(run); i < end; i++ {
@@ -129,4 +157,12 @@ func (r *reader) uvarint() uint64 {
 	}
 	r.off += n
 	return v
+}
+
+// finish fails if reading went wrong or left bytes over.
+func (r *reader) finish() error {
+	if r.err || r.off != len(r.data) {
+		return fmt.Errorf("%w: bad length", errCorrupt)
+	}
+	return nil
 }

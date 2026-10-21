@@ -84,3 +84,18 @@ func TestTalkingAndAnswering(t *testing.T) {
 		t.Fatalf("said %q", e.said)
 	}
 }
+
+func TestWipeForgetsEveryScriptAndCharacter(t *testing.T) {
+	e := newEnv(t)
+	e.save(t, here, `npc("Ivy")`)
+	if err := e.svc.Wipe(); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := e.svc.Source(here); ok || len(e.svc.NPCs()) != 0 {
+		t.Fatal("a script or character outlived the wipe")
+	}
+	e.start(t)
+	if len(e.svc.NPCs()) != 0 {
+		t.Fatal("a character came back after a restart")
+	}
+}
