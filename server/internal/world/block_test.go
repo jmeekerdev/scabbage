@@ -65,14 +65,15 @@ func TestPaletteKeepsItsIDs(t *testing.T) {
 		CountingDown: "counter_down_1", CountingDown + 15: "counter_down_8_on",
 		ScriptBlock: "script_block", ScriptBlock + 1: "script_block_on",
 		Chest: "chest", Chest + 1: "chest_open", BossAltar: "boss_altar", GoldBlock: "gold_block", GemBlock: "gem_block",
-		Checkpoint: "checkpoint",
+		Checkpoint: "checkpoint", TallGrass: "tall_grass", RedFlower: "red_flower", RedFlower + 3: "white_flower",
+		Gravel: "gravel", PineLeaves: "pine_leaves",
 	}
 	for id, name := range pinned {
 		if Info(id).Name != name {
 			t.Errorf("block %d = %q, want %q", id, Info(id).Name, name)
 		}
 	}
-	if len(blocks) != int(Checkpoint)+1 {
+	if len(blocks) != int(PineLeaves)+1 {
 		t.Fatalf("%d built-in blocks", len(blocks))
 	}
 }
@@ -97,6 +98,18 @@ func TestTorchesGlowAndLetPlayersThrough(t *testing.T) {
 	}
 	if torch.Boxes() != nil {
 		t.Fatal("torches don't collide")
+	}
+}
+
+func TestPlantsAreWalkedAndBuiltThrough(t *testing.T) {
+	for _, b := range []Block{TallGrass, RedFlower, RedFlower + 1, RedFlower + 2, RedFlower + 3} {
+		info := Info(b)
+		if !info.Plant() || info.Solid || !info.Transparent || info.Targetable() || info.Boxes() != nil {
+			t.Fatalf("%v = %+v", b, info)
+		}
+	}
+	if Info(TallGrass).Shape != Tuft || Info(RedFlower).Shape != Flower || Info(Grass).Plant() || Info(Torch).Plant() {
+		t.Fatal("only tufts and flowers are plants")
 	}
 }
 

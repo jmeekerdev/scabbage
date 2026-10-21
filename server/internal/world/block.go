@@ -51,6 +51,10 @@ const (
 	GoldBlock    = BossAltar + 1
 	GemBlock     = GoldBlock + 1
 	Checkpoint   = GemBlock + 1 // a pad that remembers where you come back after fainting
+	TallGrass    = Checkpoint + 1
+	RedFlower    = TallGrass + 1 // one per flowerColors entry
+	Gravel       = RedFlower + 4
+	PineLeaves   = Gravel + 1
 )
 
 // MaxLight is the brightest a block glows; light fades by one per block, so about ten metres.
@@ -78,6 +82,7 @@ var (
 		"white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
 		"light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black",
 	}
+	flowerColors    = []string{"red", "yellow", "blue", "white"}
 	shapedMaterials = []string{"stone", "cobblestone", "planks", "brick"}
 	facings         = []string{"", "_east", "_south", "_west", "_up", "_down"}
 )
@@ -133,6 +138,7 @@ func palette() []BlockInfo {
 	}
 	out = append(out, logicBlocks()...)
 	out = append(out, machines()...)
+	out = append(out, nature()...)
 	for id := range out {
 		out[id].ID = Block(id)
 	}
@@ -156,6 +162,18 @@ func logicBlocks() []BlockInfo {
 }
 
 // machines are the logic blocks that do something when powered.
+// nature lists the plants and ground that generator v3 adds.
+func nature() []BlockInfo {
+	out := []BlockInfo{{Name: "tall_grass", Transparent: true, Shape: Tuft}}
+	for _, c := range flowerColors {
+		out = append(out, BlockInfo{Name: c + "_flower", Transparent: true, Shape: Flower})
+	}
+	return append(out,
+		BlockInfo{Name: "gravel", Solid: true, MineMs: 600},
+		BlockInfo{Name: "pine_leaves", Solid: true, Transparent: true, MineMs: 200},
+	)
+}
+
 func machines() []BlockInfo {
 	door := withOn(BlockInfo{Name: "door", Solid: true, Usable: true, MineMs: 600}, "_open", 0)
 	door[1].Solid, door[1].Transparent = false, true

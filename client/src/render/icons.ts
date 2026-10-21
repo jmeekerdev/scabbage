@@ -1,5 +1,5 @@
 import type { RenderTable } from "../world/mesher";
-import { isStairs, Shape } from "../world/shapes";
+import { Shape, sideView } from "../world/shapes";
 import { flipRows, type Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 
@@ -32,9 +32,7 @@ export function paintIcon(atlas: Atlas, layer: number, shape: number): HTMLCanva
   const bytes = TEXTURE_SIZE * TEXTURE_SIZE * 4;
   const from = Math.max(0, layer) * bytes;
   const pixels = flipRows(atlas.pixels.subarray(from, from + bytes));
-  const half = TEXTURE_SIZE / 2;
-  const shown = (x: number, y: number) =>
-    y >= half || (shape !== Shape.SLAB && (!isStairs(shape) || x >= half));
+  const shown = sideView(shape);
   for (let y = 0; y < TEXTURE_SIZE; y++) {
     for (let x = 0; x < TEXTURE_SIZE; x++)
       if (!shown(x, y)) pixels[(y * TEXTURE_SIZE + x) * 4 + 3] = 0;

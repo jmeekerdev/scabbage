@@ -80,6 +80,8 @@ const (
 	Shape_SHAPE_STAIRS_WEST  Shape = 5
 	Shape_SHAPE_TORCH        Shape = 6
 	Shape_SHAPE_FLAT         Shape = 7 // a thin layer on the floor, like wire
+	Shape_SHAPE_TUFT         Shape = 8 // a few thin blades of grass
+	Shape_SHAPE_FLOWER       Shape = 9 // a stem with a head on top
 )
 
 // Enum value maps for Shape.
@@ -93,6 +95,8 @@ var (
 		5: "SHAPE_STAIRS_WEST",
 		6: "SHAPE_TORCH",
 		7: "SHAPE_FLAT",
+		8: "SHAPE_TUFT",
+		9: "SHAPE_FLOWER",
 	}
 	Shape_value = map[string]int32{
 		"SHAPE_UNSPECIFIED":  0,
@@ -103,6 +107,8 @@ var (
 		"SHAPE_STAIRS_WEST":  5,
 		"SHAPE_TORCH":        6,
 		"SHAPE_FLAT":         7,
+		"SHAPE_TUFT":         8,
+		"SHAPE_FLOWER":       9,
 	}
 )
 
@@ -6387,7 +6393,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x06chunks\x18\x01 \x03(\v2\x15.scabbage.v1.ChunkPosR\x06chunks*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x17*\xad\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x17*\xcf\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -6398,7 +6404,10 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x11SHAPE_STAIRS_WEST\x10\x05\x12\x0f\n" +
 	"\vSHAPE_TORCH\x10\x06\x12\x0e\n" +
 	"\n" +
-	"SHAPE_FLAT\x10\a*\xa4\x01\n" +
+	"SHAPE_FLAT\x10\a\x12\x0e\n" +
+	"\n" +
+	"SHAPE_TUFT\x10\b\x12\x10\n" +
+	"\fSHAPE_FLOWER\x10\t*\xa4\x01\n" +
 	"\x05Emote\x12\x15\n" +
 	"\x11EMOTE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +

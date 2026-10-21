@@ -82,6 +82,15 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   gold_block: same("gold_block"),
   gem_block: same("gem_block"),
   checkpoint: same("checkpoint"),
+  tall_grass: same("tall_grass"),
+  gravel: same("gravel"),
+  pine_leaves: same("pine_leaves"),
+  ...Object.fromEntries(
+    ["red", "yellow", "blue", "white"].map((c) => [
+      `${c}_flower`,
+      { top: `${c}_flower_top`, side: `${c}_flower`, bottom: `${c}_flower` },
+    ]),
+  ),
 };
 
 export interface BlockTypeInfo {

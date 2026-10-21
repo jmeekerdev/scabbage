@@ -80,6 +80,16 @@ describe("buildRenderTable", () => {
     expect(BLOCK_STYLES.checkpoint?.top).toBe("checkpoint");
   });
 
+  it("paints the generator's plants and ground, with flower heads seen from above", () => {
+    for (const name of ["tall_grass", "gravel", "pine_leaves"])
+      expect(BLOCK_STYLES[name], name).toBeDefined();
+    for (const c of ["red", "yellow", "blue", "white"]) {
+      const flower = BLOCK_STYLES[`${c}_flower`];
+      expect(flower?.top).toBe(`${c}_flower_top`);
+      expect(flower?.side).toBe(`${c}_flower`);
+    }
+  });
+
   it("shows unknown blocks with a placeholder texture instead of failing", () => {
     expect(t.layers[4 * 6]).toBe(layer("missing"));
   });

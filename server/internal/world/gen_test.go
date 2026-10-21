@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"math"
 	"testing"
 )
 
@@ -57,32 +58,138 @@ func TestGenV3Layers(t *testing.T) {
 	}
 }
 
-// Trees near chunk edges must be complete in every chunk they touch.
-func TestTreesAreSeamless(t *testing.T) {
+// Features near chunk edges must be complete in every chunk they touch.
+func TestFeaturesAreSeamless(t *testing.T) {
 	g := NewGenV3(42)
 	at := cachedBlocks(g)
-	tops := 0
-	beside := [][2]int32{{Metre, 0}, {-1, 0}, {0, Metre}, {0, -1}}
-	for cx := int32(-3); cx < 3; cx++ {
-		for cz := int32(-3); cz < 3; cz++ {
-			for x := cx * Size; x < (cx+1)*Size; x++ {
-				for z := cz * Size; z < (cz+1)*Size; z++ {
-					top, ok := treeTop(g, at, x, z)
-					if !ok {
-						continue
-					}
-					tops++
-					for _, d := range beside {
-						if b := at(x+d[0], top, z+d[1]); b != Leaves && b != Log {
-							t.Fatalf("tree at %d,%d missing leaves at %d,%d: %v", x, z, x+d[0], z+d[1], b)
-						}
-					}
+	seen := map[featureKind]int{}
+	for mx := int32(-30); mx < 30; mx++ {
+		for mz := int32(-30); mz < 30; mz++ {
+			f, ok := g.featureAt(mx, mz)
+			if !ok {
+				continue
+			}
+			seen[f.kind]++
+			f.solid(anywhere(func(x, y, z int32, b Block, _ bool) {
+				if got := at(x, y, z); !Info(got).Solid {
+					t.Fatalf("%v at %d,%d: %v at %d,%d,%d, want %v", f.kind, f.x, f.z, got, x, y, z, b)
+				}
+			}))
+			f.foliage(anywhere(func(x, y, z int32, b Block, _ bool) {
+				if got := at(x, y, z); got == Air || Info(got).Plant() {
+					t.Fatalf("%v at %d,%d: nothing at %d,%d,%d, want %v", f.kind, f.x, f.z, x, y, z, b)
+				}
+			}))
+		}
+	}
+	if len(seen) < 3 {
+		t.Fatalf("features found: %v", seen)
+	}
+}
+
+func TestEveryKindOfFeatureGrows(t *testing.T) {
+	g := NewGenV3(42)
+	seen := map[featureKind]int{}
+	for mx := int32(-200); mx < 200; mx++ {
+		for mz := int32(-200); mz < 200; mz++ {
+			if f, ok := g.featureAt(mx, mz); ok {
+				seen[f.kind]++
+			}
+		}
+	}
+	for k := oakTree; k <= rock; k++ {
+		if seen[k] == 0 {
+			t.Errorf("no %v in 400 m square: %v", k, seen)
+		}
+	}
+}
+
+func TestTreesHaveLeavesBesideTheirTop(t *testing.T) {
+	for _, k := range []featureKind{oakTree, pineTree, slimTree} {
+		f := feature{kind: k, x: 30, z: 30, ground: 100}
+		tr := f.tree()
+		blocks := map[[3]int32]Block{}
+		f.foliage(anywhere(func(x, y, z int32, b Block, _ bool) { blocks[[3]int32{x, y, z}] = b }))
+		for _, d := range [][2]int32{{-1, 0}, {tr.width, 0}, {0, -1}, {0, tr.width}} {
+			if blocks[[3]int32{tr.x + d[0], tr.top, tr.z + d[1]}] == Air {
+				t.Errorf("%v has no leaves beside its top log at %v", k, d)
+			}
+		}
+		if tr.top < f.ground+3*Metre {
+			t.Errorf("%v is only %d blocks tall", k, tr.top-f.ground)
+		}
+	}
+}
+
+func TestPlantsGrowOnGrass(t *testing.T) {
+	g := NewGenV3(42)
+	at := cachedBlocks(g)
+	plants := map[Block]int{}
+	for x := int32(-64); x < 64; x++ {
+		for z := int32(-64); z < 64; z++ {
+			h := g.SurfaceY(x, z)
+			b := at(x, h+1, z)
+			if !Info(b).Plant() {
+				continue
+			}
+			plants[b]++
+			if under := at(x, h, z); under != Grass {
+				t.Fatalf("%v at %d,%d,%d grows on %v", b, x, h+1, z, under)
+			}
+		}
+	}
+	if plants[TallGrass] == 0 {
+		t.Fatalf("plants = %v", plants)
+	}
+	flowers := map[Block]bool{}
+	for x := int32(-3000); x < 3000; x += 5 {
+		for z := int32(-3000); z < 3000; z += 5 {
+			if c := g.column(x, z); Info(g.plantAt(x, z, c)).Shape == Flower {
+				flowers[g.plantAt(x, z, c)] = true
+			}
+		}
+	}
+	if len(flowers) != len(flowerColors) {
+		t.Fatalf("flowers = %v", flowers)
+	}
+}
+
+func TestBeachesAreSandOrPebblesAndCragsBareRock(t *testing.T) {
+	g := NewGenV3(42)
+	tops := map[Block]int{}
+	for x := int32(-3000); x < 3000; x += 7 {
+		for z := int32(-3000); z < 3000; z += 7 {
+			c := g.column(x, z)
+			tops[c.top]++
+			beach := c.h <= seaLevel+beachRise
+			if (c.top == Sand || c.top == Gravel) != beach {
+				t.Fatalf("column %d,%d at %d is %v", x, z, c.h, c.top)
+			}
+		}
+	}
+	for _, b := range []Block{Grass, Sand, Gravel, Stone} {
+		if tops[b] == 0 {
+			t.Fatalf("surfaces = %v", tops)
+		}
+	}
+}
+
+func TestBanksRiseInSteps(t *testing.T) {
+	g := NewGenV3(42)
+	near := 0
+	for x := int32(-3000); x < 3000; x += 7 {
+		for z := int32(-3000); z < 3000; z += 7 {
+			h := g.SurfaceY(x, z)
+			if abs(h-seaLevel) < bankBand {
+				near++
+				if (h-seaLevel)%bankStep != 0 {
+					t.Fatalf("bank at %d,%d is %d above the sea", x, z, h-seaLevel)
 				}
 			}
 		}
 	}
-	if tops == 0 {
-		t.Fatal("no trees found in test area")
+	if near == 0 {
+		t.Fatal("no banks found")
 	}
 }
 
@@ -93,10 +200,15 @@ func TestGenV3Golden(t *testing.T) {
 	for _, p := range []ChunkPos{{0, 3, 0}, {0, 4, 0}, {-19, 2, -20}, {-22, 3, -20}} {
 		h.Write(Encode(g.Generate(p)))
 	}
-	const want = "accb9233fb202f21d2f2e0d2ba498f8d31e705ada9d612a12ea957569cfafb43"
+	const want = "d62d2972fc2bac4d30e67a8f1bbd84efa6256730052b03a87132e1d7040829d9"
 	if got := hex.EncodeToString(h.Sum(nil)); got != want {
 		t.Fatalf("generator v3 output changed: %s", got)
 	}
+}
+
+// anywhere is a canvas over the whole world.
+func anywhere(put putFunc) canvas {
+	return canvas{put: put, lo: [3]int32{math.MinInt32, MinY, math.MinInt32}, hi: [3]int32{math.MaxInt32, MaxY, math.MaxInt32}}
 }
 
 func blockAt(g Generator, x, y, z int32) Block {
@@ -114,19 +226,6 @@ func cachedBlocks(g Generator) func(x, y, z int32) Block {
 		}
 		return chunks[p].Get(lx, ly, lz)
 	}
-}
-
-// treeTop returns the y of the topmost log if column x,z is a trunk's corner.
-func treeTop(g *GenV3, at func(x, y, z int32) Block, x, z int32) (int32, bool) {
-	t, ok := g.treeAt(floorDiv(x, Metre), floorDiv(z, Metre))
-	if !ok || t.x != x || t.z != z || at(x, t.ground+1, z) != Log {
-		return 0, false
-	}
-	y := t.ground + 1
-	for at(x, y+1, z) == Log {
-		y++
-	}
-	return y, true
 }
 
 func BenchmarkGenerateSurfaceChunk(b *testing.B) {

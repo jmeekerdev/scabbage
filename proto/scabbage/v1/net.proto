@@ -140,6 +140,8 @@ enum Shape {
   SHAPE_STAIRS_WEST = 5;
   SHAPE_TORCH = 6;
   SHAPE_FLAT = 7; // a thin layer on the floor, like wire
+  SHAPE_TUFT = 8; // a few thin blades of grass
+  SHAPE_FLOWER = 9; // a stem with a head on top
 }
 
 // A built-in block texture repainted by an admin, e.g. "grass_side".

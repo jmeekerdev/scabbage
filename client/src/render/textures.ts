@@ -82,6 +82,29 @@ const plate =
   (x, y, n) =>
     shade([160, 160, 150], (edge(x, y) ? 0.75 : 1) * k * (0.95 + n() * 0.1));
 
+/** Flower petal colours; each paints the server's "<color>_flower" block. */
+const FLOWERS: [string, RGB][] = [
+  ["red", [205, 40, 45]],
+  ["yellow", [245, 205, 50]],
+  ["blue", [70, 110, 225]],
+  ["white", [240, 240, 232]],
+];
+const STEM: RGB = [70, 130, 40];
+
+/** A flower's side: green stem up to its head, which spans rows 10–15. */
+const flowerSide =
+  (petal: RGB): Painter =>
+  (_x, y, n) =>
+    y < 10 ? shade(STEM, 0.85 + n() * 0.2) : shade(petal, 0.9 + n() * 0.15);
+
+/** A flower's head from above: petals around a golden middle, over the stem at pixel 9. */
+const flowerTop =
+  (petal: RGB): Painter =>
+  (x, y, n) =>
+    Math.max(Math.abs(x - 9), Math.abs(y - 9)) < 1.5
+      ? shade([230, 170, 40], 0.9 + n() * 0.2)
+      : shade(petal, 0.92 + n() * 0.12);
+
 // Row 0 is the bottom of the texture (v = 0), so side textures read bottom-up.
 const PAINTERS: Record<string, Painter> = {
   missing: (x, y) => (((x >> 3) + (y >> 3)) % 2 ? [255, 0, 255, 255] : [20, 20, 20, 255]),
@@ -122,6 +145,20 @@ const PAINTERS: Record<string, Painter> = {
       : shade([155, 64, 48], 0.88 + n() * 0.24);
   },
   bedrock: (_x, _y, n) => shade([60, 60, 60], 0.4 + n() * 0.9),
+  // Blades darken toward their roots.
+  tall_grass: (_x, y, n) => shade([104, 168, 58], 0.7 + (y / 15) * 0.4 + n() * 0.08),
+  gravel: (_x, _y, n) => {
+    const tone = n(1);
+    const rgb: RGB = tone < 0.3 ? [104, 98, 92] : tone < 0.65 ? [132, 124, 116] : [158, 150, 140];
+    return shade(rgb, 0.92 + n() * 0.16);
+  },
+  pine_leaves: (_x, _y, n) => (n(2) < 0.06 ? [0, 0, 0, 0] : shade([42, 96, 58], 0.85 + n() * 0.3)),
+  ...Object.fromEntries(
+    FLOWERS.flatMap(([name, rgb]) => [
+      [`${name}_flower`, flowerSide(rgb)],
+      [`${name}_flower_top`, flowerTop(rgb)],
+    ]),
+  ),
   lamp: (x, y, n) => {
     const frame = x === 0 || y === 0 || x === 15 || y === 15;
     const bars = x % 5 === 0 || y % 5 === 0;

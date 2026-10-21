@@ -69,3 +69,24 @@ func TestConsoleCannotEditBlocks(t *testing.T) {
 	send(t, c, editBlock(0, 0, 0, world.Air))
 	expectDisconnect(t, c, pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL)
 }
+
+func TestPlantsGoWithTheGroundUnderThem(t *testing.T) {
+	ts := startServer(t)
+	admin := ts.joinAdmin(t)
+	x, y, z := ts.spawn()
+	bx, by, bz := int32(x)+2, int32(y), int32(z)
+	for dy, b := range []world.Block{world.Grass, world.RedFlower} {
+		if err := ts.world.SetBlock(bx, by+int32(dy), bz, b); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	send(t, admin, editBlock(bx, by, bz, world.Air))
+	batch := recv(t, admin).GetBlockBatch()
+	if len(batch.GetBlocks()) != 2 || batch.Blocks[1].Pos.Y != by+1 || batch.Blocks[1].Block != uint32(world.Air) {
+		t.Fatalf("batch = %v", batch)
+	}
+	if b, _ := ts.world.Block(bx, by+1, bz); b != world.Air {
+		t.Fatalf("flower left floating: %v", b)
+	}
+}

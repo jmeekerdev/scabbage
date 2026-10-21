@@ -30,30 +30,41 @@ func NewGenerator(version uint32, seed int64) (Generator, error) {
 }
 
 const (
-	seaLevel     = 30 * Metre
-	baseHeight   = 36 * Metre
-	heightRange  = 30 * Metre
-	heightScale  = 160.0 * Metre
-	hillRange    = 48 * Metre
-	hillScale    = 480.0 * Metre
-	beachRise    = Metre      // land this little above the sea is sand
-	soilDepth    = 3 * Metre  // dirt or sand over the stone
-	treePerMille = 12         // trees per thousand square metres
-	treeReach    = 2          // leaf radius in metres beyond the trunk
-	treeRoom     = 10 * Metre // headroom a tree needs under the sky
+	seaLevel    = 30 * Metre
+	baseHeight  = 36 * Metre
+	heightRange = 30 * Metre
+	heightScale = 160.0 * Metre
+	hillRange   = 48 * Metre
+	hillScale   = 480.0 * Metre
+	detailRange = Metre // small bumps, a metre up or down
+	detailScale = 12.0 * Metre
+	beachRise   = Metre     // land this little above the sea is sand
+	soilDepth   = 3 * Metre // dirt or sand over the stone
+	bankBand    = 2 * Metre // land this near the sea level rises in steps...
+	bankStep    = 2         // ...this many blocks high
+	cragScale   = 16.0 * Metre
+	cragCover   = 0.4       // crag noise above this lifts the land into bare rock...
+	cragRise    = 3 * Metre // ...up to this high
+	pebbleScale = 6.0 * Metre
+	pebbleCover = 0.25 // pebble noise above this makes a beach gravel
 )
 
-// GenV3 makes rolling hills with beaches, lakes, scattered trees and dungeons, in blocks a third
-// of a metre across.
+// GenV3 makes rolling hills with stepped banks, beaches, lakes, meadows, woods and dungeons, in
+// blocks a third of a metre across.
 type GenV3 struct {
-	height, hills   noise
-	trees, dungeons uint64
+	height, hills, detail, crags, pebbles, meadow, blooms noise
+	features, plants, dungeons                            uint64
 }
 
 // NewGenV3 returns a version 3 generator for seed.
 func NewGenV3(seed int64) *GenV3 {
-	return &GenV3{height: newNoise(seed), hills: newNoise(seed ^ 0x68696c6c),
-		trees: mix(uint64(seed) ^ 0x7265657473), dungeons: mix(uint64(seed) ^ 0x64756e67656f6e)}
+	return &GenV3{
+		height: newNoise(seed), hills: newNoise(seed ^ 0x68696c6c), detail: newNoise(seed ^ 0x64657461696c),
+		crags:   newNoise(seed ^ 0x63726167),
+		pebbles: newNoise(seed ^ 0x706562626c65), meadow: newNoise(seed ^ 0x6d6561646f77), blooms: newNoise(seed ^ 0x626c6f6f6d),
+		features: mix(uint64(seed) ^ 0x7265657473), plants: mix(uint64(seed) ^ 0x706c616e7473),
+		dungeons: mix(uint64(seed) ^ 0x64756e67656f6e),
+	}
 }
 
 // Version implements Generator.
@@ -61,9 +72,33 @@ func (g *GenV3) Version() uint32 { return 3 }
 
 // SurfaceY returns the y of the topmost terrain block in column x,z.
 func (g *GenV3) SurfaceY(x, z int32) int32 {
-	n := g.height.fbm(float64(x)/heightScale, float64(z)/heightScale, 4)
-	hill := max(0, g.hills.fbm(float64(x)/hillScale, float64(z)/hillScale, 2))
-	return baseHeight + int32(math.Floor(float64(heightRange*n)+float64(hillRange*float64(hill*hill))))
+	h, _ := g.surface(x, z)
+	return h
+}
+
+// surface returns column x,z's surface height and whether it is a rocky crag.
+func (g *GenV3) surface(x, z int32) (int32, bool) {
+	fx, fz := float64(x), float64(z)
+	n := g.height.fbm(fx/heightScale, fz/heightScale, 4)
+	hill := max(0, g.hills.fbm(fx/hillScale, fz/hillScale, 2))
+	bump := g.detail.fbm(fx/detailScale, fz/detailScale, 2)
+	h := float64(heightRange*n) + float64(hillRange*float64(hill*hill)) + float64(detailRange*bump)
+	crag := g.crag(x, z)
+	return stepBanks(baseHeight + int32(math.Floor(h)) + int32(cragRise*crag)), crag > 0
+}
+
+// crag is how far into a rocky outcrop x,z is, from 0 outside to 1 at its heart.
+func (g *GenV3) crag(x, z int32) float64 {
+	n := g.crags.fbm(float64(x)/cragScale, float64(z)/cragScale, 2)
+	return max(0, n-cragCover) / (1 - cragCover)
+}
+
+// stepBanks levels land near the sea into wide steps.
+func stepBanks(h int32) int32 {
+	if abs(h-seaLevel) >= bankBand {
+		return h
+	}
+	return seaLevel + floorDiv(h-seaLevel, bankStep)*bankStep
 }
 
 // Generate implements Generator.
@@ -73,120 +108,99 @@ func (g *GenV3) Generate(p ChunkPos) *Chunk {
 	if oy >= MaxY || oy+Size <= MinY {
 		return c
 	}
+	cv := canvasFor(c, p)
 	for x := range Size {
 		for z := range Size {
-			h := g.SurfaceY(ox+int32(x), oz+int32(z))
+			wx, wz := ox+int32(x), oz+int32(z)
+			col := g.column(wx, wz)
 			for y := range Size {
-				c.Set(x, y, z, terrain(oy+int32(y), h))
+				c.Set(x, y, z, col.at(oy+int32(y)))
+			}
+			if plant := g.plantAt(wx, wz, col); plant != Air {
+				cv.put(wx, col.h+1, wz, plant, true)
 			}
 		}
 	}
-	put := clipTo(c, p)
-	g.placeTrees(p, put)
-	g.placeDungeon(p, put)
+	g.placeFeatures(p, cv)
+	g.placeDungeon(p, cv.put)
 	c.compact()
 	return c
 }
 
-// clipTo returns a put that writes world positions inside chunk p and ignores the rest.
-func clipTo(c *Chunk, p ChunkPos) func(x, y, z int32, b Block, onlyAir bool) {
+// putFunc writes a block at a world position; soft writes only replace air and plants.
+type putFunc func(x, y, z int32, b Block, soft bool)
+
+// canvas is where generation draws: put writes a block, and lo..hi bounds the blocks worth drawing.
+type canvas struct {
+	put    putFunc
+	lo, hi [3]int32
+}
+
+// clamp narrows a range along axis to the canvas.
+func (cv canvas) clamp(axis int, from, to int32) (int32, int32) {
+	return max(from, cv.lo[axis]), min(to, cv.hi[axis])
+}
+
+// canvasFor returns a canvas that writes world positions inside chunk p and ignores the rest.
+func canvasFor(c *Chunk, p ChunkPos) canvas {
 	ox, oy, oz := p.Origin()
-	return func(x, y, z int32, b Block, onlyAir bool) {
+	cv := canvas{lo: [3]int32{ox, oy, oz}, hi: [3]int32{ox + Size - 1, oy + Size - 1, oz + Size - 1}}
+	cv.put = func(x, y, z int32, b Block, soft bool) {
 		lx, ly, lz := x-ox, y-oy, z-oz
 		if lx < 0 || ly < 0 || lz < 0 || lx >= Size || ly >= Size || lz >= Size {
 			return
 		}
-		if !onlyAir || c.Get(int(lx), int(ly), int(lz)) == Air {
+		if was := c.Get(int(lx), int(ly), int(lz)); !soft || was == Air || Info(was).Plant() {
 			c.Set(int(lx), int(ly), int(lz), b)
 		}
 	}
+	return cv
 }
 
-// terrain picks the block at height y in a column whose surface is h.
-func terrain(y, h int32) Block {
-	beach := h <= seaLevel+beachRise
+// column is one x,z's ground: its surface height and the blocks on and under it.
+type column struct {
+	h         int32
+	top, soil Block
+}
+
+// column picks the ground at x,z: sand or pebbles by the water, bare rock on crags, else grass
+// over dirt.
+func (g *GenV3) column(x, z int32) column {
+	h, crag := g.surface(x, z)
+	switch {
+	case h <= seaLevel+beachRise && g.pebbly(x, z):
+		return column{h, Gravel, Gravel}
+	case h <= seaLevel+beachRise:
+		return column{h, Sand, Sand}
+	case crag:
+		return column{h, Stone, Stone}
+	}
+	return column{h, Grass, Dirt}
+}
+
+func (g *GenV3) pebbly(x, z int32) bool {
+	return g.pebbles.fbm(float64(x)/pebbleScale, float64(z)/pebbleScale, 2) > pebbleCover
+}
+
+// at picks the column's block at height y.
+func (c column) at(y int32) Block {
 	switch {
 	case y < Metre:
 		return Bedrock
-	case y < h-soilDepth:
+	case y < c.h-soilDepth:
 		return Stone
-	case y < h && beach:
-		return Sand
-	case y < h:
-		return Dirt
-	case y == h && beach:
-		return Sand
-	case y == h:
-		return Grass
+	case y < c.h:
+		return c.soil
+	case y == c.h:
+		return c.top
 	case y <= seaLevel:
 		return Water
 	}
 	return Air
 }
 
-// tree is a trunk a metre square whose corner is at x,z, standing on ground h.
-type tree struct {
-	x, z, ground, top int32 // top is the y of the highest log
-}
-
-// treeAt returns the tree rooted in the square metre mx,mz, if any.
-func (g *GenV3) treeAt(mx, mz int32) (tree, bool) {
-	r := hash(g.trees, mx, mz)
-	if r%1000 >= treePerMille {
-		return tree{}, false
-	}
-	t := tree{x: mx * Metre, z: mz * Metre}
-	t.ground = g.SurfaceY(t.x+Metre/2, t.z+Metre/2)
-	if t.ground <= seaLevel+beachRise || t.ground+treeRoom >= MaxY {
-		return tree{}, false
-	}
-	t.top = t.ground + (4+int32(r>>32%3))*Metre
-	return t, true
-}
-
-// placeTrees draws every tree that touches chunk p: all trunks first, then leaves into air.
-func (g *GenV3) placeTrees(p ChunkPos, put func(x, y, z int32, b Block, onlyAir bool)) {
-	ox, _, oz := p.Origin()
-	lo, hi := floorDiv(ox, Metre)-treeReach, floorDiv(ox+Size-1, Metre)+treeReach
-	loZ, hiZ := floorDiv(oz, Metre)-treeReach, floorDiv(oz+Size-1, Metre)+treeReach
-	var trees []tree
-	for mx := lo; mx <= hi; mx++ {
-		for mz := loZ; mz <= hiZ; mz++ {
-			if t, ok := g.treeAt(mx, mz); ok {
-				trees = append(trees, t)
-			}
-		}
-	}
-	for _, t := range trees {
-		fillBox(t.x, t.ground-Metre+1, t.z, t.x+Metre-1, t.top, t.z+Metre-1, func(x, y, z int32) { put(x, y, z, Log, false) })
-	}
-	for _, t := range trees {
-		t.leaves(func(x, y, z int32) { put(x, y, z, Leaves, true) })
-	}
-}
-
-// leaves calls put for each leaf block: a canopy of metre cubes around the trunk's top metre.
-func (t tree) leaves(put func(x, y, z int32)) {
-	for dy := int32(-2); dy <= 1; dy++ {
-		r := int32(treeReach)
-		if dy >= 0 {
-			r = 1
-		}
-		for dx := -r; dx <= r; dx++ {
-			for dz := -r; dz <= r; dz++ {
-				corner := abs(dx) == r && abs(dz) == r
-				if corner && (r == treeReach || dy == 1) {
-					continue
-				}
-				x, y, z := t.x+dx*Metre, t.top+dy*Metre-Metre+1, t.z+dz*Metre
-				fillBox(x, y, z, x+Metre-1, y+Metre-1, z+Metre-1, put)
-			}
-		}
-	}
-}
-
 // placeDungeon digs in the part of a dungeon that reaches into chunk p.
-func (g *GenV3) placeDungeon(p ChunkPos, put func(x, y, z int32, b Block, onlyAir bool)) {
+func (g *GenV3) placeDungeon(p ChunkPos, put putFunc) {
 	ox, oy, oz := p.Origin()
 	d, ok := g.dungeonIn(regionOf(ox), regionOf(oz))
 	if !ok || oy > d.top()+d.steps+archHeight || oy+Size <= d.floor-Metre {

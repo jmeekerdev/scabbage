@@ -8,6 +8,8 @@ export const Shape = {
   STAIRS_WEST: 5,
   TORCH: 6,
   FLAT: 7, // a thin layer on the floor, like wire
+  TUFT: 8, // a few blades of grass
+  FLOWER: 9, // a stem with a head on top
 } as const;
 
 /** An axis-aligned box inside a block: x0, y0, z0, x1, y1, z1. */
@@ -25,6 +27,16 @@ export const SHAPE_BOXES: readonly (readonly Box[])[] = [
   [LOWER, [0, 4, 0, 4, 8, 8]],
   [[3, 0, 3, 5, 5, 5]],
   [[0, 0, 0, 8, 1, 8]],
+  [
+    [1, 0, 1, 2, 5, 2],
+    [5, 0, 2, 6, 7, 3],
+    [3, 0, 5, 4, 6, 6],
+    [6, 0, 6, 7, 4, 7],
+  ],
+  [
+    [4, 0, 4, 5, 5, 5],
+    [2, 5, 2, 7, 8, 7],
+  ],
 ];
 
 const inBlocks = SHAPE_BOXES.map((boxes) =>
@@ -36,6 +48,22 @@ export const FULL_BLOCK: readonly Box[] = inBlocks[Shape.CUBE];
 /** What players collide with in a block of this shape; non-solid blocks have nothing. */
 export function collisionBoxes(shape: number, solid: boolean): readonly Box[] {
   return solid ? (inBlocks[shape] ?? FULL_BLOCK) : [];
+}
+
+const PIXELS_PER_EIGHTH = 2;
+
+/**
+ * Which pixels of a 16×16 icon (rows top-down) the shape covers, seen from the side along x.
+ * Flat blocks show whole, since a sliver would be unreadable.
+ */
+export function sideView(shape: number): (x: number, y: number) => boolean {
+  if (shape === Shape.FLAT) return () => true;
+  const boxes = SHAPE_BOXES[shape] ?? SHAPE_BOXES[Shape.CUBE];
+  return (x, y) => {
+    const z = (15 - x) / PIXELS_PER_EIGHTH;
+    const up = (15 - y) / PIXELS_PER_EIGHTH;
+    return boxes.some((b) => z >= b[2] && z < b[5] && up >= b[1] && up < b[4]);
+  };
 }
 
 export const isStairs = (shape: number) =>

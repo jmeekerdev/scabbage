@@ -58,6 +58,11 @@ func (g *Gateway) edit(s *session, b edit.Brush, slot uint32) ([]edit.Request, e
 		}
 		changes = append(changes, world.Change{Pos: world.Pos{X: c.X, Y: c.Y, Z: c.Z}, Block: c.Block, Was: c.was})
 	}
+	uprooted, err := g.uproot(cells)
+	if err != nil {
+		return refused, err
+	}
+	changes = append(changes, uprooted...)
 	if len(changes) == 0 {
 		return refused, nil
 	}
@@ -66,6 +71,25 @@ func (g *Gateway) edit(s *session, b edit.Brush, slot uint32) ([]edit.Request, e
 		g.broke(s, b, cells, now)
 	}
 	return refused, g.afterEdits(cells)
+}
+
+// uproot clears the plants left standing on nothing after cells were dug out.
+func (g *Gateway) uproot(cells []cellEdit) ([]world.Change, error) {
+	var out []world.Change
+	for _, c := range cells {
+		if world.Info(c.Block).Solid {
+			continue
+		}
+		above, err := g.cfg.World.Block(c.X, c.Y+1, c.Z)
+		if err != nil || !world.Info(above).Plant() {
+			continue
+		}
+		if err := g.cfg.World.SetBlock(c.X, c.Y+1, c.Z, world.Air); err != nil {
+			return out, err
+		}
+		out = append(out, world.Change{Pos: world.Pos{X: c.X, Y: c.Y + 1, Z: c.Z}, Was: above})
+	}
+	return out, nil
 }
 
 // editable splits a brush's cells into those s may change and those it may not.

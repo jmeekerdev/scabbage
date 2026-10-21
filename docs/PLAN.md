@@ -356,8 +356,15 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       highest non-air block, and stay at most 256 blocks a side, less than the largest zone, to bound
       memory. Paste no longer sorts its changes. Mob and avatar models were already in metres; the
       skin preview shows the figure at its old size
-- [ ] Generator v3 detail, so it has its own character: finer hills, rocks and boulders, grass tufts,
-      flowers, bushes, varied tree shapes, pebbled beaches and stepped banks
+- [x] Generator v3 detail, so it has its own character: bumps a metre high on the hills, rocky crags
+      of bare stone, half-buried boulders, small rocks, leafy bushes, and three kinds of tree (broad oaks,
+      pointed pines with their own darker needles, slim trees) with crowns drawn block by block. Grass grows
+      tufts, thickest in meadows, and flowers grow in patches of mostly one colour (red, yellow, blue,
+      white). Beaches are sand with patches of gravel, and land near the sea level rises in steps two
+      blocks high. Tufts and flowers are new box-drawn shapes (protocol shapes 8 and 9) that players walk,
+      aim and build through, and they go when the ground under them is dug. Measured: a surface chunk
+      takes ~1.5 ms to generate (was ~0.75 ms), and a chunk column averages 26 tufts and 5 flowers,
+      about 500 extra quads
 - [ ] Far land: a cheap low-detail ring past the view distance, if the finer world needs it
 
 ## Open questions

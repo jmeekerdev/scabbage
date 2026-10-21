@@ -11,7 +11,9 @@ const (
 	StairsSouth
 	StairsWest
 	TorchShape
-	Flat // a thin layer on the floor, like wire
+	Flat   // a thin layer on the floor, like wire
+	Tuft   // a few blades of grass
+	Flower // a stem with a head on top
 )
 
 // Box is part of a block's collision volume, in block-local coordinates from 0 to 1.
@@ -28,6 +30,8 @@ var shapeBoxes = [...][]Box{
 	StairsWest:  {lowerHalf, {Min: [3]float64{0, 0.5, 0}, Max: [3]float64{0.5, 1, 1}}},
 	TorchShape:  nil,
 	Flat:        {{Max: [3]float64{1, 0.125, 1}}},
+	Tuft:        nil,
+	Flower:      nil,
 }
 
 var lowerHalf = Box{Max: [3]float64{1, 0.5, 1}}
@@ -44,3 +48,6 @@ func (i BlockInfo) Boxes() []Box {
 func (i BlockInfo) Targetable() bool {
 	return i.Solid || i.Usable || i.Shape == TorchShape || i.Shape == Flat
 }
+
+// Plant reports whether the block grows on the ground; players walk and build through plants.
+func (i BlockInfo) Plant() bool { return i.Shape == Tuft || i.Shape == Flower }
