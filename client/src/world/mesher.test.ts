@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CHUNK_SIZE as S } from "./constants";
 import { Shape } from "./shapes";
+import { Smooth } from "./soft-corners";
 import {
   FACE_NORMALS,
   meshChunk,
@@ -26,7 +27,9 @@ function table(): RenderTable {
   const transparent = Uint8Array.from([1, 0, 0, 1, 1, 1, 1]);
   const translucent = Uint8Array.from([0, 0, 0, 1, 0, 0, 0]);
   const shape = Uint8Array.from([0, 0, 0, 0, 0, Shape.SLAB, Shape.STAIRS_NORTH]);
-  return { layers, transparent, translucent, shape, light: new Uint8Array(n) };
+  const { EMPTY, NATURAL, BUILT } = Smooth;
+  const smooth = Uint8Array.from([EMPTY, NATURAL, NATURAL, EMPTY, BUILT, BUILT, BUILT]);
+  return { layers, transparent, translucent, shape, light: new Uint8Array(n), smooth };
 }
 
 function volume(blocks: [number, number, number, number][]): Uint16Array {
@@ -40,6 +43,93 @@ const quads = (m: MeshData) => m.indices.length / 6;
 /** Vertex i of a mesh as [x, y, z] in blocks. */
 const vertex = (m: MeshData, i: number) =>
   [0, 1, 2].map((a) => m.positions[i * 3 + a] / POSITION_SCALE);
+
+/** Upward quads, as the index of each one's first vertex. */
+const tops = (m: MeshData) =>
+  Array.from({ length: quads(m) }, (_, q) => q * 4).filter((i) => m.faces[i] === 2);
+
+describe("edge flags", () => {
+  const edges = { edges: true, softCorners: 0 };
+
+  it("are left out unless a look asks for them", () => {
+    expect(meshChunk(volume([[5, 5, 5, STONE]]), table()).opaque.edges).toBeUndefined();
+  });
+
+  it("give each corner its distance plus one to every open side, in blocks", () => {
+    const m = meshChunk(volume([[5, 5, 5, STONE]]), table(), undefined, edges).opaque;
+    const [top] = tops(m);
+    expect([...m.edges!.subarray(top * 4, top * 4 + 4)]).toEqual([1, 2, 1, 2]);
+  });
+
+  it("mark nothing where the surface carries on into the next chunk", () => {
+    const m = meshChunk(volume([...floor(), [-1, 0, 4, STONE]]), table(), undefined, edges).opaque;
+    const onEdge = tops(m).filter((i) => vertex(m, i)[0] === 0 && vertex(m, i)[2] <= 4);
+    const closed = onEdge.filter((i) => m.edges![i * 4 + 2] === 0);
+    expect(closed.length).toBeGreaterThan(0);
+  });
+
+  it("merge only cells whose sides agree", () => {
+    const half = Array.from({ length: S }, (_, z): [number, number, number, number] => [
+      -1,
+      0,
+      z,
+      STONE,
+    ]);
+    const plain = meshChunk(volume([...floor(), ...half.slice(0, 8)]), table()).opaque;
+    const flagged = meshChunk(volume([...floor(), ...half.slice(0, 8)]), table(), undefined, edges);
+    expect(tops(plain)).toHaveLength(1);
+    expect(tops(flagged.opaque)).toHaveLength(2);
+  });
+});
+
+describe("soft corners", () => {
+  const soft = { edges: false, softCorners: 0.5 };
+
+  it("leave flat ground merged, moving and tilting only around a step", () => {
+    const wide: [number, number, number, number][] = [];
+    for (let x = -1; x <= S; x++) for (let z = -1; z <= S; z++) wide.push([x, 0, z, STONE]);
+    const m = meshChunk(volume([...wide, [8, 1, 8, STONE]]), table(), undefined, soft).opaque;
+    const [big] = tops(m);
+    expect(vertex(m, big)).toEqual([0, 1, 0]);
+    expect([...m.shifts!.subarray(big * 3, big * 3 + 3)]).toEqual([0, 0, 0]);
+    expect([...m.normals!.subarray(big * 3, big * 3 + 3)]).toEqual([0, 127, 0]);
+    const [peak] = topVertices(m, 9, 2, 9);
+    expect([...m.shifts!.subarray(peak * 3, peak * 3 + 3)]).toEqual([-3, -3, -3]);
+  });
+
+  it("add no triangles beyond one quad per visible face", () => {
+    const m = meshChunk(
+      volume([
+        [5, 5, 5, STONE],
+        [6, 5, 5, STONE],
+      ]),
+      table(),
+      undefined,
+      soft,
+    );
+    expect(quads(m.opaque)).toBe(10);
+  });
+
+  it("keep built blocks and their neighbors' shared corners still", () => {
+    const m = meshChunk(
+      volume([
+        [5, 5, 5, STONE],
+        [6, 5, 5, GLASS],
+      ]),
+      table(),
+      undefined,
+      soft,
+    );
+    const [shared] = topVertices(m.opaque, 6, 6, 6);
+    expect([...m.opaque.shifts!.subarray(shared * 3, shared * 3 + 3)]).toEqual([0, 0, 0]);
+    expect(m.opaque.shifts!.filter((s) => s !== 0).length).toBeGreaterThan(0);
+  });
+
+  it("leave water where it is", () => {
+    const m = meshChunk(volume([[5, 5, 5, WATER]]), table(), undefined, soft).translucent;
+    expect(m.shifts!.every((s) => s === 0)).toBe(true);
+  });
+});
 
 describe("shaped blocks", () => {
   it("draws a slab half a block tall, hiding the face on the floor", () => {

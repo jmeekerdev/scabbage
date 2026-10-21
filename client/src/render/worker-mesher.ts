@@ -1,5 +1,5 @@
 import type { MeshRequest, MeshResult } from "../world/mesh-worker";
-import type { ChunkMesh, RenderTable } from "../world/mesher";
+import type { ChunkMesh, MeshOptions, RenderTable } from "../world/mesher";
 import type { Mesher } from "../world/world-client";
 
 const JOBS_PER_WORKER = 2;
@@ -22,6 +22,12 @@ export class WorkerMesher implements Mesher {
 
   setTable(table: RenderTable): void {
     const req: MeshRequest = { kind: "table", table };
+    for (const w of this.workers) w.postMessage(req);
+  }
+
+  /** What extra mesh data the look needs; meshes started from now on carry it. */
+  setOptions(options: MeshOptions): void {
+    const req: MeshRequest = { kind: "options", options };
     for (const w of this.workers) w.postMessage(req);
   }
 

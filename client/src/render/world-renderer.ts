@@ -7,12 +7,16 @@ import { WorldClient } from "../world/world-client";
 import { buildAtlas, type Atlas } from "./atlas";
 import { buildRenderTable, type BlockTypeInfo } from "./blocks";
 import { blockTextures, opaqueMaterial, translucentMaterial } from "./chunk-material";
-import { applyLook, lookUniforms, setLookUniforms } from "./look-shader";
+import { applyLook, lookUniforms, meshOptions, setLookUniforms } from "./look-shader";
 import { layerColors, layerColorTexture, topColors } from "./palette";
 import { ChunkMeshes } from "./chunk-meshes";
 import { FarLand } from "./far-land";
 import type { GameScene } from "./scene";
+import { Veil } from "./veil";
 import { WorkerMesher } from "./worker-mesher";
+
+// Longest the veil waits for chunks to rebuild before lifting anyway.
+const REBUILD_WAIT_MS = 4000;
 
 export interface WorldRenderer {
   /** Starts (or restarts, after reconnecting) streaming the described world; call setBlocks too. */
@@ -31,6 +35,11 @@ export interface WorldRenderer {
   setLook(look: Look): void;
   /** Keeps chunks around block position x,z loaded and drawn; call once per frame. */
   tick(x: number, z: number, viewDistance: number): void;
+}
+
+function sameMesh(a: Look, b: Look): boolean {
+  const [x, y] = [meshOptions(a), meshOptions(b)];
+  return x.edges === y.edges && x.softCorners === y.softCorners;
 }
 
 export interface BlockArt {
@@ -55,12 +64,45 @@ export function createWorldRenderer(
   const meshes = new ChunkMeshes(materials[0] as ShaderMaterial, materials[1] as ShaderMaterial);
   game.scene.add(meshes.group);
   const mesher = new WorkerMesher();
+  mesher.setOptions(meshOptions(initialLook));
   const far = new FarLand(requestFar, initialLook);
   const cover = (x: number, z: number, covered: boolean) => far.cover(x, z, covered);
   const world = new WorldClient({ send: request, mesher, view: meshes, cover });
   game.scene.add(far.group);
   let started = false;
   let art: BlockArt | undefined;
+  const veil = new Veil();
+  let waiting: Look | undefined; // shown once the veil has closed
+  let rebuildingSince: number | undefined;
+
+  function show(next: Look): void {
+    look = next;
+    setLookUniforms(look);
+    for (const m of materials) applyLook(m, look);
+    far.setLook(look);
+    paint();
+    game.invalidate();
+  }
+
+  /** Swaps in a look with other mesh data once the veil has closed, and lifts it when chunks are rebuilt. */
+  function rebuildBehindVeil(now: number): void {
+    if (waiting && veil.closed(now)) {
+      show(waiting);
+      waiting = undefined;
+      mesher.setOptions(meshOptions(look));
+      world.remeshAll();
+      rebuildingSince = now;
+    }
+    const rebuilt = world.settled() || now - (rebuildingSince ?? now) > REBUILD_WAIT_MS;
+    if (rebuildingSince !== undefined && rebuilt) {
+      veil.open(now);
+      rebuildingSince = undefined;
+    }
+    const amount = veil.amount(now);
+    if (amount === lookUniforms.veil.value) return;
+    lookUniforms.veil.value = amount;
+    game.invalidate();
+  }
 
   /** Gives each layer its flat colour in the look, for untextured blocks and far land. */
   function paint(): void {
@@ -99,18 +141,20 @@ export function createWorldRenderer(
     blockAt: (x, y, z) => world.blockAt(x, y, z),
     setBlock: (x, y, z, block) => world.setBlock(x, y, z, block),
     setLook(next) {
-      if (next === look) return;
-      look = next;
-      setLookUniforms(look);
-      for (const m of materials) applyLook(m, look);
-      far.setLook(look);
-      paint();
-      game.invalidate();
+      if (next === (waiting ?? look)) return;
+      if (sameMesh(next, look)) {
+        waiting = undefined;
+        show(next);
+        return;
+      }
+      waiting = next;
+      veil.close(performance.now());
     },
     tick(x, z, viewDistance) {
       if (!started) return;
       world.tick(x, z, viewDistance);
       if (far.tick(x, z, viewDistance)) game.invalidate(); // the frame check can't see what it hides
+      rebuildBehindVeil(performance.now());
     },
   };
 }

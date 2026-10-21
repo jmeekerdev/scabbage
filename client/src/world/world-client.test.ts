@@ -218,6 +218,16 @@ describe("WorldClient", () => {
     for (const j of older) j.done({ tag: "old" } as unknown as ChunkMesh);
     expect(view.shown.get(chunkKey(0, 0, 0))).toBe(newer);
   });
+  it("re-meshes every shown chunk, e.g. for a look that needs other mesh data", () => {
+    const { mesher, view, world } = loaded();
+    expect(world.settled()).toBe(true);
+    world.remeshAll();
+    expect(world.settled()).toBe(false);
+    world.tick(0, 0, 1);
+    expect(mesher.jobs.length).toBe(view.shown.size);
+    mesher.finishAll();
+    expect(world.settled()).toBe(true);
+  });
 });
 
 /** A world at view distance 1 with every chunk loaded, meshed and shown. */

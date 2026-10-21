@@ -1,8 +1,17 @@
 import { blockLight, cropToPadded, REGION_VOLUME } from "./light";
-import { meshChunk, type ChunkMesh, type MeshData, type RenderTable } from "./mesher";
+import {
+  meshChunk,
+  PLAIN_MESH,
+  type ChunkMesh,
+  type MeshData,
+  type MeshOptions,
+  type RenderTable,
+} from "./mesher";
 
 export type MeshRequest =
-  { kind: "table"; table: RenderTable } | { kind: "mesh"; job: number; volume: Uint16Array };
+  | { kind: "table"; table: RenderTable }
+  | { kind: "options"; options: MeshOptions }
+  | { kind: "mesh"; job: number; volume: Uint16Array };
 
 export interface MeshResult {
   job: number;
@@ -10,11 +19,16 @@ export interface MeshResult {
 }
 
 let table: RenderTable | undefined;
+let options = PLAIN_MESH;
 
 self.onmessage = (ev: MessageEvent<MeshRequest>) => {
   const req = ev.data;
   if (req.kind === "table") {
     table = req.table;
+    return;
+  }
+  if (req.kind === "options") {
+    options = req.options;
     return;
   }
   if (!table) throw new Error("mesh worker has no render table");
@@ -26,12 +40,21 @@ self.onmessage = (ev: MessageEvent<MeshRequest>) => {
 
 /** A light region is lit and cropped first; a plain padded volume is meshed in the dark. */
 function meshVolume(volume: Uint16Array, t: RenderTable): ChunkMesh {
-  if (volume.length !== REGION_VOLUME) return meshChunk(volume, t);
-  return meshChunk(cropToPadded(volume), t, blockLight(volume, t.transparent, t.light));
+  if (volume.length !== REGION_VOLUME) return meshChunk(volume, t, undefined, options);
+  const light = blockLight(volume, t.transparent, t.light);
+  return meshChunk(cropToPadded(volume), t, light, options);
 }
 
 function buffers(m: MeshData): ArrayBuffer[] {
-  return [m.positions, m.uvs, m.faces, m.layers, m.ao, m.light, m.indices].map(
-    (a) => a.buffer as ArrayBuffer,
-  );
+  const arrays: ArrayBufferView[] = [
+    m.positions,
+    m.uvs,
+    m.faces,
+    m.layers,
+    m.ao,
+    m.light,
+    m.indices,
+  ];
+  for (const extra of [m.edges, m.shifts, m.normals]) if (extra) arrays.push(extra);
+  return arrays.map((a) => a.buffer as ArrayBuffer);
 }

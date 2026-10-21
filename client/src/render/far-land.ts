@@ -15,7 +15,13 @@ import { FAR_REGION, farRegionMesh, type FarTile } from "../world/far-mesh";
 import { ChunkStreamer, type WorldBounds } from "../world/streamer";
 import type { Look } from "../looks/look";
 import { daylight } from "./chunk-material";
-import { applyLook, LOOK_LIGHT_GLSL, lookFeatures, lookUniforms } from "./look-shader";
+import {
+  applyLook,
+  LOOK_LIGHT_GLSL,
+  LOOK_VEIL_GLSL,
+  lookFeatures,
+  lookUniforms,
+} from "./look-shader";
 
 /** How many chunks away far land reaches for a view distance in chunks. */
 export const farDistance = (viewDistance: number) => viewDistance * 3;
@@ -191,6 +197,7 @@ varying vec3 vWorld;
 varying vec2 vColumn;
 #include <fog_pars_fragment>
 ${LOOK_LIGHT_GLSL}
+${LOOK_VEIL_GLSL}
 void main() {
   ivec2 column = ivec2(mod(floor(vColumn), MASK));
   if (texelFetch(covered, column, 0).r > 0.5) discard;
@@ -199,6 +206,7 @@ void main() {
   gl_FragColor = vec4((vColor * lookLight(n) + shine) * daylight, 1.0);
   #include <colorspace_fragment>
   #include <fog_fragment>
+  gl_FragColor = veiled(gl_FragColor);
 }`;
 
 function coverMask(): DataTexture {

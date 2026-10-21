@@ -1,5 +1,6 @@
 import { Vector3, Vector4, type ShaderMaterial, type Texture } from "three";
 import type { Look, Rgb } from "../looks/look";
+import type { MeshOptions } from "../world/mesher";
 
 const rgb = (c: Rgb) => new Vector3(c.r, c.g, c.b);
 
@@ -18,6 +19,7 @@ export const lookUniforms = {
   shine: { value: 0 },
   waterOpacity: { value: 1 },
   layerColors: { value: null as Texture | null },
+  veil: { value: 0 },
 };
 
 export function setLookUniforms(look: Look): void {
@@ -46,11 +48,18 @@ export function lookFeatures(look: Look): Record<string, string> {
     SUN: !!sun,
     BANDS: !!sun && sun.bands >= 2,
     SHINE: !!sun && sun.shine > 0,
+    EDGES: look.shape.edges,
+    SOFT: look.shape.softCorners > 0,
   };
   return Object.fromEntries(Object.entries(on).flatMap(([k, v]) => (v ? [[k, ""]] : [])));
 }
 
-const FEATURES = ["FLAT", "SUN", "BANDS", "SHINE"];
+const FEATURES = ["FLAT", "SUN", "BANDS", "SHINE", "EDGES", "SOFT"];
+
+/** The extra mesh data a look's shape needs; corners move at most half a block. */
+export function meshOptions(look: Look): MeshOptions {
+  return { edges: look.shape.edges, softCorners: Math.min(0.5, look.shape.softCorners) };
+}
 
 /** Switches a material to a look's features, recompiling it only if they changed. */
 export function applyLook(material: ShaderMaterial, look: Look): void {
@@ -61,6 +70,13 @@ export function applyLook(material: ShaderMaterial, look: Look): void {
   Object.assign(material.defines, next);
   material.needsUpdate = true;
 }
+
+/** veiled(c): the colour hidden in fog by the veil, while chunks rebuild for a new look. Needs the fog uniforms. */
+export const LOOK_VEIL_GLSL = /* glsl */ `
+uniform float veil;
+vec4 veiled(vec4 c) {
+  return vec4(mix(c.rgb, fogColor, veil), c.a);
+}`;
 
 /** lookLight(n): the light on a surface facing n; lookShine(n, toEye): the sun's highlight to add. */
 export const LOOK_LIGHT_GLSL = /* glsl */ `

@@ -12,10 +12,10 @@ import type { ChunkKey, ChunkPos } from "../world/coords";
 import type { ChunkMesh, MeshData } from "../world/mesher";
 import type { ChunkView } from "../world/world-client";
 
-// Every chunk mesh fits in this sphere, so three.js can frustum-cull without computing bounds.
+// Every chunk mesh fits in this sphere, soft corners included, so three.js can frustum-cull without computing bounds.
 const BOUNDS = new Sphere(
   new Vector3(CHUNK_SIZE / 2, CHUNK_SIZE / 2, CHUNK_SIZE / 2),
-  CHUNK_SIZE * 0.87,
+  CHUNK_SIZE * 0.9,
 );
 
 /** Shows chunk meshes in the scene, freeing GPU buffers when chunks go away. */
@@ -64,6 +64,9 @@ function toMesh(data: MeshData, material: Material, pos: ChunkPos): Mesh | undef
   g.setAttribute("layer", new BufferAttribute(data.layers, 1));
   g.setAttribute("ao", new BufferAttribute(data.ao, 1));
   g.setAttribute("light", new BufferAttribute(data.light, 1));
+  if (data.edges) g.setAttribute("edge", new BufferAttribute(data.edges, 4));
+  if (data.shifts) g.setAttribute("shift", new BufferAttribute(data.shifts, 3));
+  if (data.normals) g.setAttribute("normal", new BufferAttribute(data.normals, 3, true));
   g.setIndex(new BufferAttribute(data.indices, 1));
   g.boundingSphere = BOUNDS;
   const mesh = new Mesh(g, material);

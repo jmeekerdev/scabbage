@@ -389,7 +389,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       config, so only the chosen look is compiled and features that are off cost nothing; numbers are
       live uniforms. Sky, fog, water and far land read the same look. Painted and custom blocks are
       stickers (crisp pixels lit like everything else) in textureless looks
-- [ ] Mesher options from the look: edge flags (where a shape really ends, so flat ground reads as one
+- [x] Mesher options from the look: edge flags (where a shape really ends, so flat ground reads as one
       surface) and soft corners (natural full blocks' corners slide at most half a block toward the shape
       around them, with slope normals, and add no triangles). Faces merge only where their corners move
       alike. Switching to a look that needs different mesh data rebuilds the loaded chunks behind a short fade

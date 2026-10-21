@@ -1,6 +1,7 @@
 import type { RenderTable } from "../world/mesher";
 import { customLayerName } from "./atlas";
 import { Shape } from "../world/shapes";
+import { Smooth } from "../world/soft-corners";
 import { COUNT_DOWN } from "./machine-textures";
 import { TEXTURE_NAMES, WOOL_COLORS } from "./textures";
 
@@ -10,6 +11,7 @@ export interface BlockStyle {
   bottom: string;
   front?: string; // the face a piston pushes from
   translucent?: boolean;
+  natural?: boolean; // ground the world grows, which soft corners round off
 }
 
 // Each piston facing's name suffix and the face it pushes from, in +x, -x, +y, -y, +z, -z order.
@@ -32,21 +34,22 @@ const numbered = (block: string, texture: string, n: number) =>
   }).flat();
 
 const same = (t: string): BlockStyle => ({ top: t, side: t, bottom: t });
+const natural = (style: BlockStyle): BlockStyle => ({ ...style, natural: true });
 
 /** How each server block name looks; unknown names get the "missing" texture. */
 export const BLOCK_STYLES: Record<string, BlockStyle> = {
-  stone: same("stone"),
-  dirt: same("dirt"),
-  grass: { top: "grass_top", side: "grass_side", bottom: "dirt" },
-  sand: same("sand"),
+  stone: natural(same("stone")),
+  dirt: natural(same("dirt")),
+  grass: natural({ top: "grass_top", side: "grass_side", bottom: "dirt" }),
+  sand: natural(same("sand")),
   water: { ...same("water"), translucent: true },
   log: { top: "log_top", side: "log_side", bottom: "log_top" },
-  leaves: same("leaves"),
+  leaves: natural(same("leaves")),
   planks: same("planks"),
   cobblestone: same("cobblestone"),
   glass: same("glass"),
   brick: same("brick"),
-  bedrock: same("bedrock"),
+  bedrock: natural(same("bedrock")),
   lamp: same("lamp"),
   torch: same("torch"),
   ...Object.fromEntries(
@@ -83,8 +86,8 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   gem_block: same("gem_block"),
   checkpoint: same("checkpoint"),
   tall_grass: same("tall_grass"),
-  gravel: same("gravel"),
-  pine_leaves: same("pine_leaves"),
+  gravel: natural(same("gravel")),
+  pine_leaves: natural(same("pine_leaves")),
   ...Object.fromEntries(
     ["red", "yellow", "blue", "white"].map((c) => [
       `${c}_flower`,
@@ -123,6 +126,7 @@ export function buildRenderTable(
     translucent: new Uint8Array(n),
     shape: new Uint8Array(n),
     light: new Uint8Array(n),
+    smooth: new Uint8Array(n),
   };
   for (const t of types) {
     table.transparent[t.id] = t.transparent ? 1 : 0;
@@ -131,6 +135,7 @@ export function buildRenderTable(
     if (t.name === "air") continue;
     const style = styleOf(t);
     table.translucent[t.id] = style.translucent ? 1 : 0;
+    table.smooth[t.id] = smoothKind(style, table.shape[t.id]);
     // Face order: +x, -x, +y, -y, +z, -z.
     const faces = [style.side, style.side, style.top, style.bottom, style.side, style.side];
     if (style.front) faces[frontFace(t.name)] = style.front;
@@ -141,6 +146,13 @@ export function buildRenderTable(
     });
   }
   return table;
+}
+
+/** Natural cubes soften; water and plants leave room for them; anything else is built and pins them. */
+function smoothKind(style: BlockStyle, shape: number): number {
+  if (style.natural && shape === Shape.CUBE) return Smooth.NATURAL;
+  if (style.translucent || shape === Shape.TUFT || shape === Shape.FLOWER) return Smooth.EMPTY;
+  return Smooth.BUILT;
 }
 
 /** The face a turned block like a piston looks out of, from its name's facing suffix. */

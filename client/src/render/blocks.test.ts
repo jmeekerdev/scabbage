@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Shape } from "../world/shapes";
+import { Smooth } from "../world/soft-corners";
 import { buildRenderTable, BLOCK_STYLES } from "./blocks";
 import { TEXTURE_NAMES, paintTextures, TEXTURE_SIZE } from "./textures";
 
@@ -23,6 +24,22 @@ const layer = (name: string) => TEXTURE_NAMES.indexOf(name);
 
 describe("buildRenderTable", () => {
   const t = buildRenderTable(types);
+
+  it("softens natural cubes, makes room at water and pins at anything built", () => {
+    const types2 = [...types, { id: 13, name: "stone_slab", transparent: true, shape: Shape.SLAB }];
+    const kinds = buildRenderTable(types2).smooth;
+    const { EMPTY, NATURAL, BUILT } = Smooth;
+    expect([...kinds.subarray(0, 7)]).toEqual([
+      EMPTY,
+      NATURAL,
+      NATURAL,
+      EMPTY,
+      BUILT,
+      BUILT,
+      BUILT,
+    ]);
+    expect(kinds[13]).toBe(Smooth.BUILT);
+  });
 
   it("gives grass a green top, dirt bottom and grassy sides", () => {
     expect(t.layers[2 * 6 + 2]).toBe(layer("grass_top"));

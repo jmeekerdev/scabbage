@@ -11,7 +11,7 @@ import {
   type Texture,
 } from "three";
 import type { Look } from "../looks/look";
-import { LOOK_LIGHT_GLSL, lookFeatures, lookUniforms } from "./look-shader";
+import { LOOK_LIGHT_GLSL, LOOK_VEIL_GLSL, lookFeatures, lookUniforms } from "./look-shader";
 import type { Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 import { MAX_LIGHT } from "../world/light";
@@ -42,17 +42,44 @@ varying vec3 vNormal;
 varying float vAo;
 varying float vGlow;
 varying vec3 vInside;
+varying vec3 vWorld;
+#ifdef EDGES
+attribute vec4 edge;
+varying vec4 vEdge;
+varying vec3 vSideU;
+varying vec3 vSideV;
+#endif
+#ifdef SOFT
+attribute vec3 shift;
+#endif
 #include <fog_pars_vertex>
+
+vec3 axis(int a) {
+  return vec3(equal(ivec3(a), ivec3(0, 1, 2)));
+}
+
 void main() {
   vUv = uv / POSITION_SCALE;
   vGlow = light > 0.0 ? pow(lampFade, (MAX_LIGHT - light) / METRE) : 0.0; // each metre away dims it a little
   vLayer = layer;
   vAo = ao / 3.0;
   int f = int(face + 0.5);
-  vNormal = vec3(equal(ivec3(f / 2), ivec3(0, 1, 2))) * ((f & 1) == 1 ? -1.0 : 1.0);
-  // A point just behind the face, so the fragment shader can tell which block it belongs to.
-  vInside = (modelMatrix * vec4(position / POSITION_SCALE, 1.0)).xyz - vNormal * 0.5;
-  vec4 mvPosition = modelViewMatrix * vec4(position / POSITION_SCALE, 1.0);
+  vec3 faceNormal = axis(f / 2) * ((f & 1) == 1 ? -1.0 : 1.0);
+  vNormal = faceNormal;
+  vec3 moved = position;
+  #ifdef SOFT
+  moved += shift;
+  if (dot(normal, normal) > 0.25) vNormal = normalize(normal);
+  #endif
+  #ifdef EDGES
+  vEdge = edge;
+  vSideU = axis((f / 2 + 1) % 3);
+  vSideV = axis((f / 2 + 2) % 3);
+  #endif
+  // A point just behind the unmoved face, so the fragment shader can tell which block it belongs to.
+  vInside = (modelMatrix * vec4(position / POSITION_SCALE, 1.0)).xyz - faceNormal * 0.5;
+  vWorld = (modelMatrix * vec4(moved / POSITION_SCALE, 1.0)).xyz;
+  vec4 mvPosition = modelViewMatrix * vec4(moved / POSITION_SCALE, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
 }`;
@@ -74,8 +101,25 @@ varying vec3 vNormal;
 varying float vAo;
 varying float vGlow;
 varying vec3 vInside;
+varying vec3 vWorld;
+#ifdef EDGES
+varying vec4 vEdge;
+varying vec3 vSideU;
+varying vec3 vSideV;
+#endif
 #include <fog_pars_fragment>
 ${LOOK_LIGHT_GLSL}
+${LOOK_VEIL_GLSL}
+
+// The normal tipped outward near open sides (vEdge holds distance + 1 to each, 0 if closed), so shapes look rounded.
+vec3 rounded(vec3 n) {
+  #ifdef EDGES
+  vec4 near = step(0.5, vEdge) * max(1.0 - (vEdge - 1.0) / EDGE_ROUND, 0.0);
+  return normalize(n + (near.y - near.x) * vSideU + (near.w - near.z) * vSideV);
+  #else
+  return n;
+  #endif
+}
 
 // A steady brightness per block, so neighbors of the same kind don't line up into a grid.
 float blockTint(vec3 p) {
@@ -108,12 +152,14 @@ void main() {
   #else
   color.a *= waterOpacity;
   #endif
-  vec3 shade = lookLight(vNormal) * mix(ao, vec3(1.0), vAo) * blockTint(vInside);
+  vec3 n = rounded(normalize(vNormal));
+  vec3 shade = lookLight(n) * mix(ao, vec3(1.0), vAo) * blockTint(vInside);
   vec3 lit = max(vec3(daylight), lamp * vGlow);
-  vec3 toEye = normalize(cameraPosition - vInside - vNormal * 0.5);
-  gl_FragColor = vec4(color.rgb * shade * lit + lookShine(vNormal, toEye) * daylight, color.a);
+  vec3 toEye = normalize(cameraPosition - vWorld);
+  gl_FragColor = vec4(color.rgb * shade * lit + lookShine(n, toEye) * daylight, color.a);
   #include <colorspace_fragment>
   #include <fog_fragment>
+  gl_FragColor = veiled(gl_FragColor);
 }`;
 
 /** Shared by every chunk material; the sky sets it each frame. */
@@ -143,6 +189,7 @@ function chunkMaterial(
     POSITION_SCALE: POSITION_SCALE.toFixed(1),
     MAX_LIGHT: MAX_LIGHT.toFixed(1),
     METRE: METRE.toFixed(1),
+    EDGE_ROUND: "0.42", // blocks from an open side where rounding starts
     ...lookFeatures(look),
     ...extra?.defines,
   };

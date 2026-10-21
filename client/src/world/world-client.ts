@@ -39,6 +39,7 @@ export class WorldClient {
   private readonly toMesh = new Set<ChunkKey>();
   private readonly meshed = new Map<ChunkKey, number>(); // key → id of its latest mesh job
   private jobs = 0;
+  private running = 0; // mesh jobs sent and not yet back
   private center = { cx: 0, cz: 0, vd: 0 };
   private emits: Uint8Array = new Uint8Array(0); // light level per block ID
   private transparent: Uint8Array = new Uint8Array(0); // 1 where light passes, per block ID
@@ -63,6 +64,17 @@ export class WorldClient {
     this.drawn.clear();
     this.layers = Math.ceil(bounds.height / CHUNK_SIZE);
     this.deps.view.clear();
+  }
+
+  /** Meshes every shown chunk again, keeping the old meshes up until the new ones arrive. */
+  remeshAll(): void {
+    for (const key of this.meshed.keys()) this.toMesh.add(key);
+    this.meshed.clear();
+  }
+
+  /** Whether every queued chunk has been meshed. */
+  settled(): boolean {
+    return this.toMesh.size === 0 && this.running === 0;
   }
 
   /** How brightly each block ID glows and which let light through; meshes made from now on use it. */
@@ -206,7 +218,9 @@ export class WorldClient {
       const volume = lit
         ? this.store.region(p.x, p.y, p.z, LIGHT_MARGIN)
         : this.store.padded(p.x, p.y, p.z);
+      this.running++;
       mesher.mesh(volume, (mesh) => {
+        this.running--;
         if (this.meshed.get(key) !== job) return;
         view.show(key, p, mesh);
         this.markDrawn(p);

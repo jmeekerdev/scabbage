@@ -2,7 +2,7 @@ import { ShaderMaterial } from "three";
 import { describe, expect, it } from "vitest";
 import type { Look, LookSun } from "../looks/look";
 import { lookById } from "../looks/registry";
-import { applyLook, lookFeatures, lookUniforms, setLookUniforms } from "./look-shader";
+import { applyLook, lookFeatures, lookUniforms, meshOptions, setLookUniforms } from "./look-shader";
 
 const today = lookById("today");
 const sun: LookSun = {
@@ -33,6 +33,21 @@ describe("lookFeatures", () => {
       BANDS: "",
       SHINE: "",
     });
+  });
+});
+
+describe("lookFeatures shape", () => {
+  it("switches on edge and soft-corner shading with the mesh data they need", () => {
+    const shaped = { ...today, shape: { edges: true, softCorners: 0.5 } };
+    expect(lookFeatures(shaped)).toEqual({ EDGES: "", SOFT: "" });
+    expect(meshOptions(shaped)).toEqual({ edges: true, softCorners: 0.5 });
+    expect(meshOptions(today)).toEqual({ edges: false, softCorners: 0 });
+  });
+
+  it("caps soft corners at half a block", () => {
+    expect(meshOptions({ ...today, shape: { edges: false, softCorners: 2 } }).softCorners).toBe(
+      0.5,
+    );
   });
 });
 
