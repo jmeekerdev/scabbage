@@ -265,6 +265,35 @@ func (w *World) Unload() error {
 	return nil
 }
 
+// Evict saves dirty chunks, then drops the loaded chunks keep rejects, returning how many.
+func (w *World) Evict(keep func(ChunkPos) bool) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if err := w.flush(); err != nil {
+		return 0, err
+	}
+	dropped := 0
+	for p := range w.chunks {
+		if !keep(p) {
+			delete(w.chunks, p)
+			dropped++
+		}
+	}
+	if dropped > 0 {
+		w.forgetTicking()
+	}
+	return dropped, nil
+}
+
+// forgetTicking drops ticking blocks whose chunks are no longer loaded.
+func (w *World) forgetTicking() {
+	for p := range w.ticking {
+		if c, _, _, _ := ChunkOf(p.X, p.Y, p.Z); w.chunks[c] == nil {
+			delete(w.ticking, p)
+		}
+	}
+}
+
 // Loaded returns the number of chunks in memory.
 func (w *World) Loaded() int {
 	w.mu.Lock()

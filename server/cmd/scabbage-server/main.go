@@ -29,7 +29,7 @@ import (
 	"scabbage/internal/zones"
 )
 
-// autosaveEvery bounds how much building a crash can lose while players are on.
+// autosaveEvery bounds how much building a crash can lose, and how long far chunks stay loaded.
 const autosaveEvery = time.Minute
 
 func main() {
@@ -69,7 +69,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		OnTick: func(tick uint64) {
 			gw.Tick()
 			if tick%saveTicks == 0 {
-				go saveWorld(w, logger) // keeps disk writes off the tick loop
+				go trimWorld(w, gw.Nearby(), logger) // keeps disk writes off the tick loop
 			}
 		},
 		OnIdle: func() {
@@ -139,6 +139,19 @@ func run(cfg config.Config, logger *slog.Logger) error {
 func saveWorld(w *world.World, logger *slog.Logger) {
 	if err := w.Flush(); err != nil {
 		logger.Error("saving world", "err", err)
+	}
+}
+
+// trimWorld saves the world and drops chunks no player is near, returning their memory to the OS.
+func trimWorld(w *world.World, keep func(world.ChunkPos) bool, logger *slog.Logger) {
+	dropped, err := w.Evict(keep)
+	if err != nil {
+		logger.Error("saving world", "err", err)
+		return
+	}
+	if dropped > 0 {
+		debug.FreeOSMemory()
+		logger.Debug("dropped far chunks", "chunks", dropped, "loaded", w.Loaded())
 	}
 }
 

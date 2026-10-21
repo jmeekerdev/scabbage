@@ -311,3 +311,25 @@ func TestWipeForgetsEditsAndCanChangeTheSeed(t *testing.T) {
 		t.Fatalf("stored seed %d", again.Meta().Seed)
 	}
 }
+
+func TestEvictSavesAndDropsChunksNotKept(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	if err := w.SetBlock(1, 50, 1, Planks); err != nil {
+		t.Fatal(err)
+	}
+	const fx = -1 - Size // in chunk -2,1,-2
+	if err := w.SetBlock(fx, 40, fx, Timer); err != nil {
+		t.Fatal(err)
+	}
+	far := ChunkPos{X: -2, Y: 1, Z: -2}
+	dropped, err := w.Evict(func(p ChunkPos) bool { return p != far })
+	if err != nil || dropped != 1 || w.Loaded() != 1 || w.Dirty() != 0 {
+		t.Fatalf("evict: dropped=%d err=%v loaded=%d dirty=%d", dropped, err, w.Loaded(), w.Dirty())
+	}
+	if len(w.Ticking()) != 0 {
+		t.Fatalf("ticking blocks in dropped chunks should be forgotten: %v", w.Ticking())
+	}
+	if b, _ := w.Block(fx, 40, fx); b != Timer {
+		t.Fatalf("dropped chunk lost its change: %v", b)
+	}
+}

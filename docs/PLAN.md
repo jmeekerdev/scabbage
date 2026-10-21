@@ -336,7 +336,8 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       Measured: a surface chunk is ~0.7–3.4 KB encoded and ~1 ms to generate; meshing ~5 ms per chunk
       after removing per-cell allocations (no WASM needed yet); the server grew to ~240 MB after
       visiting three places, so memory eviction is next)
-- [ ] Server memory: clean chunks far from every player leave memory, so a big world stays inside 2 GB
+- [x] Server memory: each autosave (every minute) saves, then drops chunks more than 14 chunks from
+      every player. Touring four far places peaked at 330 MB, fell to 88 MB at the next save, and 29 MB idle
 - [ ] Light and look: lamps reach about as far as before (more light levels), textures stay 16 px per small
       block with a slight per-block tint so ground doesn't show a grid; camera, fog and view presets in
       metres rather than chunks
