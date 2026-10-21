@@ -11,8 +11,15 @@ export const STICKER = 255; // the picture itself, as custom blocks are drawn
 
 const LAYER_BYTES = TEXTURE_SIZE * TEXTURE_SIZE * 4;
 
-/** RGBA per atlas layer: its flat sRGB colour, from the palette or the picture's average, and how to draw it. */
-export function layerColors(atlas: Atlas, palette: Record<string, Rgb> = {}): Uint8Array {
+/**
+ * RGBA per atlas layer: its flat sRGB colour, from the palette or the picture's average, and how to
+ * draw it. Pictures named in solid lose their see-through holes.
+ */
+export function layerColors(
+  atlas: Atlas,
+  palette: Record<string, Rgb> = {},
+  solid: readonly string[] = [],
+): Uint8Array {
   const out = new Uint8Array(atlas.depth * 4);
   atlas.names.forEach((name, layer) => {
     const pixels = atlas.pixels.subarray(layer * LAYER_BYTES, (layer + 1) * LAYER_BYTES);
@@ -21,7 +28,11 @@ export function layerColors(atlas: Atlas, palette: Record<string, Rgb> = {}): Ui
       ? [chosen.r, chosen.g, chosen.b].map((v) => Math.round(v * 255))
       : averageColor(pixels);
     out.set(rgb, layer * 4);
-    out[layer * 4 + 3] = isCustomLayer(name) ? STICKER : hasHoles(pixels) ? CUT_OUT : SOLID;
+    out[layer * 4 + 3] = isCustomLayer(name)
+      ? STICKER
+      : hasHoles(pixels) && !solid.includes(name)
+        ? CUT_OUT
+        : SOLID;
   });
   return out;
 }

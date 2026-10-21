@@ -66,9 +66,16 @@ export class WorldClient {
     this.deps.view.clear();
   }
 
-  /** Meshes every shown chunk again, keeping the old meshes up until the new ones arrive. */
+  /** Meshes every shown chunk again, nearest the player first, keeping old meshes up until new ones arrive. */
   remeshAll(): void {
-    for (const key of this.meshed.keys()) this.toMesh.add(key);
+    const { cx, cz } = this.center;
+    const away = (key: ChunkKey) => {
+      const p = parseKey(key);
+      return (p.x - cx) ** 2 + (p.z - cz) ** 2;
+    };
+    const all = [...this.toMesh, ...this.meshed.keys()].sort((a, b) => away(a) - away(b));
+    this.toMesh.clear();
+    for (const key of all) this.toMesh.add(key);
     this.meshed.clear();
   }
 

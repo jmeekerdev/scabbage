@@ -24,11 +24,17 @@ export class ChunkMeshes implements ChunkView {
   private readonly meshes = new Map<ChunkKey, Mesh[]>();
 
   constructor(
-    private readonly opaque: Material,
-    private readonly translucent: Material,
+    private opaque: Material,
+    private translucent: Material,
   ) {
     this.group.name = "chunks";
     this.group.userData.fixed = true; // meshes never move, so frame checks only see which are in view
+  }
+
+  /** Materials for meshes shown from now on; shown meshes keep theirs until replaced. */
+  useMaterials(opaque: Material, translucent: Material): void {
+    this.opaque = opaque;
+    this.translucent = translucent;
   }
 
   show(key: ChunkKey, pos: ChunkPos, mesh: ChunkMesh): void {

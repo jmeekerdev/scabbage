@@ -62,8 +62,14 @@ export interface Look {
     textured: boolean;
     /** Flat colours by texture name, for pictures whose average colour isn't wanted. */
     palette?: Record<string, Rgb>;
+    /** Textures drawn without their see-through holes when untextured, like leaves as solid crowns. */
+    solid?: string[];
     /** How much each block's brightness varies, so same-kind neighbors don't form a grid. */
     tint: number;
+    /** 0–1, colour that drifts across the land in soft washes, fixed to the world. */
+    wash?: number;
+    /** 0–1, fine fabric fuzz, fixed to the world. */
+    fibre?: number;
   };
   /** Light colours multiply the surface as they are; only sky, fog and palette colours are sRGB. */
   light: {
@@ -82,6 +88,10 @@ export interface Look {
     edges: boolean;
     /** How far smoothed corners may move, in blocks (at most 0.5). */
     softCorners: number;
+    /** 0–1, how much colour darkens toward open edges, like pooled paint; needs edges. */
+    pool?: number;
+    /** sRGB colour of running stitches along open edges; needs edges. */
+    stitch?: Rgb;
   };
   sky: LookSky;
   fog: {

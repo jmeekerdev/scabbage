@@ -1,4 +1,4 @@
-import type { ShaderMaterial } from "three";
+import type { DataArrayTexture, ShaderMaterial } from "three";
 import type { ChunkBatch, FarLand as FarLandMessage, WorldInfo } from "../pb/scabbage/v1/net_pb";
 import type { Look } from "../looks/look";
 import type { ChunkPos } from "../world/coords";
@@ -42,6 +42,11 @@ function sameMesh(a: Look, b: Look): boolean {
   return x.edges === y.edges && x.softCorners === y.softCorners;
 }
 
+/** The opaque and translucent chunk materials for a look. */
+function lookMaterials(textures: DataArrayTexture, look: Look): [ShaderMaterial, ShaderMaterial] {
+  return [opaqueMaterial(textures, look), translucentMaterial(textures, look)];
+}
+
 export interface BlockArt {
   atlas: Atlas;
   table: RenderTable;
@@ -55,13 +60,11 @@ export function createWorldRenderer(
   initialLook: Look,
 ): WorldRenderer {
   setLookUniforms(initialLook);
-  const textures = blockTextures(buildAtlas([], []));
-  const materials: ShaderMaterial[] = [
-    opaqueMaterial(textures, initialLook),
-    translucentMaterial(textures, initialLook),
-  ];
+  let textures = blockTextures(buildAtlas([], []));
+  let materials = lookMaterials(textures, initialLook);
+  let retired: ShaderMaterial[] = []; // still drawing chunks not yet rebuilt for the current look
   let look = initialLook;
-  const meshes = new ChunkMeshes(materials[0] as ShaderMaterial, materials[1] as ShaderMaterial);
+  const meshes = new ChunkMeshes(...materials);
   game.scene.add(meshes.group);
   const mesher = new WorkerMesher();
   mesher.setOptions(meshOptions(initialLook));
@@ -87,11 +90,18 @@ export function createWorldRenderer(
   /** Swaps in a look with other mesh data once the veil has closed, and lifts it when chunks are rebuilt. */
   function rebuildBehindVeil(now: number): void {
     if (waiting && veil.closed(now)) {
+      retired.push(...materials);
+      materials = lookMaterials(textures, waiting);
+      meshes.useMaterials(...materials);
       show(waiting);
       waiting = undefined;
       mesher.setOptions(meshOptions(look));
       world.remeshAll();
       rebuildingSince = now;
+    }
+    if (retired.length && world.settled()) {
+      for (const m of retired) m.dispose();
+      retired = [];
     }
     const rebuilt = world.settled() || now - (rebuildingSince ?? now) > REBUILD_WAIT_MS;
     if (rebuildingSince !== undefined && rebuilt) {
@@ -107,7 +117,7 @@ export function createWorldRenderer(
   /** Gives each layer its flat colour in the look, for untextured blocks and far land. */
   function paint(): void {
     if (!art) return;
-    const colors = layerColors(art.atlas, look.surface.palette);
+    const colors = layerColors(art.atlas, look.surface.palette, look.surface.solid);
     lookUniforms.layerColors.value?.dispose();
     lookUniforms.layerColors.value = layerColorTexture(colors);
     far.setColors(topColors(colors, art.table));
@@ -122,10 +132,10 @@ export function createWorldRenderer(
     setBlocks(blocks, repainted) {
       const atlas = buildAtlas(blocks, repainted);
       const table = buildRenderTable(blocks, atlas.layerOf);
-      const old = materials[0]?.uniforms.blocks?.value as { dispose(): void } | undefined;
-      const tex = blockTextures(atlas);
-      for (const m of materials) if (m.uniforms.blocks) m.uniforms.blocks.value = tex;
-      old?.dispose();
+      const old = textures;
+      textures = blockTextures(atlas);
+      for (const m of [...materials, ...retired]) m.uniforms.blocks.value = textures;
+      old.dispose();
       mesher.setTable(table);
       world.setLights(table.light, table.transparent);
       art = { atlas, table };

@@ -44,6 +44,20 @@ describe("lookFeatures shape", () => {
     expect(meshOptions(today)).toEqual({ edges: false, softCorners: 0 });
   });
 
+  it("switches on world-anchored washes, fibres, pooled edges and stitches", () => {
+    const fabric: Look = {
+      ...today,
+      surface: { ...today.surface, wash: 0.5, fibre: 0.4 },
+      shape: { edges: true, softCorners: 0, pool: 0.2, stitch: { r: 1, g: 1, b: 1 } },
+    };
+    expect(lookFeatures(fabric)).toEqual({ EDGES: "", WASH: "", FIBRE: "", POOL: "", STITCH: "" });
+  });
+
+  it("drops pooled edges and stitches without the edges they follow", () => {
+    const shape = { edges: false, softCorners: 0, pool: 0.2, stitch: { r: 1, g: 1, b: 1 } };
+    expect(lookFeatures({ ...today, shape })).toEqual({});
+  });
+
   it("caps soft corners at half a block", () => {
     expect(meshOptions({ ...today, shape: { edges: false, softCorners: 2 } }).softCorners).toBe(
       0.5,
@@ -58,6 +72,18 @@ describe("setLookUniforms", () => {
     expect(lookUniforms.faces.value.toArray()).toEqual([0.8, 1, 0.65, 0.5]);
     expect(lookUniforms.ao.value.toArray()).toEqual([0.5, 0.5, 0.5]);
     expect(lookUniforms.lampFade.value).toBe(0.82);
+  });
+
+  it("puts surface and edge strengths in the shared uniforms", () => {
+    setLookUniforms({
+      ...today,
+      surface: { ...today.surface, wash: 0.5, fibre: 0.4 },
+      shape: { edges: true, softCorners: 0, pool: 0.2, stitch: { r: 1, g: 0, b: 0 } },
+    });
+    expect(lookUniforms.wash.value).toBe(0.5);
+    expect(lookUniforms.fibre.value).toBe(0.4);
+    expect(lookUniforms.pool.value).toBe(0.2);
+    expect(lookUniforms.stitch.value.toArray()).toEqual([1, 0, 0]);
   });
 
   it("points the sun along its direction, normalised", () => {

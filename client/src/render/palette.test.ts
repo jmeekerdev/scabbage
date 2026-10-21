@@ -18,10 +18,14 @@ const custom = { id: 256, name: "flower", transparent: false, pixels: topRed() }
 const air = { id: 0, name: "air", transparent: true };
 
 /** The RGBA layerColors gives the layer of a built-in texture, painted with `pixels`. */
-function colorOf(pixels: Uint8Array, palette?: Parameters<typeof layerColors>[1]): number[] {
+function colorOf(
+  pixels: Uint8Array,
+  palette?: Parameters<typeof layerColors>[1],
+  solid?: string[],
+): number[] {
   const atlas = buildAtlas([], [{ name: "brick", pixels }]);
   const layer = atlas.layerOf("brick");
-  return [...layerColors(atlas, palette).subarray(layer * 4, layer * 4 + 4)];
+  return [...layerColors(atlas, palette, solid).subarray(layer * 4, layer * 4 + 4)];
 }
 
 describe("layerColors", () => {
@@ -33,6 +37,12 @@ describe("layerColors", () => {
     const px = topRed();
     for (let i = TEXTURE_SIZE * 4 + 3; i < LAYER; i += 4) px[i] = 0;
     expect(colorOf(px)).toEqual([255, 0, 0, CUT_OUT]);
+  });
+
+  it("fills the holes of pictures a look names as solid", () => {
+    const px = topRed();
+    for (let i = TEXTURE_SIZE * 4 + 3; i < LAYER; i += 4) px[i] = 0;
+    expect(colorOf(px, {}, ["brick"])).toEqual([255, 0, 0, SOLID]);
   });
 
   it("takes a look's palette over the average, by texture name", () => {

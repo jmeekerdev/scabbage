@@ -29,8 +29,10 @@ class FakeMesher implements Mesher {
 
 class FakeView implements ChunkView {
   shown = new Map<string, ChunkMesh>();
-  show(key: string, _pos: ChunkPos, mesh: ChunkMesh) {
+  order: ChunkPos[] = [];
+  show(key: string, pos: ChunkPos, mesh: ChunkMesh) {
     this.shown.set(key, mesh);
+    this.order.push(pos);
   }
   remove(key: string) {
     this.shown.delete(key);
@@ -227,6 +229,43 @@ describe("WorldClient", () => {
     expect(mesher.jobs.length).toBe(view.shown.size);
     mesher.finishAll();
     expect(world.settled()).toBe(true);
+  });
+
+  it("rebuilds the chunks nearest the player first", () => {
+    const { mesher, view, world, sent } = loaded();
+    world.tick(-CHUNK_SIZE, 0, 1);
+    while (sent.length) {
+      answer(world, sent);
+      world.tick(-CHUNK_SIZE, 0, 1);
+    }
+    mesher.finishAll();
+    view.order = [];
+    world.remeshAll();
+    world.tick(-CHUNK_SIZE, 0, 1);
+    mesher.finishAll();
+    const away = view.order.map((p) => (p.x + 1) ** 2 + p.z ** 2);
+    expect(away).toEqual([...away].sort((a, b) => a - b));
+  });
+
+  it("puts chunks still waiting from loading behind the nearest ones", () => {
+    const { mesher, view, world, sent } = setup(1);
+    world.tick(0, 0, 1);
+    while (sent.length) {
+      answer(world, sent);
+      world.tick(0, 0, 1);
+    }
+    for (let i = 0; i < 3; i++) {
+      mesher.finishAll();
+      world.tick(0, 0, 1);
+    }
+    world.remeshAll();
+    view.order = [];
+    while (mesher.jobs.length) {
+      mesher.finishAll();
+      world.tick(0, 0, 1);
+    }
+    const away = view.order.slice(1).map((p) => p.x ** 2 + p.z ** 2);
+    expect(away).toEqual([...away].sort((a, b) => a - b));
   });
 });
 

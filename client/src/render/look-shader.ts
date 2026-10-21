@@ -1,4 +1,4 @@
-import { Vector3, Vector4, type ShaderMaterial, type Texture } from "three";
+import { Color, SRGBColorSpace, Vector3, Vector4, type ShaderMaterial, type Texture } from "three";
 import type { Look, Rgb } from "../looks/look";
 import type { MeshOptions } from "../world/mesher";
 
@@ -20,6 +20,10 @@ export const lookUniforms = {
   waterOpacity: { value: 1 },
   layerColors: { value: null as Texture | null },
   veil: { value: 0 },
+  wash: { value: 0 },
+  fibre: { value: 0 },
+  pool: { value: 0 },
+  stitch: { value: new Vector3() },
 };
 
 export function setLookUniforms(look: Look): void {
@@ -31,6 +35,12 @@ export function setLookUniforms(look: Look): void {
   u.lamp.value.copy(rgb(look.light.lamp));
   u.lampFade.value = look.light.lampFade;
   u.waterOpacity.value = look.water.opacity;
+  u.wash.value = look.surface.wash ?? 0;
+  u.fibre.value = look.surface.fibre ?? 0;
+  u.pool.value = look.shape.pool ?? 0;
+  const st = look.shape.stitch ?? { r: 1, g: 1, b: 1 };
+  const linear = new Color().setRGB(st.r, st.g, st.b, SRGBColorSpace);
+  u.stitch.value.set(linear.r, linear.g, linear.b);
   if (!sun) return;
   u.sunDir.value.set(sun.dir.x, sun.dir.y, sun.dir.z).normalize();
   u.sunLit.value.copy(rgb(sun.lit));
@@ -50,11 +60,26 @@ export function lookFeatures(look: Look): Record<string, string> {
     SHINE: !!sun && sun.shine > 0,
     EDGES: look.shape.edges,
     SOFT: look.shape.softCorners > 0,
+    WASH: (look.surface.wash ?? 0) > 0,
+    FIBRE: (look.surface.fibre ?? 0) > 0,
+    POOL: look.shape.edges && (look.shape.pool ?? 0) > 0,
+    STITCH: look.shape.edges && !!look.shape.stitch,
   };
   return Object.fromEntries(Object.entries(on).flatMap(([k, v]) => (v ? [[k, ""]] : [])));
 }
 
-const FEATURES = ["FLAT", "SUN", "BANDS", "SHINE", "EDGES", "SOFT"];
+const FEATURES = [
+  "FLAT",
+  "SUN",
+  "BANDS",
+  "SHINE",
+  "EDGES",
+  "SOFT",
+  "WASH",
+  "FIBRE",
+  "POOL",
+  "STITCH",
+];
 
 /** The extra mesh data a look's shape needs; corners move at most half a block. */
 export function meshOptions(look: Look): MeshOptions {

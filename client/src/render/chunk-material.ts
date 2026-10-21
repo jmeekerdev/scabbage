@@ -95,6 +95,10 @@ uniform float tint;
 uniform vec3 ao;
 uniform vec3 lamp;
 uniform float waterOpacity;
+uniform float wash;
+uniform float fibre;
+uniform float pool;
+uniform vec3 stitch;
 varying vec2 vUv;
 varying float vLayer;
 varying vec3 vNormal;
@@ -129,6 +133,65 @@ float blockTint(vec3 p) {
   return 1.0 + tint * (float(h & 255u) / 127.5 - 1.0);
 }
 
+#if defined(WASH) || defined(FIBRE)
+float hash3(vec3 p) {
+  p = fract(p * 0.1031);
+  p += dot(p, p.zyx + 31.32);
+  return fract((p.x + p.y) * p.z);
+}
+float noise3(vec3 p) {
+  vec3 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  vec2 o = vec2(0.0, 1.0);
+  return mix(
+    mix(mix(hash3(i), hash3(i + o.yxx), f.x), mix(hash3(i + o.xyx), hash3(i + o.yyx), f.x), f.y),
+    mix(mix(hash3(i + o.xxy), hash3(i + o.yxy), f.x), mix(hash3(i + o.xyy), hash3(i + o.yyy), f.x), f.y),
+    f.z);
+}
+#endif
+
+#if defined(POOL) || defined(STITCH)
+// Blocks to the nearest open side, or far away when every side is closed.
+float openEdge() {
+  vec4 d = mix(vec4(9.0), vEdge - 1.0, step(0.5, vEdge));
+  return min(min(d.x, d.y), min(d.z, d.w));
+}
+
+// 0–1, how much a running stitch a little in from each open side covers this point.
+float stitches() {
+  vec2 along = vec2(dot(vWorld, vSideV), dot(vWorld, vSideU));
+  float st = 0.0;
+  for (int k = 0; k < 4; k++) {
+    if (vEdge[k] < 0.5) continue;
+    float a = fract((k < 2 ? along.x : along.y) * 2.0);
+    float line = 1.0 - smoothstep(0.035, 0.065, abs(vEdge[k] - 1.18));
+    st = max(st, line * smoothstep(0.1, 0.18, a) * (1.0 - smoothstep(0.62, 0.7, a)));
+  }
+  return st;
+}
+#endif
+
+// Touches fixed to the world that a look may add: washes, fibres, pooled edges and stitches.
+vec3 styled(vec3 c) {
+  #ifdef WASH
+  float hue = noise3(vWorld * 0.06 + 3.0), depth = noise3(vWorld * 0.21);
+  vec3 w = mix(vec3(1.04, 1.0, 0.94), vec3(0.92, 0.97, 1.06), hue) * (0.86 + 0.28 * depth);
+  c *= mix(vec3(1.0), w, wash);
+  #endif
+  #ifdef FIBRE
+  float near = 1.0 - smoothstep(6.0, 20.0, distance(vWorld, cameraPosition)); // fades before it shimmers
+  float fib = noise3(vWorld * vec3(9.0, 26.0, 9.0)) * 0.5 + hash3(floor(vWorld * 30.0)) * 0.5;
+  c *= 1.0 + fibre * (fib - 0.5) * 0.24 * near;
+  #endif
+  #ifdef POOL
+  c *= 1.0 - pool * (1.0 - smoothstep(0.0, 0.22, openEdge()));
+  #endif
+  #ifdef STITCH
+  c = mix(c, stitch, stitches() * 0.8 * (1.0 - smoothstep(10.0, 30.0, distance(vWorld, cameraPosition))));
+  #endif
+  return c;
+}
+
 vec4 picture() {
   return texture(blocks, vec3(vUv, vLayer));
 }
@@ -152,6 +215,7 @@ void main() {
   #else
   color.a *= waterOpacity;
   #endif
+  color.rgb = styled(color.rgb);
   vec3 n = rounded(normalize(vNormal));
   vec3 shade = lookLight(n) * mix(ao, vec3(1.0), vAo) * blockTint(vInside);
   vec3 lit = max(vec3(daylight), lamp * vGlow);

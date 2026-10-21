@@ -395,8 +395,12 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       alike. Switching to a look that needs different mesh data rebuilds the loaded chunks behind a short fade
 - [x] Afterwards pass, run only when a look uses it: outlines from depth (and optionally normals) in
       a set or darkened colour, paper grain, map-only tilt-shift, vignette, saturation
-- [ ] Port the looks, cheapest first: Dusk Pastel, Clay Diorama, Smooth Clay, Ink & Cel, then
-      Watercolour and Felt & Stitch, whose screen-space grain and lines need extra work not to swim in motion
+- [x] Port the looks, cheapest first: Dusk Pastel, Clay Diorama, Smooth Clay, Ink & Cel, then
+      Watercolour and Felt & Stitch. Washes, fibres, pooled edges and stitches are fixed to the world so
+      they don't swim; leaves can be drawn solid in flat looks. Left for tuning: Watercolour's line wobble
+      and soft blur, Dusk Pastel's height gradient, and the vignettes on Dusk Pastel and Felt (dropped to
+      keep them pass-free). A rebuild now starts nearest the player, and chunks keep the material they
+      were meshed for until replaced, so a slow rebuild never shows them wrongly
 - [ ] Everything else follows the look: players, mobs, dropped items, the held item, the selection
       outline (bent to soft corners) and the hand view take the look's light, palette tint and outlines
 - [ ] Tests and tuning: every look's config passes the schema and its shader compiles in a headless test,
