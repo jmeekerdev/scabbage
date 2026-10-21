@@ -63,7 +63,7 @@ func TestSteppingOnAPortalJoinsTheRound(t *testing.T) {
 	ts := startServer(t)
 	admin, x, y, z := raceWithPortal(t, ts)
 	adminSays(t, admin, "/arena portal field")
-	send(t, admin, move(x+1, y, z, 0))
+	send(t, admin, move(x+2, y, z, 0)) // far enough that no part of the feet is on the portal
 	send(t, admin, move(x, y, z, 0))
 	b := waitFor(t, admin, scoreboard).GetScoreboard()
 	if b.Zone != "Field" || b.Status != "Starting" || b.Seconds != 10 || len(b.Scores) != 1 || b.Scores[0].Name != "Mom" {

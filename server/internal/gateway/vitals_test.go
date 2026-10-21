@@ -5,6 +5,7 @@ import (
 
 	"github.com/coder/websocket"
 
+	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
 	"scabbage/internal/vitals"
 	"scabbage/internal/world"
@@ -130,4 +131,13 @@ func TestOnlyAdminsSetModes(t *testing.T) {
 	recvWhere(t, kid, func(m *pb.ServerMessage) bool {
 		return m.GetDisconnect().GetCode() == pb.DisconnectCode_DISCONNECT_CODE_NOT_ADMIN
 	})
+}
+
+func TestWaterAtChestHeightHoldsYouUp(t *testing.T) {
+	ts := startServer(t)
+	feet := motion.Vec{X: 5.5, Y: 300, Z: 5.5}
+	setBlock(t, ts, 5, 300+world.Metre, 5, world.Water) // a metre up, about chest high
+	if got := ts.gw.footing(feet); got != vitals.Water {
+		t.Fatalf("footing %v, want water", got)
+	}
 }

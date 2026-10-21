@@ -104,7 +104,12 @@ func send(t *testing.T, c *websocket.Conn, msg *pb.ClientMessage) {
 
 func recv(t *testing.T, c *websocket.Conn) *pb.ServerMessage {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	return recvWithin(t, c, time.Second)
+}
+
+func recvWithin(t *testing.T, c *websocket.Conn, wait time.Duration) *pb.ServerMessage {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
 	_, b, err := c.Read(ctx)
 	if err != nil {

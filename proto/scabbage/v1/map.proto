@@ -9,7 +9,7 @@ message MapFile {
   string name = 1;
   int32 width = 2; // along x
   int32 depth = 3; // along z
-  int32 height = 4; // the world height it was made in, all of which it holds
+  int32 height = 4; // the levels it holds from the world's bottom up; above them is air
   bytes blocks = 5; // the server's block-list encoding, x first, then z, then y
   repeated MapBlock palette = 6; // the name of every block ID it uses, so other servers can read it
   repeated MapScript scripts = 7;

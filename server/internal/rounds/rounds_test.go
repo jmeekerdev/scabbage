@@ -24,7 +24,7 @@ func arena(g arenas.Game, spawns ...arenas.Mark) arenas.Arena {
 // flags has a red and a blue spawn, each with its team's goal.
 func flags() arenas.Arena {
 	a := arena(arenas.Flags, spawn(arenas.Red, 1), spawn(arenas.Blue, 2))
-	a.Goals = []arenas.Mark{{Team: arenas.Red, X: 1, Y: 1, Z: 5}, {Team: arenas.Blue, X: 2, Y: 1, Z: 5}}
+	a.Goals = []arenas.Mark{{Team: arenas.Red, X: 1, Y: 1, Z: 5}, {Team: arenas.Blue, X: 4, Y: 1, Z: 5}}
 	return a
 }
 
@@ -152,7 +152,7 @@ func TestFlagsAreCarriedFromTheOtherGoalToYourOwn(t *testing.T) {
 	if effects := r.Stand(1, 1, 1, 5, true); len(effects) != 0 {
 		t.Fatalf("scored without a flag: %v", effects)
 	}
-	effects := r.Stand(1, 2, 1, 5, true)
+	effects := r.Stand(1, 4, 1, 5, true)
 	if !strings.Contains(said(effects, 2), "A has the blue flag") || r.Board(t0).Scores[0].Flag != arenas.Blue {
 		t.Fatalf("effects %v", effects)
 	}
@@ -164,7 +164,7 @@ func TestFlagsAreCarriedFromTheOtherGoalToYourOwn(t *testing.T) {
 
 func TestDroppingOutDropsTheFlag(t *testing.T) {
 	r, _ := started(t, flags(), 2)
-	r.Stand(1, 2, 1, 5, true)
+	r.Stand(1, 4, 1, 5, true)
 	effects, ok := r.Fall(1)
 	if !ok || sent(effects, 1).X != 1 || r.Board(t0).Scores[0].Flag != "" {
 		t.Fatalf("effects %v", effects)
@@ -217,7 +217,7 @@ func TestTimeUp(t *testing.T) {
 	}
 	r, _ := started(t, flags(), 2)
 	r.Stand(2, 1, 1, 5, true)
-	r.Stand(2, 2, 1, 5, true)
+	r.Stand(2, 4, 1, 5, true)
 	if effects := r.Step(t0.Add(Countdown + 600*time.Second)); !strings.Contains(said(effects, 1), "Blue team wins") {
 		t.Fatalf("flags: %v", effects)
 	}

@@ -64,6 +64,14 @@ func TestFaintedPlayersComeBackToTheirCheckpoint(t *testing.T) {
 	recvWhere(t, c, isTeleportTo(x, y, z))
 }
 
+func TestPadsFireUnderAnyPartOfTheFeet(t *testing.T) {
+	ts := startServer(t)
+	c := ts.joinAdmin(t)
+	checkpointFloor(t, ts)
+	walkOnto(t, c, tpAndWait(t, c, "10 300 10"), 11.5) // the body's east edge is over block 12
+	recvWhere(t, c, noticeOf("Checkpoint!"))
+}
+
 func TestCheckpointsOnlyCountInTheirOwnZone(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)

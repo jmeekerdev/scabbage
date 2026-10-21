@@ -18,9 +18,9 @@ import { Gait, type Stance } from "./gait";
 import { boxUVs, defaultSkin, PARTS, SKIN_H, SKIN_W, type Part } from "./skin";
 import { METRE } from "../world/constants";
 
-const PX = 1.8 / 32; // world units per skin pixel: the figure is 32 pixels tall
-const TAG_HEIGHT = 0.3; // world units
-const EMOTE_SIZE = 0.7; // world units
+const PX = 1.8 / 32; // metres per skin pixel: the figure is 32 pixels tall
+const TAG_HEIGHT = 0.3; // metres
+const EMOTE_SIZE = 0.7; // metres
 const EMOTE_MS = 3000;
 
 /** A skinned box with fixed per-face shading like the chunks: bright top, darker sides and bottom. */

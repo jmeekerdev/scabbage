@@ -163,7 +163,8 @@ func TestPortalsMayStandOutsideTheZone(t *testing.T) {
 	if len(a.Portals) != 1 || len(a.Spawns)+len(a.Goals) != 0 {
 		t.Fatalf("arena %+v", a)
 	}
-	if !a.Portals[0].At(999, 0, 999) || a.Portals[0].At(999, 1, 999) {
-		t.Fatal("a mark is at its own block only")
+	p := a.Portals[0]
+	if !p.At(999, 0, 999) || !p.At(1000, 0, 998) || p.At(999, 1, 999) || p.At(1001, 0, 999) {
+		t.Fatal("a mark covers the metre around its block, on its own level")
 	}
 }

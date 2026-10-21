@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	// MaxSide is the widest a map may be along x or z, the same as the largest zone.
+	// MaxSide is the widest a map may be along x or z, less than the largest zone to bound memory.
 	MaxSide = 256
 	// MaxFileBytes bounds a .scabmap file; maxRawBytes bounds what it unzips to.
 	MaxFileBytes = 4 << 20
@@ -59,8 +59,9 @@ func (m Map) Area(x0, z0 int32) world.Area {
 
 // Encode writes the map as a gzipped MapFile.
 func Encode(m Map) ([]byte, error) {
-	f := &pb.MapFile{Name: m.Name, Width: m.Width, Depth: m.Depth, Height: world.MaxY - world.MinY,
-		Blocks: world.EncodeBlocks(m.Blocks), Palette: palette(m.Blocks), Mode: string(m.Mode)}
+	used := m.Blocks[:int(m.layersInUse())*m.layer()]
+	f := &pb.MapFile{Name: m.Name, Width: m.Width, Depth: m.Depth, Height: m.layersInUse(),
+		Blocks: world.EncodeBlocks(used), Palette: palette(used), Mode: string(m.Mode)}
 	for _, s := range m.Scripts {
 		f.Scripts = append(f.Scripts, &pb.MapScript{X: s.X, Y: s.Y, Z: s.Z, Source: s.Source, Owner: s.Owner})
 	}
@@ -80,6 +81,18 @@ func Encode(m Map) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// layer is how many blocks one level of the map holds.
+func (m Map) layer() int { return int(m.Width) * int(m.Depth) }
+
+// layersInUse counts the levels from the bottom up to the highest that isn't all air.
+func (m Map) layersInUse() int32 {
+	last := len(m.Blocks) - 1
+	for last > 0 && m.Blocks[last] == world.Air {
+		last--
+	}
+	return int32(last/m.layer()) + 1
 }
 
 // palette names every block the map uses.
@@ -106,9 +119,12 @@ func Decode(data []byte) (Map, int, error) {
 	if err := m.checkSize(f.Height); err != nil {
 		return Map{}, 0, err
 	}
-	if m.Blocks, err = world.DecodeBlocks(f.Blocks, m.Area(0, 0).Volume()); err != nil {
+	used, err := world.DecodeBlocks(f.Blocks, int(f.Height)*m.layer())
+	if err != nil {
 		return Map{}, 0, fmt.Errorf("%w: %v", ErrBadFile, err)
 	}
+	m.Blocks = make([]world.Block, m.Area(0, 0).Volume()) // air above the layers in use
+	copy(m.Blocks, used)
 	unknown := translate(m.Blocks, f.Palette)
 	if m.Scripts, err = m.readScripts(f.Scripts); err != nil {
 		return Map{}, 0, err
@@ -143,8 +159,8 @@ func unzip(data []byte) (*pb.MapFile, error) {
 
 func (m Map) checkSize(height int32) error {
 	switch {
-	case height != world.MaxY-world.MinY:
-		return fmt.Errorf("%w: it was made for worlds %d blocks tall", ErrBadFile, height)
+	case height < 1 || height > world.MaxY-world.MinY:
+		return fmt.Errorf("%w: it is %d blocks tall", ErrBadFile, height)
 	case m.Width < 1 || m.Depth < 1 || m.Width > MaxSide || m.Depth > MaxSide:
 		return fmt.Errorf("%w: it is %d×%d", ErrBadFile, m.Width, m.Depth)
 	}

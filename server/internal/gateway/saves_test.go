@@ -83,7 +83,7 @@ func inRoundFlying(t *testing.T, ts *testServer) (admin *websocket.Conn, x, y, z
 	t.Helper()
 	admin, x, y, z = raceWithPortal(t, ts)
 	adminSays(t, admin, "/arena portal field")
-	send(t, admin, flyTo(x+1, y, z))
+	send(t, admin, flyTo(x+2, y, z))
 	send(t, admin, flyTo(x, y, z))
 	waitFor(t, admin, scoreboard)
 	return admin, x, y, z
@@ -100,7 +100,7 @@ func TestGamesSaveYouOnTheWayIn(t *testing.T) {
 func TestLeavingAGameRestoresYourSave(t *testing.T) {
 	ts := startServer(t)
 	admin, x, y, z := inRoundFlying(t, ts)
-	send(t, admin, move(x+1, y, z, 0))
+	send(t, admin, move(x+2, y, z, 0)) // far enough that no part of the feet is on the portal
 	ts.gw.mu.Lock()
 	for _, a := range ts.gw.players {
 		a.inv[0] = inventory.Stack{Block: world.Log, Count: 5}
@@ -123,7 +123,7 @@ func TestLeavingAGameRestoresYourSave(t *testing.T) {
 func TestLeavingTheWorldMidGameKeepsTheSaveFromBefore(t *testing.T) {
 	ts := startServer(t)
 	admin, x, y, z := inRoundFlying(t, ts)
-	send(t, admin, move(x+1, y, z, 0))
+	send(t, admin, move(x+2, y, z, 0)) // far enough that no part of the feet is on the portal
 	expectPong(t, admin)
 	if s := ts.rejoin(t, admin).GetStart(); s.GetPos().X != x || !s.GetRestore().Flying {
 		t.Fatalf("start = %v", s)

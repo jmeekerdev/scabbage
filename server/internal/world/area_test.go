@@ -30,7 +30,8 @@ func TestCopyThenPasteRestoresAnArea(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(changes) != 2 || changes[0].Pos != (Pos{-10, 50, 20}) || changes[0].Block != before[a.Index(-10, 50, 20)] {
+	brick := slices.IndexFunc(changes, func(c Change) bool { return c.Pos == Pos{-10, 50, 20} })
+	if len(changes) != 2 || brick < 0 || changes[brick].Block != before[a.Index(-10, 50, 20)] {
 		t.Fatalf("changes = %+v", changes)
 	}
 	after, _ := w.Copy(a)

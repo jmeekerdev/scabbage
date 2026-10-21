@@ -38,7 +38,7 @@ export type MapFile = Message<"scabbage.v1.MapFile"> & {
   depth: number;
 
   /**
-   * the world height it was made in, all of which it holds
+   * the levels it holds from the world's bottom up; above them is air
    *
    * @generated from field: int32 height = 4;
    */

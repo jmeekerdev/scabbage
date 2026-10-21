@@ -195,6 +195,23 @@ func blockAt(v motion.Vec) logic.Pos {
 	return logic.Pos{X: int32(math.Floor(v.X)), Y: int32(math.Floor(v.Y)), Z: int32(math.Floor(v.Z))}
 }
 
+// padUnder is the pad any part of the feet stand in, or else the block the feet's middle is in.
+func (g *Gateway) padUnder(feet motion.Vec) logic.Pos {
+	mid := blockAt(feet)
+	edge := motion.HalfWidth - 0.05 // just inside the body, so touching a pad's side doesn't count
+	for _, dx := range []float64{0, -edge, edge} {
+		for _, dz := range []float64{0, -edge, edge} {
+			p := blockAt(motion.Vec{X: feet.X + dx, Y: feet.Y, Z: feet.Z + dz})
+			if b, err := g.cfg.World.Block(p.X, p.Y, p.Z); err == nil && isPad(b) {
+				return p
+			}
+		}
+	}
+	return mid
+}
+
+func isPad(b world.Block) bool { return b == world.Portal || b == world.Checkpoint || b == world.Teleporter }
+
 // setIfLocked switches the block at p to next only if it is still was.
 func (g *Gateway) setIfLocked(p logic.Pos, was, next world.Block) error {
 	current, err := g.cfg.World.Block(p.X, p.Y, p.Z)
@@ -223,7 +240,7 @@ func (g *Gateway) partner(p logic.Pos) (logic.Pos, bool) {
 // stepOnPad sends a player who just stepped onto a teleporter to its partner or a portal to its
 // game, and remembers checkpoints.
 func (s *session) stepOnPad(feet motion.Vec) {
-	p := blockAt(feet)
+	p := s.gw.padUnder(feet)
 	if p == s.pad {
 		return
 	}

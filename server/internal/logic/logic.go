@@ -12,8 +12,8 @@ import (
 const (
 	// MaxWires bounds how much wire one update walks, so a giant circuit can't stall the server.
 	MaxWires = 4096
-	// MaxPush is the longest row of blocks a piston moves.
-	MaxPush = 12
+	// MaxPush is the longest row of blocks a piston moves: twelve metres.
+	MaxPush = 12 * world.Metre
 	// maxRounds bounds how many counters one update may switch on or off in a chain.
 	maxRounds = 16
 	// lastCount is where a counter starts giving power and turns to count back down to 0.

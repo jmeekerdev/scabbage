@@ -20,10 +20,14 @@ type roll struct {
 	min, max int
 }
 
+// bulk is how many small blocks fill a metre cube; building blocks come by the cube.
+const bulk = world.Metre * world.Metre * world.Metre
+
 // extras are what a chest may hold besides gold; two different ones are picked.
 var extras = []roll{
-	{world.Torch, 4, 8}, {world.Lamp, 1, 3}, {world.Glass, 4, 8}, {world.Brick, 4, 8},
-	{world.Teleporter, 2, 2}, {world.NoteBlock, 1, 3}, {world.WhiteWool + 4, 4, 8}, {world.WhiteWool + 10, 4, 8},
+	{world.Torch, 4, 8}, {world.Lamp, 1, 3}, {world.Glass, 4 * bulk, 8 * bulk}, {world.Brick, 4 * bulk, 8 * bulk},
+	{world.Teleporter, 2, 2}, {world.NoteBlock, 1, 3},
+	{world.WhiteWool + 4, 4 * bulk, 8 * bulk}, {world.WhiteWool + 10, 4 * bulk, 8 * bulk},
 }
 
 const gemOdds = 4 // one chest in this many holds a gem

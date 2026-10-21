@@ -27,7 +27,7 @@ type MapFile struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Width         int32                  `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`    // along x
 	Depth         int32                  `protobuf:"varint,3,opt,name=depth,proto3" json:"depth,omitempty"`    // along z
-	Height        int32                  `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`  // the world height it was made in, all of which it holds
+	Height        int32                  `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`  // the levels it holds from the world's bottom up; above them is air
 	Blocks        []byte                 `protobuf:"bytes,5,opt,name=blocks,proto3" json:"blocks,omitempty"`   // the server's block-list encoding, x first, then z, then y
 	Palette       []*MapBlock            `protobuf:"bytes,6,rep,name=palette,proto3" json:"palette,omitempty"` // the name of every block ID it uses, so other servers can read it
 	Scripts       []*MapScript           `protobuf:"bytes,7,rep,name=scripts,proto3" json:"scripts,omitempty"`

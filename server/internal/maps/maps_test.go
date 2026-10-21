@@ -47,6 +47,21 @@ func TestEncodeDecodeRoundTrip(t *testing.T) {
 	}
 }
 
+func TestFilesKeepOnlyTheLayersInUse(t *testing.T) {
+	m := small()
+	data, _ := Encode(m)
+	f, err := unzip(data)
+	if err != nil || f.Height != 41-world.MinY {
+		t.Fatalf("height %d (%v), want up to the chest at 40", f.GetHeight(), err)
+	}
+	full := rewrite(t, data, func(f *pb.MapFile) {
+		f.Height, f.Blocks = world.MaxY-world.MinY, world.EncodeBlocks(m.Blocks)
+	})
+	if got, _, err := Decode(full); err != nil || !slices.Equal(got.Blocks, m.Blocks) {
+		t.Fatalf("a file holding every layer: %v", err)
+	}
+}
+
 func TestAreaPlacesTheMapAtACorner(t *testing.T) {
 	a := small().Area(-10, 4)
 	if a != (world.Area{X0: -10, Z0: 4, X1: -8, Z1: 5}) {
@@ -109,6 +124,8 @@ func TestDecodeRejectsBadFiles(t *testing.T) {
 	data, _ := Encode(small())
 	bad := map[string][]byte{
 		"not gzip":      []byte("hello"),
+		"too tall":      rewrite(t, data, func(f *pb.MapFile) { f.Height = world.MaxY - world.MinY + 1 }),
+		"no height":     rewrite(t, data, func(f *pb.MapFile) { f.Height = 0 }),
 		"wrong height":  rewrite(t, data, func(f *pb.MapFile) { f.Height = 64 }),
 		"too wide":      rewrite(t, data, func(f *pb.MapFile) { f.Width = MaxSide + 1 }),
 		"no width":      rewrite(t, data, func(f *pb.MapFile) { f.Width = 0 }),

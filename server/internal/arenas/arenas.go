@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 
+	"scabbage/internal/world"
 	"scabbage/internal/zones"
 )
 
@@ -65,8 +66,11 @@ type Mark struct {
 	X, Y, Z int32
 }
 
-// At reports whether the mark is the block at x, y, z.
-func (m Mark) At(x, y, z int32) bool { return m.X == x && m.Y == y && m.Z == z }
+// At reports whether x, y, z is on the mark: in the metre-wide square around its block, on its level.
+func (m Mark) At(x, y, z int32) bool {
+	const r = world.Metre / 2
+	return m.Y == y && x >= m.X-r && x <= m.X+r && z >= m.Z-r && z <= m.Z+r
+}
 
 // Kind picks which marks to add to.
 type Kind uint8

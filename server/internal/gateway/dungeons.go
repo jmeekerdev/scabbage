@@ -50,7 +50,7 @@ func (g *Gateway) wakeBoss(s *session, p logic.Pos) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	kind := altarBoss(p)
-	m, ok := g.cfg.Mobs.Summon(kind, motion.Vec{X: float64(p.X) + 0.5, Y: float64(p.Y) + 1, Z: float64(p.Z) + 0.5}, time.Now())
+	m, ok := g.cfg.Mobs.Summon(kind, motion.Vec{X: float64(p.X) + 0.5, Y: float64(p.Y) + 1, Z: float64(p.Z) + 0.5}, g.cfg.World, time.Now())
 	if !ok {
 		s.push(noticeMessage("A boss is already awake nearby."))
 		return

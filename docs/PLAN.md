@@ -225,7 +225,7 @@ Each phase ends with something the family can play. Compact the model context be
       dawn; the server steps them 10×/s, hops one-block ledges, avoids water and cliffs, caps their
       numbers and clears them when everyone leaves)
 - [x] Protected zones (spawn, people's houses) so nobody gets griefed; zones can set the game mode
-      (admins-only zone around spawn, half-width `-spawn-zone`, default 16; admins run
+      (admins-only zone around spawn, half-width `-spawn-zone`, default 48; admins run
       `/zone add NAME SIZE`, `remove`, `allow`/`disallow NAME PLAYER`, `mode NAME creative|survival|any`
       and `list`; zones are columns saved in SQLite, the smallest overlapping one wins; the server
       checks every edit and the client refuses early and greets you on entering)
@@ -348,8 +348,14 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       per block of its width. Held buttons repeat about 6 times a second, stacks hold 999, and a dug
       brush drops one counted pile per kind of block. Mobs now stand on the highest ground under
       their whole body, so their legs don't sink into one-block steps
-- [ ] Rescale content: mobs and avatars, dungeons, the sample adventure, zones and arenas; map files keep
-      only the heights they use, with a smaller side limit
+- [x] Rescale content: the sample adventure is laid out in metre cells (a house you can walk into, a
+      doorway a metre wide and two tall, walls too high to hop). Pads, portals and arena goals count
+      under any part of the feet, and a mark covers the metre around its block. Bosses wake clear of
+      the wall behind their altar. Chests give building blocks by the metre cube (108–216), pistons
+      push 12 m, and water at chest height means swimming. Map files keep only the levels up to their
+      highest non-air block, and stay at most 256 blocks a side, less than the largest zone, to bound
+      memory. Paste no longer sorts its changes. Mob and avatar models were already in metres; the
+      skin preview shows the figure at its old size
 - [ ] Generator v3 detail, so it has its own character: finer hills, rocks and boulders, grass tufts,
       flowers, bushes, varied tree shapes, pebbled beaches and stepped banks
 - [ ] Far land: a cheap low-detail ring past the view distance, if the finer world needs it

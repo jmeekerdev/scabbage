@@ -160,15 +160,29 @@ func TestOnlyAdminsImportMaps(t *testing.T) {
 	recvWhere(t, kid, noticeOf("Only admins"))
 }
 
+// sampleSpot is where /map sample lays the sample around a player at 0, 0.
+var sampleSpot = world.Area{X0: -36, Z0: -24, X1: 35, Z1: 23}
+
+// recvAfterPaste waits for match through a paste the size of the sample, which is slow under -race.
+func recvAfterPaste(t *testing.T, c *websocket.Conn, match func(*pb.ServerMessage) bool) {
+	t.Helper()
+	for range 10 {
+		if match(recvWithin(t, c, 10*time.Second)) {
+			return
+		}
+	}
+	t.Fatal("expected message never came")
+}
+
 func TestMapSamplePlacesAStarterAdventure(t *testing.T) {
 	ts := startServer(t)
 	c := ts.joinAdmin(t)
 	tpAndWait(t, c, "0 240 0")
 	send(t, c, sendChat("/map sample Quest"))
-	recvWhere(t, c, noticeOf("Placed Quest")) // written straight away, before the queued broadcasts
+	recvAfterPaste(t, c, noticeOf("Placed Quest")) // written straight away, before the queued broadcasts
 	stale := recvWhere(t, c, func(m *pb.ServerMessage) bool { return m.GetChunksStale() != nil }).GetChunksStale()
-	if n := len(stale.Chunks); n == 0 || n > 2*2*8 {
-		t.Fatalf("%d chunks to fetch again", n) // 24×16 blocks around 0,0 touch 2 by 2 columns of 8
+	if n := len(stale.Chunks); n == 0 || n > 4*2*12 {
+		t.Fatalf("%d chunks to fetch again", n) // 72×48 blocks around 0,0 touch 4 by 2 columns of 12
 	}
 	z, ok := ts.zones.Named("Quest")
 	if !ok {
@@ -189,14 +203,15 @@ func TestMapSamplePlacesAStarterAdventure(t *testing.T) {
 
 	// The hidden switch behind the house opens its gate.
 	g := int32(239)
-	sw := world.Pos{X: z.X0 + 20, Y: g + 1, Z: z.Z0 + 13}
-	gate := world.Pos{X: z.X0 + 16, Y: g + 1, Z: z.Z0 + 7}
+	m, mid := int32(world.Metre), int32(world.Metre/2)
+	sw := world.Pos{X: z.X0 + 20*m + mid, Y: g + 1, Z: z.Z0 + 13*m + mid}
+	gate := world.Pos{X: z.X0 + 16*m, Y: g + 1, Z: z.Z0 + 7*m}
 	blockIs(t, ts, gate.X, gate.Y, gate.Z, world.Cobblestone)
 	tpAndWait(t, c, fmt.Sprintf("%d %d %d", sw.X-2, sw.Y, sw.Z))
 	send(t, c, useBlock(sw.X, sw.Y, sw.Z))
 	recvWhere(t, c, func(m *pb.ServerMessage) bool { return strings.Contains(m.GetChat().GetText(), "opens") })
 	blockIs(t, ts, gate.X, gate.Y, gate.Z, world.Air)
-	blockIs(t, ts, gate.X, gate.Y+1, gate.Z, world.Air)
+	blockIs(t, ts, gate.X+m-1, gate.Y+2*m-1, gate.Z+m-1, world.Air) // a doorway a metre wide and two tall
 }
 
 func (ts *testServer) saveScript(t *testing.T, at world.Pos, src string) {
@@ -234,27 +249,27 @@ func TestMapRemovePutsBackTheLandUnderAPlacedMap(t *testing.T) {
 	setBlock(t, ts, 3, 260, 3, world.ScriptBlock) // someone's build where the map will go
 	ts.saveScript(t, world.Pos{X: 3, Y: 260, Z: 3}, `say("mine")`)
 	setBlock(t, ts, 5, 245, -2, world.Brick)
-	before, err := ts.world.Copy(world.Area{X0: -12, Z0: -8, X1: 11, Z1: 7})
+	before, err := ts.world.Copy(sampleSpot)
 	if err != nil {
 		t.Fatal(err)
 	}
 	tpAndWait(t, c, "0 240 0")
 	send(t, c, sendChat("/map sample Quest"))
-	recvWhere(t, c, noticeOf("Placed Quest"))
+	recvAfterPaste(t, c, noticeOf("Placed Quest"))
 	blockIs(t, ts, 3, 260, 3, world.Air)
 	send(t, c, sendChat("/zone remove Quest"))
 	recvWhere(t, c, noticeOf("/map remove Quest puts that land back"))
 
 	send(t, c, sendChat("/map remove Quest"))
-	recvWhere(t, c, noticeOf("Removed Quest"))
-	after, _ := ts.world.Copy(world.Area{X0: -12, Z0: -8, X1: 11, Z1: 7})
+	recvAfterPaste(t, c, noticeOf("Removed Quest"))
+	after, _ := ts.world.Copy(sampleSpot)
 	if !slices.Equal(after, before) {
 		t.Fatal("the land under the map didn't come back")
 	}
 	if got := ts.scriptAt(t, world.Pos{X: 3, Y: 260, Z: 3}); got != `say("mine")` {
 		t.Fatalf("script under the map = %q", got)
 	}
-	if scripts, _ := ts.gw.scripts.Inside(-12, -8, 11, 7); len(scripts) != 1 {
+	if scripts, _ := ts.gw.scripts.Inside(sampleSpot.X0, sampleSpot.Z0, sampleSpot.X1, sampleSpot.Z1); len(scripts) != 1 {
 		t.Fatalf("%d scripts left; the map's should be gone", len(scripts))
 	}
 	if _, ok := ts.zones.Named("Quest"); ok {

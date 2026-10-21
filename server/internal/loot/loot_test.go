@@ -14,8 +14,15 @@ func TestChestsHoldGoldAndTwoOtherThings(t *testing.T) {
 		items := Chest(rng)
 		seen := map[world.Block]bool{}
 		for _, it := range items {
-			if seen[it.Block] || it.Count < 1 || it.Count > 8 || !world.Placeable(it.Block) {
+			most := 8
+			if building(it.Block) {
+				most = 8 * world.Metre * world.Metre * world.Metre // a metre cube's worth of small blocks each
+			}
+			if seen[it.Block] || it.Count < 1 || it.Count > most || !world.Placeable(it.Block) {
 				t.Fatalf("bad loot %v", items)
+			}
+			if building(it.Block) && it.Count < 4*world.Metre*world.Metre*world.Metre {
+				t.Fatalf("only %d %v", it.Count, it.Block)
 			}
 			seen[it.Block] = true
 		}
@@ -29,6 +36,10 @@ func TestChestsHoldGoldAndTwoOtherThings(t *testing.T) {
 	if gems == 0 || gems > 100 {
 		t.Errorf("%d of 200 chests had a gem", gems)
 	}
+}
+
+func building(b world.Block) bool {
+	return b == world.Glass || b == world.Brick || b >= world.WhiteWool && b < world.WhiteWool+16
 }
 
 func TestBossesDropGems(t *testing.T) {

@@ -1,10 +1,6 @@
 package world
 
-import (
-	"cmp"
-	"fmt"
-	"slices"
-)
+import "fmt"
 
 // Area is every block in the columns from X0, Z0 to X1, Z1, corners included, from MinY up to MaxY.
 type Area struct{ X0, Z0, X1, Z1 int32 }
@@ -35,7 +31,7 @@ func (w *World) Copy(a Area) ([]Block, error) {
 	return out, err
 }
 
-// Paste sets every block in the area from a list Copy made, returning what changed in a stable order.
+// Paste sets every block in the area from a list Copy made, returning what changed chunk by chunk.
 func (w *World) Paste(a Area, blocks []Block) ([]Change, error) {
 	if len(blocks) != a.Volume() {
 		return nil, fmt.Errorf("pasting %d blocks into an area of %d", len(blocks), a.Volume())
@@ -61,9 +57,6 @@ func (w *World) Paste(a Area, blocks []Block) ([]Change, error) {
 			delete(w.ticking, at)
 		}
 		changes = append(changes, Change{at, b, was})
-	})
-	slices.SortFunc(changes, func(p, q Change) int {
-		return cmp.Or(cmp.Compare(p.X, q.X), cmp.Compare(p.Y, q.Y), cmp.Compare(p.Z, q.Z))
 	})
 	return changes, err
 }
