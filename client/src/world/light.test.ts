@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { blockLight, cropToPadded, LIGHT_MARGIN, REGION_VOLUME, regionIndex } from "./light";
 import { paddedIndex } from "./mesher";
-import { CHUNK_SIZE, METRE } from "./constants";
+import { CHUNK_SIZE, METER } from "./constants";
 
 const [AIR, STONE, TORCH] = [0, 1, 2];
 const transparent = Uint8Array.from([1, 0, 1]);
@@ -22,10 +22,10 @@ describe("blockLight", () => {
     expect(lit[paddedIndex(16, 5, 5)]).toBe(0);
   });
 
-  it("reaches about ten metres from the brightest light", () => {
+  it("reaches about ten meters from the brightest light", () => {
     const bright = Uint8Array.from([0, 0, 255]);
     const lit = blockLight(region([[0, 5, 5, TORCH]]), transparent, bright);
-    expect(lit[paddedIndex(9 * METRE, 5, 5)]).toBeGreaterThan(0);
+    expect(lit[paddedIndex(9 * METER, 5, 5)]).toBeGreaterThan(0);
     expect(lit[paddedIndex(CHUNK_SIZE, 5, 5)]).toBe(0);
   });
 

@@ -61,7 +61,7 @@ export class Selection {
     scene.add(this.box);
   }
 
-  /** Draws lines in the look's outline colour, so they match the rest of the picture. */
+  /** Draws lines in the look's outline color, so they match the rest of the picture. */
   setLook(look: Look): void {
     const c = look.after?.outline?.color ?? { r: 0, g: 0, b: 0 };
     this.box.material.color.setRGB(c.r, c.g, c.b, SRGBColorSpace);

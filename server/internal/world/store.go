@@ -10,7 +10,7 @@ import (
 
 // Border radii in blocks.
 const (
-	DefaultRadius int32 = 512 * Metre // a world a kilometre across
+	DefaultRadius int32 = 512 * Meter // a world a kilometer across
 	Unbounded     int32 = -1
 )
 

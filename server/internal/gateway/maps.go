@@ -329,7 +329,7 @@ func (s *session) importMap(ctx context.Context, m *pb.ImportMap) error {
 	return s.placeMap(ctx, m.Name, mp, unknown)
 }
 
-// placeMap lays a map down as a new zone centred on the admin, if that covers no other zone.
+// placeMap lays a map down as a new zone centered on the admin, if that covers no other zone.
 func (s *session) placeMap(ctx context.Context, name string, m maps.Map, unknown int) error {
 	at := s.body.Pos()
 	a := m.Area(int32(math.Floor(at.X))-m.Width/2, int32(math.Floor(at.Z))-m.Depth/2)
@@ -393,7 +393,7 @@ func (g *Gateway) placeProblem(name string, a world.Area) string {
 // groundBelow is the y of the block under the admin's feet, kept clear of the world's floor and sky.
 func (s *session) groundBelow() int32 {
 	y := int32(math.Floor(s.body.Pos().Y)) - 1
-	return min(max(y, 8*world.Metre), world.MaxY-40*world.Metre)
+	return min(max(y, 8*world.Meter), world.MaxY-40*world.Meter)
 }
 
 // removeMap puts back the land a placed map covered, then removes its zone, map and scripts.

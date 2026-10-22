@@ -12,7 +12,7 @@ import {
   type MoveInput,
   type BoxesAt,
 } from "./physics";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
 const DT = 1 / 60;
 const idle: MoveInput = { forward: 0, right: 0, jump: false, descend: false };
@@ -63,10 +63,10 @@ describe("stepBody", () => {
 
   it("slides along a wall when moving diagonally into it", () => {
     const b = run(newBody(3.5, 10, 0.5), { right: 1, forward: 1 }, 1, wallAtX5);
-    expect(b.z).toBeLessThan(-2 * METRE);
+    expect(b.z).toBeLessThan(-2 * METER);
   });
 
-  it("jumps a little over a metre high", () => {
+  it("jumps a little over a meter high", () => {
     const b = newBody(0.5, 10, 0.5);
     run(b, {}, 0.1);
     stepBody(b, { ...idle, jump: true }, 0, DT, floor);
@@ -75,8 +75,8 @@ describe("stepBody", () => {
       stepBody(b, idle, 0, DT, floor);
       top = Math.max(top, b.y);
     }
-    expect(top - 10).toBeGreaterThan(1.1 * METRE);
-    expect(top - 10).toBeLessThan(1.5 * METRE);
+    expect(top - 10).toBeGreaterThan(1.1 * METER);
+    expect(top - 10).toBeLessThan(1.5 * METER);
     expect(b.y).toBeCloseTo(10, 5);
   });
 
@@ -143,22 +143,22 @@ describe("launch", () => {
 
   it("throws a body high straight up and lets it fall back", () => {
     const b = settled();
-    launch(b, { x: 0, y: 13 * METRE, z: 0 });
+    launch(b, { x: 0, y: 13 * METER, z: 0 });
     let top = b.y;
     for (let t = 0; t < 2; t += DT) {
       stepBody(b, idle, 0, DT, floor);
       top = Math.max(top, b.y);
     }
-    expect(top - 10).toBeGreaterThan(2.5 * METRE);
+    expect(top - 10).toBeGreaterThan(2.5 * METER);
     expect([b.y, b.x]).toEqual([10, 0.5]);
   });
 
   it("carries a body along through the air and stops it on landing", () => {
     const b = settled();
-    launch(b, { x: 9 * METRE, y: 9 * METRE, z: 0 });
+    launch(b, { x: 9 * METER, y: 9 * METER, z: 0 });
     run(b, {}, 2);
-    expect(b.x - 0.5).toBeGreaterThan(5 * METRE);
-    expect(b.x - 0.5).toBeLessThan(7 * METRE);
+    expect(b.x - 0.5).toBeGreaterThan(5 * METER);
+    expect(b.x - 0.5).toBeLessThan(7 * METER);
     expect([b.vx, b.vz, b.onGround]).toEqual([0, 0, true]);
   });
 });

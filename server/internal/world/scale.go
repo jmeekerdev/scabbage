@@ -1,5 +1,5 @@
 package world
 
-// Metre is how many blocks span a metre, the size blocks used to be. Bodies, speeds and
-// distances are written as metres times Metre so they keep their real size.
-const Metre = 3
+// Meter is how many blocks span a meter, the size blocks used to be. Bodies, speeds and
+// distances are written as meters times Meter so they keep their real size.
+const Meter = 3

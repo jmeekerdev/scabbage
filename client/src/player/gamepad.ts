@@ -61,7 +61,7 @@ export class GamepadControls {
     };
   }
 
-  /** Turns at a rate; squaring the tilt gives fine aim near the centre. */
+  /** Turns at a rate; squaring the tilt gives fine aim near the center. */
   private look(x: number, y: number, dt: number): void {
     const [lx, ly] = stickAxes(x, y, DEAD_ZONE);
     const rate = Math.hypot(lx, ly) * LOOK_RADIANS_PER_SECOND * dt;

@@ -19,32 +19,32 @@ func (k featureKind) String() string {
 	return [...]string{"nothing", "oak", "pine", "slim tree", "bush", "boulder", "rock"}[k]
 }
 
-// featureOdds is how many of each kind grow per thousand square metres.
+// featureOdds is how many of each kind grow per thousand square meters.
 var featureOdds = [...]struct {
 	kind     featureKind
 	perMille uint64
 }{{oakTree, 6}, {pineTree, 4}, {slimTree, 3}, {bush, 14}, {boulder, 3}, {rock, 25}}
 
 const (
-	featureReach = 3          // metres a feature spreads from its square
-	featureRoom  = 14 * Metre // headroom a feature needs under the sky
+	featureReach = 3          // meters a feature spreads from its square
+	featureRoom  = 14 * Meter // headroom a feature needs under the sky
 )
 
-// feature is one thing rooted in a square metre whose low corner is x,z, on ground of height ground.
+// feature is one thing rooted in a square meter whose low corner is x,z, on ground of height ground.
 type feature struct {
 	kind         featureKind
 	x, z, ground int32
 	r            uint64 // random bits for its size and shape
 }
 
-// featureAt returns the feature rooted in the square metre mx,mz, if any.
+// featureAt returns the feature rooted in the square meter mx,mz, if any.
 func (g *GenV3) featureAt(mx, mz int32) (feature, bool) {
 	r := hash(g.features, mx, mz)
-	f := feature{kind: pickFeature(r % 1000), x: mx * Metre, z: mz * Metre, r: r >> 10}
+	f := feature{kind: pickFeature(r % 1000), x: mx * Meter, z: mz * Meter, r: r >> 10}
 	if f.kind == noFeature {
 		return feature{}, false
 	}
-	f.ground = g.SurfaceY(f.x+Metre/2, f.z+Metre/2)
+	f.ground = g.SurfaceY(f.x+Meter/2, f.z+Meter/2)
 	floor := int32(seaLevel + beachRise)
 	if f.kind == rock {
 		floor = seaLevel
@@ -69,12 +69,12 @@ func pickFeature(roll uint64) featureKind {
 // into the air around them.
 func (g *GenV3) placeFeatures(p ChunkPos, cv canvas) {
 	ox, oy, oz := p.Origin()
-	lo, hi := floorDiv(ox, Metre)-featureReach, floorDiv(ox+Size-1, Metre)+featureReach
-	loZ, hiZ := floorDiv(oz, Metre)-featureReach, floorDiv(oz+Size-1, Metre)+featureReach
+	lo, hi := floorDiv(ox, Meter)-featureReach, floorDiv(ox+Size-1, Meter)+featureReach
+	loZ, hiZ := floorDiv(oz, Meter)-featureReach, floorDiv(oz+Size-1, Meter)+featureReach
 	var fs []feature
 	for mx := lo; mx <= hi; mx++ {
 		for mz := loZ; mz <= hiZ; mz++ {
-			if f, ok := g.featureAt(mx, mz); ok && f.ground-Metre < oy+Size && f.ground+featureRoom >= oy {
+			if f, ok := g.featureAt(mx, mz); ok && f.ground-Meter < oy+Size && f.ground+featureRoom >= oy {
 				fs = append(fs, f)
 			}
 		}
@@ -109,9 +109,9 @@ func (f feature) foliage(cv canvas) {
 	}
 }
 
-// middle is the centre of the feature's square metre.
+// middle is the center of the feature's square meter.
 func (f feature) middle() (float64, float64) {
-	return float64(f.x) + Metre/2.0, float64(f.z) + Metre/2.0
+	return float64(f.x) + Meter/2.0, float64(f.z) + Meter/2.0
 }
 
 // bush is a low mound of leaves.

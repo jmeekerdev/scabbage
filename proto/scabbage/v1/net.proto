@@ -636,7 +636,7 @@ message QuestLog {
   repeated Quest quests = 1;
 }
 
-// An admin's .scabmap file, to place as a new zone centred on them.
+// An admin's .scabmap file, to place as a new zone centered on them.
 message ImportMap {
   string name = 1;
   bytes data = 2;

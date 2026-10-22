@@ -1,6 +1,6 @@
 import type { KeyValueStore } from "../join/identity";
-import { DEFAULT_LOOK, LOOKS } from "../looks/registry";
-import { CHUNK_SIZE, METRE } from "../world/constants";
+import { currentLookId, DEFAULT_LOOK, LOOKS } from "../looks/registry";
+import { CHUNK_SIZE, METER } from "../world/constants";
 
 export const PRESETS = ["low", "medium", "high"] as const;
 export type Preset = (typeof PRESETS)[number];
@@ -12,9 +12,9 @@ export type FpsCap = (typeof FPS_CAPS)[number];
 /** View distance in chunks, measured from the player. */
 export const VIEW_DISTANCE = { min: 2, max: 12 } as const;
 
-/** How far a view distance in chunks reaches, in whole metres. */
-export function viewMetres(chunks: number): number {
-  return Math.round((chunks * CHUNK_SIZE) / METRE);
+/** How far a view distance in chunks reaches, in whole meters. */
+export function viewMeters(chunks: number): number {
+  return Math.round((chunks * CHUNK_SIZE) / METER);
 }
 
 export interface Settings {
@@ -66,7 +66,8 @@ export function sanitize(raw: unknown, d: Settings): Settings {
   const r = (typeof raw === "object" && raw) || {};
   const pick = <K extends keyof Settings>(k: K) => (r as Partial<Settings>)[k];
   const vd = pick("viewDistance");
-  const look = pick("look");
+  const saved = pick("look");
+  const look = typeof saved === "string" ? currentLookId(saved) : saved;
   const flag = (k: "sound" | "music" | "auto" | "buttons") => {
     const v = pick(k);
     return typeof v === "boolean" ? v : d[k];

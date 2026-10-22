@@ -55,26 +55,26 @@ func TestSampleIsAPlayableMap(t *testing.T) {
 	}
 }
 
-func TestSampleIsBuiltInMetres(t *testing.T) {
+func TestSampleIsBuiltInMeters(t *testing.T) {
 	m := Sample(ground)
-	if m.Width != 24*world.Metre || m.Depth != 16*world.Metre {
+	if m.Width != 24*world.Meter || m.Depth != 16*world.Meter {
 		t.Fatalf("%d×%d blocks", m.Width, m.Depth)
 	}
 	at := sampleAt(m)
-	// The house is entered through the gate's doorway, a metre wide and two tall.
-	inside := cellCentre(19, 8)
+	// The house is entered through the gate's doorway, a meter wide and two tall.
+	inside := cellCenter(19, 8)
 	if !roomToStand(at, inside[0], ground+1, inside[1]) {
 		t.Fatal("no room to stand in the house")
 	}
-	wall := int32(16 * world.Metre)
-	for y := int32(ground + 1); y < ground+1+2*world.Metre; y++ {
-		if at(wall, y, cellCentre(0, 7)[1]) != world.Cobblestone {
+	wall := int32(16 * world.Meter)
+	for y := int32(ground + 1); y < ground+1+2*world.Meter; y++ {
+		if at(wall, y, cellCenter(0, 7)[1]) != world.Cobblestone {
 			t.Fatalf("the doorway is open at y %d before the switch is on", y)
 		}
 	}
 	// The yard wall is too high to jump.
-	if at(0, ground+2*world.Metre, 0) != world.Brick {
-		t.Fatal("the yard wall is lower than two metres")
+	if at(0, ground+2*world.Meter, 0) != world.Brick {
+		t.Fatal("the yard wall is lower than two meters")
 	}
 }
 
@@ -117,6 +117,6 @@ func roomToStand(at func(x, y, z int32) world.Block, x, y, z int32) bool {
 	return true
 }
 
-func cellCentre(mx, mz int32) [2]int32 {
-	return [2]int32{mx*world.Metre + world.Metre/2, mz*world.Metre + world.Metre/2}
+func cellCenter(mx, mz int32) [2]int32 {
+	return [2]int32{mx*world.Meter + world.Meter/2, mz*world.Meter + world.Meter/2}
 }

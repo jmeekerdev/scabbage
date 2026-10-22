@@ -5875,7 +5875,7 @@ func (x *QuestLog) GetQuests() []*Quest {
 	return nil
 }
 
-// An admin's .scabmap file, to place as a new zone centred on them.
+// An admin's .scabmap file, to place as a new zone centered on them.
 type ImportMap struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`

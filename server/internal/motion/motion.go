@@ -13,9 +13,9 @@ type Vec struct{ X, Y, Z float64 }
 
 // Player body size; must match client/src/player/physics.ts.
 const (
-	HalfWidth = 0.3 * world.Metre
-	Height    = 1.8 * world.Metre
-	EyeHeight = 1.62 * world.Metre
+	HalfWidth = 0.3 * world.Meter
+	Height    = 1.8 * world.Meter
+	EyeHeight = 1.62 * world.Meter
 )
 
 // slack shrinks the body when checking overlap, absorbing float32 rounding on the wire.
@@ -29,7 +29,7 @@ const pathStep = 0.25
 const cornerSlack = 0.3
 
 // StepHeight is how far the client lifts a walking body onto blocks, slabs and stairs.
-const StepHeight = 0.5 * world.Metre
+const StepHeight = 0.5 * world.Meter
 
 // Limits caps speeds in blocks per second; Burst is how much unused time can be saved up.
 type Limits struct {
@@ -38,7 +38,7 @@ type Limits struct {
 }
 
 // DefaultLimits leave headroom over the client's fly speed, jump and terminal fall speed.
-var DefaultLimits = Limits{Horizontal: 14 * world.Metre, Up: 12 * world.Metre, Down: 60 * world.Metre, Burst: time.Second}
+var DefaultLimits = Limits{Horizontal: 14 * world.Meter, Up: 12 * world.Meter, Down: 60 * world.Meter, Burst: time.Second}
 
 // BoxesFunc returns what players collide with in the block at x,y,z.
 type BoxesFunc func(x, y, z int32) []world.Box

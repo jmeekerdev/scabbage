@@ -120,7 +120,7 @@ export function createWorldRenderer(
     game.invalidate();
   }
 
-  /** Gives each layer its flat colour in the look, for untextured blocks and far land. */
+  /** Gives each layer its flat color in the look, for untextured blocks and far land. */
   function paint(): void {
     if (!art) return;
     const colors = layerColors(art.atlas, look.surface.palette, look.surface.solid);

@@ -41,8 +41,8 @@ func (g *GenV3) groundTop(x, z int32) (int32, Block) {
 
 // addCrowns raises the tile's samples under any tree or bush to the top of its leaves.
 func (g *GenV3) addCrowns(tx, tz int32, t *FarTile) {
-	lo, hi := floorDiv(tx*Size, Metre)-featureReach, floorDiv(tx*Size+Size-1, Metre)+featureReach
-	loZ, hiZ := floorDiv(tz*Size, Metre)-featureReach, floorDiv(tz*Size+Size-1, Metre)+featureReach
+	lo, hi := floorDiv(tx*Size, Meter)-featureReach, floorDiv(tx*Size+Size-1, Meter)+featureReach
+	loZ, hiZ := floorDiv(tz*Size, Meter)-featureReach, floorDiv(tz*Size+Size-1, Meter)+featureReach
 	for mx := lo; mx <= hi; mx++ {
 		for mz := loZ; mz <= hiZ; mz++ {
 			f, ok := g.featureAt(mx, mz)
@@ -76,7 +76,7 @@ func (f feature) canopy(x, z float64) (int32, Block, bool) {
 		return dome(d, top-1, r, r*0.75, Leaves)
 	case pineTree:
 		y := top + 4 - max(0, (d-0.6)/0.32) // the narrowest its tiers get
-		return int32(y), PineLeaves, y >= float64(t.ground+2*Metre)
+		return int32(y), PineLeaves, y >= float64(t.ground+2*Meter)
 	}
 	r := 4.0 + float64(t.r%2)
 	return dome(d, top-2, r, r*1.6, Leaves)

@@ -20,7 +20,7 @@ export class SkinPreview {
     this.canvas.className = "preview";
     this.renderer = new WebGLRenderer({ canvas: this.canvas, alpha: true });
     this.avatar = new Avatar(undefined, color, pixels);
-    this.avatar.root.scale.setScalar(1); // shown in metres, the units the camera is placed in
+    this.avatar.root.scale.setScalar(1); // shown in meters, the units the camera is placed in
     this.scene.add(this.avatar.root);
     this.camera.position.set(0, 1.1, 4.4);
     this.camera.lookAt(0, 0.9, 0);

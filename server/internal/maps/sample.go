@@ -6,11 +6,11 @@ import (
 	"scabbage/internal/world"
 )
 
-// The sample is laid out in metre cells; y counts metres up from the first one above the grass.
+// The sample is laid out in meter cells; y counts meters up from the first one above the grass.
 const (
 	sampleWidth = 24
 	sampleDepth = 16
-	m           = world.Metre
+	m           = world.Meter
 )
 
 // Captain Pip gives the quest; the gate opens while the hidden switch is on; the bell finishes it.
@@ -89,18 +89,18 @@ func newBuilder(w, d, ground int32) *builder {
 
 func (b *builder) set(x, y, z int32, blk world.Block) { b.m.Blocks[b.a.Index(x, y, z)] = blk }
 
-// bottom is the y of the lowest block in metre layer y.
+// bottom is the y of the lowest block in meter layer y.
 func (b *builder) bottom(y int32) int32 { return b.ground + 1 + y*m }
 
-// fill puts blk in every metre cell between two corners, both included.
+// fill puts blk in every meter cell between two corners, both included.
 func (b *builder) fill(x0, y0, z0, x1, y1, z1 int32, blk world.Block) {
 	fillBlocks(x0*m, b.bottom(y0), z0*m, x1*m+m-1, b.bottom(y1)+m-1, z1*m+m-1, func(x, y, z int32) { b.set(x, y, z, blk) })
 }
 
-// dot puts one small block in the middle of a metre cell's floor.
+// dot puts one small block in the middle of a meter cell's floor.
 func (b *builder) dot(x, y, z int32, blk world.Block) { b.set(x*m+m/2, b.bottom(y), z*m+m/2, blk) }
 
-// pad covers a metre cell's floor with blk.
+// pad covers a meter cell's floor with blk.
 func (b *builder) pad(x, y, z int32, blk world.Block) {
 	fillBlocks(x*m, b.bottom(y), z*m, x*m+m-1, b.bottom(y), z*m+m-1, func(x, y, z int32) { b.set(x, y, z, blk) })
 }

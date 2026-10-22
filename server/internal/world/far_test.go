@@ -26,7 +26,7 @@ func TestFarTilesFollowTheGround(t *testing.T) {
 				switch tile.Blocks[i] {
 				case Leaves, PineLeaves:
 					leafy++
-					if got < want-4*Metre || got > want+4*Metre {
+					if got < want-4*Meter || got > want+4*Meter {
 						t.Fatalf("crown at %d,%d is %d high, the tree %d", x, z, got, want)
 					}
 				case b:

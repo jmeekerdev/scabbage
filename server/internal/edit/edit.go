@@ -8,7 +8,7 @@ import (
 
 // Reach is the farthest a block's center may be from the eye: the client reaches 5 m to a face,
 // plus up to a block's half-diagonal and the eye lag between physics steps.
-const Reach = 6.5 * world.Metre
+const Reach = 6.5 * world.Meter
 
 // Request asks to set the block at X,Y,Z; Air breaks it.
 type Request struct {

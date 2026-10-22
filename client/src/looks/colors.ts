@@ -1,12 +1,12 @@
 import type { Rgb } from "./look";
 
-/** A six-digit sRGB hex colour, as written in the look book. */
+/** A six-digit sRGB hex color, as written in the look book. */
 export function hex(h: string): Rgb {
   const n = parseInt(h, 16);
   return { r: (n >> 16) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
 }
 
-/** The look book's palette slots, each a hex colour. */
+/** The look book's palette slots, each a hex color. */
 export interface BookColors {
   grass: string;
   dirt: string;
@@ -24,7 +24,7 @@ export interface BookColors {
   gravel?: string;
 }
 
-// Which textures each slot colours.
+// Which textures each slot colors.
 const TEXTURES: Record<keyof BookColors, string[]> = {
   grass: ["grass_top"],
   dirt: ["dirt"],

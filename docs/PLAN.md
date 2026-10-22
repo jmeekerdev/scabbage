@@ -307,7 +307,7 @@ Each phase ends with something the family can play. Compact the model context be
       (a map is a saved zone: `/map save ZONE` keeps every block in its columns plus its script blocks'
       Lua, and `/map reset ZONE` puts them back, closing looted chests and flipped switches, and sends
       everyone inside to the start marked with `/map start ZONE`; `/map export ZONE` downloads a gzipped
-      `.scabmap` file and `/map import NAME` uploads one as a new zone centred on the admin, refusing to
+      `.scabmap` file and `/map import NAME` uploads one as a new zone centered on the admin, refusing to
       cover other zones, and keeps the land it covers so `/map remove ZONE` can put it back (also for
       `/map sample`; `/zone remove` refuses such zones until the map is removed or forgotten); blocks travel by name, so other servers' custom blocks become air, and maps keep
       their heights; `/map sample NAME` lays down Captain Pip's treasure, a starter adventure with a
@@ -330,7 +330,7 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
 - [x] Core scale: 32-block chunks, height 384, radius 1536; Uint16 mesh positions; every body, speed,
       reach, range and timing ×3 on both sides, kept in one shared table of numbers; protocol bump;
       v3 land is v2's shapes scaled up; measure chunk bytes, server memory and meshing time
-      (`world.Metre` / `METRE` = 3 and sizes are written in metres times it; players step up 1.5 blocks;
+      (`world.Meter` / `METER` = 3 and sizes are written in meters times it; players step up 1.5 blocks;
       generator v3 replaces v1/v2 and `-upgrade-world` is gone, and older worlds refuse to open;
       chunk encoding v2; protocol 22; mobs walk in half-block strides; view presets 4/6/9 chunks.
       Measured: a surface chunk is ~0.7–3.4 KB encoded and ~1 ms to generate; meshing ~5 ms per chunk
@@ -338,35 +338,35 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       visiting three places, so memory eviction is next)
 - [x] Server memory: each autosave (every minute) saves, then drops chunks more than 14 chunks from
       every player. Touring four far places peaked at 330 MB, fell to 88 MB at the next save, and 29 MB idle
-- [x] Light and look: light levels 0–30, so lamps light about 10 m and glow fades per metre; light
+- [x] Light and look: light levels 0–30, so lamps light about 10 m and glow fades per meter; light
       floods cost about 8 ms per lit chunk. Each block gets a steady ±6% brightness so ground doesn't
-      show a grid, leaves have fewer holes, and view distance shows in metres (fog already follows it)
+      show a grid, leaves have fewer holes, and view distance shows in meters (fog already follows it)
 - [x] Building at the new scale: brush sizes 1, 2 and 3 (3 = an old block, the default) for placing
       and digging, switched with G or the right stick. A brush is one EditBlock with a size (protocol
       23); the server checks each block and answers in one BlockBatch. It snaps to the brush's grid
-      in x and z. A small block digs in a third of a metre block's time, and a brush in that time
+      in x and z. A small block digs in a third of a meter block's time, and a brush in that time
       per block of its width. Held buttons repeat about 6 times a second, stacks hold 999, and a dug
       brush drops one counted pile per kind of block. Mobs now stand on the highest ground under
       their whole body, so their legs don't sink into one-block steps
-- [x] Rescale content: the sample adventure is laid out in metre cells (a house you can walk into, a
-      doorway a metre wide and two tall, walls too high to hop). Pads, portals and arena goals count
-      under any part of the feet, and a mark covers the metre around its block. Bosses wake clear of
-      the wall behind their altar. Chests give building blocks by the metre cube (108–216), pistons
+- [x] Rescale content: the sample adventure is laid out in meter cells (a house you can walk into, a
+      doorway a meter wide and two tall, walls too high to hop). Pads, portals and arena goals count
+      under any part of the feet, and a mark covers the meter around its block. Bosses wake clear of
+      the wall behind their altar. Chests give building blocks by the meter cube (108–216), pistons
       push 12 m, and water at chest height means swimming. Map files keep only the levels up to their
       highest non-air block, and stay at most 256 blocks a side, less than the largest zone, to bound
-      memory. Paste no longer sorts its changes. Mob and avatar models were already in metres; the
+      memory. Paste no longer sorts its changes. Mob and avatar models were already in meters; the
       skin preview shows the figure at its old size
-- [x] Generator v3 detail, so it has its own character: bumps a metre high on the hills, rocky crags
+- [x] Generator v3 detail, so it has its own character: bumps a meter high on the hills, rocky crags
       of bare stone, half-buried boulders, small rocks, leafy bushes, and three kinds of tree (broad oaks,
       pointed pines with their own darker needles, slim trees) with crowns drawn block by block. Grass grows
-      tufts, thickest in meadows, and flowers grow in patches of mostly one colour (red, yellow, blue,
+      tufts, thickest in meadows, and flowers grow in patches of mostly one color (red, yellow, blue,
       white). Beaches are sand with patches of gravel, and land near the sea level rises in steps two
       blocks high. Tufts and flowers are new box-drawn shapes (protocol shapes 8 and 9) that players walk,
       aim and build through, and they go when the ground under them is dug. Measured: a surface chunk
       takes ~1.5 ms to generate (was ~0.75 ms), and a chunk column averages 26 tufts and 5 flowers,
       about 500 extra quads
 - [x] Far land: past the chunks, out to three times the view distance, the land is drawn as one smooth
-      surface per 8×8 chunk columns, coloured by each block's top texture and shaded by slope, fading into
+      surface per 8×8 chunk columns, colored by each block's top texture and shaded by slope, fading into
       the fog. The server sketches each column from the generator (ground, sea and tree crowns, without
       players' changes) as 8×8 samples (protocol 24: RequestFar / FarLand). Far land hides only over
       columns whose chunks are all drawn, so it also fills holes while chunks load. Measured: a sketch
@@ -375,12 +375,12 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
 
 ### Phase 9 — Looks (each player picks how the world is drawn)
 The world, its blocks and every mechanic stay the same; only drawing changes. A look is one config file
-in `client/src/looks/`, with these groups: surface (textured or flat colour, edge treatment, noise),
-light (sun and shade colours, wrap, bands, shine, corner-shade tint), shape (soft corners and which
+in `client/src/looks/`, with these groups: surface (textured or flat color, edge treatment, noise),
+light (sun and shade colors, wrap, bands, shine, corner-shade tint), shape (soft corners and which
 blocks get them), sky and fog stops by time of day, water, an afterwards pass (outlines, paper grain,
 tilt-shift on the map only, vignette, saturation) and per-block palette overrides by name, where a block
-without one uses its texture's average colour. Adding a look is adding a file. The mockups and Fable's
-review are in the look book (Today, Clay Diorama, Ink & Cel, Watercolour, Dusk Pastel, Felt & Stitch,
+without one uses its texture's average color. Adding a look is adding a file. The mockups and Fable's
+review are in the look book (Today, Clay Diorama, Ink & Cel, Watercolor, Dusk Pastel, Felt & Stitch,
 Smooth Clay). Each step is measured against today's frame time and triangle count.
 - [x] Look config, registry and picker: a schema; Today moved into a config with no visible change; the
       choice is a client setting beside the graphics presets; the picker shows each look's cost
@@ -394,23 +394,23 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       around them, with slope normals, and add no triangles). Faces merge only where their corners move
       alike. Switching to a look that needs different mesh data rebuilds the loaded chunks behind a short fade
 - [x] Afterwards pass, run only when a look uses it: outlines from depth (and optionally normals) in
-      a set or darkened colour, paper grain, map-only tilt-shift, vignette, saturation
+      a set or darkened color, paper grain, map-only tilt-shift, vignette, saturation
 - [x] Port the looks, cheapest first: Dusk Pastel, Clay Diorama, Smooth Clay, Ink & Cel, then
-      Watercolour and Felt & Stitch. Washes, fibres, pooled edges and stitches are fixed to the world so
-      they don't swim; leaves can be drawn solid in flat looks. Left for tuning: Watercolour's line wobble
+      Watercolor and Felt & Stitch. Washes, fibers, pooled edges and stitches are fixed to the world so
+      they don't swim; leaves can be drawn solid in flat looks. Left for tuning: Watercolor's line wobble
       and soft blur, Dusk Pastel's height gradient, and the vignettes on Dusk Pastel and Felt (dropped to
       keep them pass-free). A rebuild now starts nearest the player, and chunks keep the material they
       were meshed for until replaced, so a slow rebuild never shows them wrongly
 - [x] Everything else follows the look: players, mobs and dropped items take the look's face light,
-      sun colours and bands, and hide behind the veil with the chunks; outlines reach them through the
-      afterwards pass. The selection outline bends to soft corners and takes the look's outline colour.
+      sun colors and bands, and hide behind the veil with the chunks; outlines reach them through the
+      afterwards pass. The selection outline bends to soft corners and takes the look's outline color.
       There is no held item or hand view drawn yet, so nothing there to follow
-- [x] Tests and a tuner: every look passes `checkLook` (ranges, sRGB colours, palette and solid
+- [x] Tests and a tuner: every look passes `checkLook` (ranges, sRGB colors, palette and solid
       texture names, sun bands and direction, edge touches needing edges), and every look's shaders
       (blocks, far land, afterwards, figures, drops) compile through glslang in the client tests, so a
       typo fails `make check`. `?tune` opens a developer panel, loaded only then, with sliders and
-      colour pickers over the live numbers and an export to a new `*.look.ts` file
-- [x] Tuning: Watercolour gets a light blur (a line wobble was tried and dropped: it warped the
+      color pickers over the live numbers and an export to a new `*.look.ts` file
+- [x] Tuning: Watercolor gets a light blur (a line wobble was tried and dropped: it warped the
       frame like old glass); Dusk Pastel lightens from the sea to the high hills; Dusk Pastel and Felt have their vignettes back, at no pass's cost, since
       a lone vignette is multiplied over the finished frame instead of copying it
 
@@ -426,7 +426,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       saved. Each tick judges every due switch by the power before any of them. The diode
       (back to front only) is the first such device, placed facing where the player looks
 - [x] Wires go anywhere: wire climbs one-block steps up and down (unless a block sits over the
-      lower wire), runs up walls, and is drawn joined to its neighbours: arms on the floor, strips
+      lower wire), runs up walls, and is drawn joined to its neighbors: arms on the floor, strips
       up steps and walls, a post when hanging free. Cable blocks (stone, cobblestone, planks, brick,
       dirt) conduct like wire and show a thin line of it, so circuits can hide in floors and walls
 - [x] Gate: one item; tapping cycles AND → OR → XOR → NAND → NOR → NOT, its sides show the mode
@@ -437,7 +437,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       (pips on its sides); once a change reaches it, it passes it on after its wait whatever
       follows, so short pulses are stretched to its delay instead of lost. A controlled relay
       passes power back to front only while a flat side is on. Wireless transmitters power every
-      loaded receiver on the same channel (16 colours, set by tapping) on the next tick; the world
+      loaded receiver on the same channel (16 colors, set by tapping) on the next tick; the world
       keeps an index of loaded transmitters and rechecks receivers when one changes, loads or goes
 - [x] Memory: a toggle flips on or off each time power arrives (or when tapped), counting only
       power from elsewhere so its own output looping back can't flip it; its rocker's top glows
@@ -445,7 +445,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       powered and keeps giving power for 1–10 s (blue pips, set by tapping) after its input last
       stopped; each stop restarts the wait
 - [x] Sensors: a player detector and a creature detector give power while someone is within four
-      metres; a clock sensor gives power in its part of the day (day, night, dawn, dusk, noon or
+      meters; a clock sensor gives power in its part of the day (day, night, dawn, dusk, noon or
       midnight, set by tapping, shown as a window on the sky); a block detector faces a way and gives
       power to every side while anything but air or water is in front of its eye. Sensors join the
       ticking index and look around four times a second

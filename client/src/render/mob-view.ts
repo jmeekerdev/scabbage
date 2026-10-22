@@ -2,7 +2,7 @@ import { BoxGeometry, Group, type Material, Mesh, type Scene } from "three";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
 import type { MobState } from "../player/mobs";
 import { litMesh } from "./entity-material";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
 const box = (w: number, h: number, d: number) => new BoxGeometry(w, h, d);
 const paint = (color: number, opacity = 1) => litMesh({ color, transparent: opacity < 1, opacity });
@@ -103,7 +103,7 @@ const BUILDERS: Partial<Record<MobKind, () => Group>> = {
 
 interface Figure {
   group: Group; // placed in the world, squashed by hops
-  body: Group; // modelled in metres, scaled to blocks
+  body: Group; // modeled in meters, scaled to blocks
   hopMs: number; // time spent moving, for the slime's bounce
   last?: MobState;
 }
@@ -130,7 +130,7 @@ export class MobView {
 
   private add(m: MobState): Figure {
     const body = (BUILDERS[m.kind] ?? sheep)();
-    body.scale.setScalar(METRE);
+    body.scale.setScalar(METER);
     const f = { group: new Group().add(body), body, hopMs: 0 };
     f.group.name = `mob ${m.id}`;
     this.scene.add(f.group);
@@ -161,6 +161,6 @@ function bounce(g: Group, hopMs: number): void {
     return;
   }
   const phase = Math.abs(Math.sin((hopMs / 400) * Math.PI));
-  g.position.y += 0.3 * METRE * phase;
+  g.position.y += 0.3 * METER * phase;
   g.scale.set(1 + 0.1 * (1 - phase), 0.85 + 0.15 * phase, 1 + 0.1 * (1 - phase));
 }

@@ -46,7 +46,7 @@ describe("Selection", () => {
     expect(points(parts(scene).box).some((p) => near(p, [0.25, 0.5, 0.5]))).toBe(true);
   });
 
-  it("draws in the look's outline colour, or black without one", () => {
+  it("draws in the look's outline color, or black without one", () => {
     const scene = new Scene();
     const s = new Selection(scene);
     const line = () => (parts(scene).box.material as LineBasicMaterial).color;

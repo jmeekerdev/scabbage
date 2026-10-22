@@ -20,8 +20,8 @@ type roll struct {
 	min, max int
 }
 
-// bulk is how many small blocks fill a metre cube; building blocks come by the cube.
-const bulk = world.Metre * world.Metre * world.Metre
+// bulk is how many small blocks fill a meter cube; building blocks come by the cube.
+const bulk = world.Meter * world.Meter * world.Meter
 
 // extras are what a chest may hold besides gold; two different ones are picked.
 var extras = []roll{

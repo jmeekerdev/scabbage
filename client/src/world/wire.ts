@@ -36,8 +36,8 @@ export function wireBoxes(around: Around): Box[] {
     conducts(at(d)),
   );
   if (!wall && ways.length === 0) return onFloor(around);
-  const centre: Box = wall ? onSide(wall, LO, HI, LO, HI) : [LO, LO, LO, HI, HI, HI];
-  return withArms(centre, ways, [UP]);
+  const center: Box = wall ? onSide(wall, LO, HI, LO, HI) : [LO, LO, LO, HI, HI, HI];
+  return withArms(center, ways, [UP]);
 }
 
 /** Wire on the floor: arms to what it joins, up steps and walls toward wire overhead. */
@@ -57,26 +57,26 @@ function onFloor(around: Around): Box[] {
 }
 
 /**
- * A centre box with an arm out each of `ways`; a lone arm runs straight through,
+ * A center box with an arm out each of `ways`; a lone arm runs straight through,
  * and with none, arms go out every one of `idle`.
  */
-function withArms(centre: Box, ways: readonly Dir[], idle: readonly Dir[]): Box[] {
+function withArms(center: Box, ways: readonly Dir[], idle: readonly Dir[]): Box[] {
   let arms = ways;
   if (ways.length === 0) arms = [...idle, ...idle.map(opposite)];
   else if (ways.length === 1) arms = [ways[0], opposite(ways[0])];
-  return [centre, ...unique(arms).map((d) => reach(centre, d))];
+  return [center, ...unique(arms).map((d) => reach(center, d))];
 }
 
 function unique(dirs: readonly Dir[]): Dir[] {
   return dirs.filter((d, i) => dirs.findIndex((e) => e.join() === d.join()) === i);
 }
 
-/** Stretches the centre box from its side toward d out to the edge of the block. */
-function reach(centre: Box, d: Dir): Box {
-  const box = [...centre] as [number, number, number, number, number, number];
+/** Stretches the center box from its side toward d out to the edge of the block. */
+function reach(center: Box, d: Dir): Box {
+  const box = [...center] as [number, number, number, number, number, number];
   const axis = d.findIndex((v) => v !== 0);
-  if (d[axis] > 0) [box[axis], box[axis + 3]] = [centre[axis + 3], FULL];
-  else [box[axis], box[axis + 3]] = [0, centre[axis]];
+  if (d[axis] > 0) [box[axis], box[axis + 3]] = [center[axis + 3], FULL];
+  else [box[axis], box[axis + 3]] = [0, center[axis]];
   return box;
 }
 

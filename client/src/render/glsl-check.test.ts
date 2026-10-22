@@ -16,9 +16,9 @@ describe("glslErrors", () => {
   });
 
   it("names the stage and line of a mistake", () => {
-    const fragmentShader = "void main() { gl_FragColor = vec4(1.0) * colour; }";
+    const fragmentShader = "void main() { gl_FragColor = vec4(1.0) * color; }";
     const errors = glslErrors({ vertexShader, fragmentShader });
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/^fragment: .*'colour'.*undeclared/);
+    expect(errors[0]).toMatch(/^fragment: .*'color'.*undeclared/);
   });
 });

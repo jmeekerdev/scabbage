@@ -1,5 +1,5 @@
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, type Scene } from "three";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
 /** An arena's spawn or goal block, as the server sent it. */
 export interface MarkInfo {
@@ -50,7 +50,7 @@ export class ArenaMarks {
 function markMesh(m: MarkInfo): Group {
   const g = new Group();
   g.position.set(m.x + 0.5, m.y, m.z + 0.5);
-  g.scale.setScalar(METRE);
+  g.scale.setScalar(METER);
   if (m.goal) g.add(new Mesh(pole, poleMaterial), new Mesh(banner, teamMaterial(m.team)));
   else g.add(new Mesh(pad, teamMaterial(m.team)));
   return g;

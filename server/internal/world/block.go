@@ -57,8 +57,8 @@ const (
 	PineLeaves   = Gravel + 1
 )
 
-// MaxLight is the brightest a block glows; light fades by one per block, so about ten metres.
-const MaxLight = 10 * Metre
+// MaxLight is the brightest a block glows; light fades by one per block, so about ten meters.
+const MaxLight = 10 * Meter
 
 // BlockInfo describes how a block behaves.
 type BlockInfo struct {
@@ -76,7 +76,7 @@ type BlockInfo struct {
 	Facing      bool   // its item turned another way, so players place it as it is
 	Ticks       bool   // the server steps it while its chunk is loaded
 	Directed    bool   // gives power out its front a tick after its input changes; rechecked on load
-	Conducts    bool   // carries power to its neighbours like wire
+	Conducts    bool   // carries power to its neighbors like wire
 }
 
 var (
@@ -140,7 +140,7 @@ var TimerBeats = []int{1, 2, 8, 16}
 const (
 	// Delays is how many settings a delay has, a quarter second apart.
 	Delays = 8
-	// Channels is how many channels wireless blocks have, shown as colours.
+	// Channels is how many channels wireless blocks have, shown as colors.
 	Channels = 16
 	// Capacitors is how many settings a capacitor has, a second apart.
 	Capacitors = 10
@@ -263,11 +263,11 @@ func numberFrom(first Block, out []BlockInfo) []BlockInfo {
 	return out
 }
 
-// perSmallBlock turns the palette's digging times, written for blocks a metre across, into times
+// perSmallBlock turns the palette's digging times, written for blocks a meter across, into times
 // for blocks a third that size.
 func perSmallBlock(out []BlockInfo) []BlockInfo {
 	for i := range out {
-		out[i].MineMs /= Metre
+		out[i].MineMs /= Meter
 	}
 	return out
 }
@@ -294,7 +294,7 @@ func palette() []BlockInfo {
 	}
 	out = append(out,
 		BlockInfo{Name: "lamp", Solid: true, Light: MaxLight, MineMs: 300},
-		BlockInfo{Name: "torch", Transparent: true, Shape: TorchShape, Light: MaxLight - Metre},
+		BlockInfo{Name: "torch", Transparent: true, Shape: TorchShape, Light: MaxLight - Meter},
 	)
 	digs := func(name string) uint16 {
 		return out[slices.IndexFunc(out, func(b BlockInfo) bool { return b.Name == name })].MineMs

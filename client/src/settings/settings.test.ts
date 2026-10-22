@@ -9,7 +9,7 @@ import {
   sanitize,
   saveSettings,
   VIEW_DISTANCE,
-  viewMetres,
+  viewMeters,
 } from "./settings";
 
 describe("settings", () => {
@@ -89,6 +89,11 @@ describe("settings", () => {
     expect(sanitize({ look: "gone" }, d)).toEqual(d);
     expect(sanitize({ look: 7 }, d)).toEqual(d);
   });
+
+  it("keeps a saved look that was renamed", () => {
+    const d = defaultSettings("high", false);
+    expect(sanitize({ look: "watercolour" }, d).look).toBe("watercolor");
+  });
 });
 
 describe("graphics presets", () => {
@@ -133,9 +138,9 @@ describe("FrameLimiter", () => {
   });
 });
 
-describe("viewMetres", () => {
-  it("turns a view distance in chunks into whole metres", () => {
-    expect(viewMetres(6)).toBe(64);
-    expect(viewMetres(VIEW_DISTANCE.max)).toBe(128);
+describe("viewMeters", () => {
+  it("turns a view distance in chunks into whole meters", () => {
+    expect(viewMeters(6)).toBe(64);
+    expect(viewMeters(VIEW_DISTANCE.max)).toBe(128);
   });
 });

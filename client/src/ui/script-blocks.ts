@@ -342,10 +342,10 @@ const logic = (on: boolean) => ({
 });
 const near = (x: number, y: number, z: number) => ({ X: num(x), Y: num(y), Z: num(z) });
 const kinds = (...types: string[]) => types.map((type) => ({ kind: "block", type }));
-const category = (name: string, colour: number | string, contents: object[]) => ({
+const category = (name: string, color: number | string, contents: object[]) => ({
   kind: "category",
   name,
-  colour: String(colour),
+  colour: String(color), // Blockly spells its option "colour"
   contents,
 });
 

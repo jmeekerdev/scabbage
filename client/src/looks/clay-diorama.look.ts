@@ -4,7 +4,7 @@ import type { Look } from "./look";
 // Light numbers are the look book's sRGB ones raised to 2.2, to match in linear light.
 export default {
   name: "Clay Diorama",
-  about: "Soft moulded colours with rounded edges",
+  about: "Soft molded colors with rounded edges",
   surface: {
     textured: false,
     detail: 0.5,

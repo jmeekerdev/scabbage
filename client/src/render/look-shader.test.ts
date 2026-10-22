@@ -2,7 +2,7 @@ import { ShaderMaterial } from "three";
 import { describe, expect, it } from "vitest";
 import type { Look, LookSun } from "../looks/look";
 import { lookById } from "../looks/registry";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import { applyLook, lookFeatures, lookUniforms, meshOptions, setLookUniforms } from "./look-shader";
 
 const today = lookById("today");
@@ -45,16 +45,16 @@ describe("lookFeatures shape", () => {
     expect(meshOptions(today)).toEqual({ edges: false, softCorners: 0 });
   });
 
-  it("switches on world-anchored washes, fibres, pooled edges and stitches", () => {
+  it("switches on world-anchored washes, fibers, pooled edges and stitches", () => {
     const fabric: Look = {
       ...today,
-      surface: { ...today.surface, wash: 0.5, fibre: 0.4 },
+      surface: { ...today.surface, wash: 0.5, fiber: 0.4 },
       shape: { edges: true, softCorners: 0, pool: 0.2, stitch: { r: 1, g: 1, b: 1 } },
     };
-    expect(lookFeatures(fabric)).toEqual({ EDGES: "", WASH: "", FIBRE: "", POOL: "", STITCH: "" });
+    expect(lookFeatures(fabric)).toEqual({ EDGES: "", WASH: "", FIBER: "", POOL: "", STITCH: "" });
   });
 
-  it("shows block pictures as light and dark over flat colours, only in untextured looks", () => {
+  it("shows block pictures as light and dark over flat colors, only in untextured looks", () => {
     const flat = { ...today.surface, textured: false, detail: 0.5 };
     expect(lookFeatures({ ...today, surface: flat })).toEqual({ FLAT: "", DETAIL: "" });
     expect(lookFeatures({ ...today, surface: { ...flat, textured: true } })).toEqual({});
@@ -75,7 +75,7 @@ describe("lookFeatures shape", () => {
 });
 
 describe("setLookUniforms", () => {
-  it("puts the look's numbers in the shared uniforms, light colours as plain multipliers", () => {
+  it("puts the look's numbers in the shared uniforms, light colors as plain multipliers", () => {
     setLookUniforms(today);
     expect(lookUniforms.tint.value).toBe(0.06);
     expect(lookUniforms.faces.value.toArray()).toEqual([0.8, 1, 0.65, 0.5]);
@@ -86,25 +86,25 @@ describe("setLookUniforms", () => {
   it("puts surface and edge strengths in the shared uniforms", () => {
     setLookUniforms({
       ...today,
-      surface: { ...today.surface, wash: 0.5, fibre: 0.4 },
+      surface: { ...today.surface, wash: 0.5, fiber: 0.4 },
       shape: { edges: true, softCorners: 0, pool: 0.2, stitch: { r: 1, g: 0, b: 0 } },
     });
     expect(lookUniforms.wash.value).toBe(0.5);
-    expect(lookUniforms.fibre.value).toBe(0.4);
+    expect(lookUniforms.fiber.value).toBe(0.4);
     expect(lookUniforms.pool.value).toBe(0.2);
     expect(lookUniforms.stitch.value.toArray()).toEqual([1, 0, 0]);
   });
 
-  it("lifts light with height between two heights, given in metres", () => {
+  it("lifts light with height between two heights, given in meters", () => {
     const height = { low: 30, high: 70, lift: 0.1 };
     const risen = { ...today, light: { ...today.light, height } };
     expect(lookFeatures(risen)).toEqual({ HEIGHT: "" });
     setLookUniforms(risen);
-    expect(lookUniforms.heightRange.value.toArray()).toEqual([30 * METRE, 70 * METRE]);
+    expect(lookUniforms.heightRange.value.toArray()).toEqual([30 * METER, 70 * METER]);
     expect(lookUniforms.heightLift.value).toBe(0.1);
   });
 
-  it("points the sun along its direction, normalised", () => {
+  it("points the sun along its direction, normalized", () => {
     setLookUniforms(withSun({ bands: 3 }));
     expect(lookUniforms.sunDir.value.toArray()).toEqual([0, 1, 0]);
     expect(lookUniforms.sunBands.value).toBe(3);

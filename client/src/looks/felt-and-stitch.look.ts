@@ -9,7 +9,7 @@ export default {
     textured: false,
     detail: 0.45,
     tint: 0.03,
-    fibre: 1,
+    fiber: 1,
     solid: ["leaves", "pine_leaves"],
     palette: blockPalette({
       grass: "6fae5a",

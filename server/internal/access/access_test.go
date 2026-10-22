@@ -264,7 +264,7 @@ func TestAwaitCancelStopsDelivery(t *testing.T) {
 	_ = f.svc.Decide(r.RequestID, true)
 	select {
 	case <-ch:
-		t.Fatal("cancelled waiter should not receive")
+		t.Fatal("canceled waiter should not receive")
 	default:
 	}
 }

@@ -16,7 +16,7 @@ type Generator interface {
 // LatestGenerator is the version new worlds use.
 const LatestGenerator = 3
 
-// ErrOldScale means a world was made when blocks were a metre across, which this server can't load.
+// ErrOldScale means a world was made when blocks were a meter across, which this server can't load.
 var ErrOldScale = errors.New("this world was made for bigger blocks; start a new one in an empty data directory")
 
 // NewGenerator returns the generator for a stored version.
@@ -31,27 +31,27 @@ func NewGenerator(version uint32, seed int64) (Generator, error) {
 }
 
 const (
-	seaLevel    = 30 * Metre
-	baseHeight  = 36 * Metre
-	heightRange = 30 * Metre
-	heightScale = 160.0 * Metre
-	hillRange   = 48 * Metre
-	hillScale   = 480.0 * Metre
-	detailRange = Metre // small bumps, a metre up or down
-	detailScale = 12.0 * Metre
-	beachRise   = Metre     // land this little above the sea is sand
-	soilDepth   = 3 * Metre // dirt or sand over the stone
-	bankBand    = 2 * Metre // land this near the sea level rises in steps...
+	seaLevel    = 30 * Meter
+	baseHeight  = 36 * Meter
+	heightRange = 30 * Meter
+	heightScale = 160.0 * Meter
+	hillRange   = 48 * Meter
+	hillScale   = 480.0 * Meter
+	detailRange = Meter // small bumps, a meter up or down
+	detailScale = 12.0 * Meter
+	beachRise   = Meter     // land this little above the sea is sand
+	soilDepth   = 3 * Meter // dirt or sand over the stone
+	bankBand    = 2 * Meter // land this near the sea level rises in steps...
 	bankStep    = 2         // ...this many blocks high
-	cragScale   = 16.0 * Metre
+	cragScale   = 16.0 * Meter
 	cragCover   = 0.4       // crag noise above this lifts the land into bare rock...
-	cragRise    = 3 * Metre // ...up to this high
-	pebbleScale = 6.0 * Metre
+	cragRise    = 3 * Meter // ...up to this high
+	pebbleScale = 6.0 * Meter
 	pebbleCover = 0.25 // pebble noise above this makes a beach gravel
 )
 
 // GenV3 makes rolling hills with stepped banks, beaches, lakes, meadows, woods and dungeons, in
-// blocks a third of a metre across.
+// blocks a third of a meter across.
 type GenV3 struct {
 	height, hills, detail, crags, pebbles, meadow, blooms noise
 	features, plants, dungeons                            uint64
@@ -186,7 +186,7 @@ func (g *GenV3) pebbly(x, z int32) bool {
 // at picks the column's block at height y.
 func (c column) at(y int32) Block {
 	switch {
-	case y < Metre:
+	case y < Meter:
 		return Bedrock
 	case y < c.h-soilDepth:
 		return Stone
@@ -204,7 +204,7 @@ func (c column) at(y int32) Block {
 func (g *GenV3) placeDungeon(p ChunkPos, put putFunc) {
 	ox, oy, oz := p.Origin()
 	d, ok := g.dungeonIn(regionOf(ox), regionOf(oz))
-	if !ok || oy > d.top()+d.steps+archHeight || oy+Size <= d.floor-Metre {
+	if !ok || oy > d.top()+d.steps+archHeight || oy+Size <= d.floor-Meter {
 		return
 	}
 	d.build(func(x, y, z int32, b Block) { put(x, y, z, b, false) })

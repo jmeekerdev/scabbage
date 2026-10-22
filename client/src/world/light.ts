@@ -1,8 +1,8 @@
-import { METRE, CHUNK_SIZE as S } from "./constants";
+import { METER, CHUNK_SIZE as S } from "./constants";
 import { PADDED, PADDED_VOLUME, paddedIndex } from "./mesher";
 
 /** The brightest a block glows, as the server's world.MaxLight; light fades one per block. */
-export const MAX_LIGHT = 10 * METRE;
+export const MAX_LIGHT = 10 * METER;
 
 /** Blocks around a chunk that can still light its one-block border. */
 export const LIGHT_MARGIN = MAX_LIGHT;

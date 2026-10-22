@@ -31,7 +31,7 @@ export interface VoiceSpec extends SwellSpec {
   type?: OscillatorType;
 }
 
-/** A sustained music note that swells in and fades slowly, overlapping its neighbours. */
+/** A sustained music note that swells in and fades slowly, overlapping its neighbors. */
 export function voice(ctx: AudioContext, out: AudioNode, v: VoiceSpec): void {
   const osc = ctx.createOscillator();
   const env = ctx.createGain();

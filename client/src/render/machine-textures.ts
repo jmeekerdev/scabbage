@@ -88,7 +88,7 @@ const LETTERS: Record<string, number[]> = {
   X: [5, 5, 2, 5, 5],
 };
 
-/** Whether the pixel is lit in `text` written in 3×5 letters, centred across rows 6 to 10. */
+/** Whether the pixel is lit in `text` written in 3×5 letters, centered across rows 6 to 10. */
 export function labelPixel(text: string, x: number, y: number): boolean {
   const from = Math.floor((16 - (4 * text.length - 1)) / 2);
   const [col, row] = [x - from, 10 - y];
@@ -100,7 +100,7 @@ export function labelPixel(text: string, x: number, y: number): boolean {
 // A gate's modes, in the order tapping cycles them; mirrors world.GateModes.
 export const GATE_MODES = ["and", "or", "xor", "nand", "nor", "not"];
 
-/** Slate labelled with the gate's mode, the letters glowing while it gives power. */
+/** Slate labeled with the gate's mode, the letters glowing while it gives power. */
 const gate =
   (mode: string, ink: RGB): Painter =>
   (x, y, n) =>
@@ -164,7 +164,7 @@ const creature = (x: number, y: number) =>
   (x >= 10 && x <= 12 && y >= 8 && y <= 11) ||
   ((x === 4 || x === 9) && y >= 3 && y < 6);
 
-/** Stone around a grey sky with a cloud and falling drops, for the weather sensor. */
+/** Stone around a gray sky with a cloud and falling drops, for the weather sensor. */
 const weatherFace: Painter = (x, y, n) => {
   if (edge(x, y, 2)) return shade(STONE, edge(x, y) ? 0.6 : 0.85 + n() * 0.3);
   const cloud = Math.hypot(x - 5.5, y - 10) < 2.6 || Math.hypot(x - 9.5, y - 10.5) < 2.4;
@@ -173,7 +173,7 @@ const weatherFace: Painter = (x, y, n) => {
   return drop ? shade([110, 170, 240], 0.95 + n() * 0.1) : shade([95, 105, 120], 0.95 + n() * 0.1);
 };
 
-// A clock sensor's sky colour, and where its sun or moon sits, for each part of the day.
+// A clock sensor's sky color, and where its sun or moon sits, for each part of the day.
 const CLOCK_FACES: Record<string, { sky: RGB; at: [number, number]; moon: boolean }> = {
   day: { sky: [110, 170, 230], at: [7.5, 9], moon: false },
   night: { sky: [25, 30, 70], at: [7.5, 9], moon: true },
@@ -184,7 +184,7 @@ const CLOCK_FACES: Record<string, { sky: RGB; at: [number, number]; moon: boolea
 };
 export const CLOCK_MODES = Object.keys(CLOCK_FACES);
 
-/** A window on its part of the day: the sky's colour over a strip of ground, with the sun or moon. */
+/** A window on its part of the day: the sky's color over a strip of ground, with the sun or moon. */
 const clockFace =
   (mode: string): Painter =>
   (x, y, n) => {
@@ -205,7 +205,7 @@ const detectorEye =
     return shade(SLATE, edge(x, y) ? 0.7 : 0.9 + n() * 0.2);
   };
 
-/** Wireless channel colours; mirrors the wool colours. */
+/** Wireless channel colors; mirrors the wool colors. */
 const CHANNEL_COLORS: RGB[] = [
   [233, 236, 236],
   [240, 118, 19],
@@ -226,7 +226,7 @@ const CHANNEL_COLORS: RGB[] = [
 ];
 export const CHANNELS = CHANNEL_COLORS.length;
 
-/** Stone around the channel's colour: rings spreading out for a transmitter, a dot for a receiver. */
+/** Stone around the channel's color: rings spreading out for a transmitter, a dot for a receiver. */
 const radio =
   (color: RGB, sends: boolean): Painter =>
   (x, y, n) => {

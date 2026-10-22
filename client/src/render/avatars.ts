@@ -16,11 +16,11 @@ import type { RemoteState } from "../player/remote-players";
 import { litMesh } from "./entity-material";
 import { Gait, type Stance } from "./gait";
 import { boxUVs, defaultSkin, PARTS, SKIN_H, SKIN_W, type Part } from "./skin";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
-const PX = 1.8 / 32; // metres per skin pixel: the figure is 32 pixels tall
-const TAG_HEIGHT = 0.3; // metres
-const EMOTE_SIZE = 0.7; // metres
+const PX = 1.8 / 32; // meters per skin pixel: the figure is 32 pixels tall
+const TAG_HEIGHT = 0.3; // meters
+const EMOTE_SIZE = 0.7; // meters
 const EMOTE_MS = 3000;
 
 /** A box for one body part, with its skin pixels mapped onto each face. */
@@ -72,7 +72,7 @@ export class Avatar {
   private shown?: Uint8Array;
 
   constructor(name: string | undefined, color: number, skin: Uint8Array) {
-    this.root.scale.setScalar(METRE); // the figure is modelled in metres
+    this.root.scale.setScalar(METER); // the figure is modeled in meters
     this.material = litMesh({ alphaTest: 0.5 });
     this.setSkin(skin, color);
     const m = this.material;

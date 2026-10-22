@@ -12,30 +12,30 @@ import (
 type kind struct {
 	height, halfWidth float64
 	health            int
-	walk              float64 // metres per second while wandering or chasing
+	walk              float64 // meters per second while wandering or chasing
 	chases            bool
 	damage            int  // a bite's harm
 	boss              bool // woken at an altar; never melts
 	steady            bool // stands its ground when hit
 }
 
-// metre turns sizes and speeds in metres into blocks.
-const metre = world.Metre
+// meter turns sizes and speeds in meters into blocks.
+const meter = world.Meter
 
 // Body sizes must match client/src/player/mobs.ts.
 var kinds = map[Kind]kind{
-	Sheep:     {height: 1.3 * metre, halfWidth: 0.45 * metre, health: 1, walk: 1 * metre},
-	Slime:     {height: 0.8 * metre, halfWidth: 0.4 * metre, health: 3, walk: 2.5 * metre, chases: true, damage: 2},
-	KingSlime: {height: 2 * metre, halfWidth: 1 * metre, health: 24, walk: 2 * metre, chases: true, damage: 4, boss: true},
-	Golem:     {height: 2.6 * metre, halfWidth: 0.6 * metre, health: 40, walk: 1.6 * metre, chases: true, damage: 6, boss: true, steady: true},
+	Sheep:     {height: 1.3 * meter, halfWidth: 0.45 * meter, health: 1, walk: 1 * meter},
+	Slime:     {height: 0.8 * meter, halfWidth: 0.4 * meter, health: 3, walk: 2.5 * meter, chases: true, damage: 2},
+	KingSlime: {height: 2 * meter, halfWidth: 1 * meter, health: 24, walk: 2 * meter, chases: true, damage: 4, boss: true},
+	Golem:     {height: 2.6 * meter, halfWidth: 0.6 * meter, health: 40, walk: 1.6 * meter, chases: true, damage: 6, boss: true, steady: true},
 }
 
 const (
-	chaseRange = 16.0 * metre
-	biteGap    = 0.5 * metre // between the mob's side and the player's center, horizontally
+	chaseRange = 16.0 * meter
+	biteGap    = 0.5 * meter // between the mob's side and the player's center, horizontally
 	biteEvery  = 1500 * time.Millisecond
-	stepUp     = 1.0 * metre // highest ledge a mob hops onto
-	maxDrop    = 3.0 * metre // deepest it will jump down
+	stepUp     = 1.0 * meter // highest ledge a mob hops onto
+	maxDrop    = 3.0 * meter // deepest it will jump down
 	maxStride  = 0.5         // blocks a mob moves between looks at the ground
 )
 

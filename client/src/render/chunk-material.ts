@@ -16,7 +16,7 @@ import { LOOK_LIGHT_GLSL, LOOK_VEIL_GLSL, lookFeatures, lookUniforms } from "./l
 import type { Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 import { MAX_LIGHT } from "../world/light";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import { POSITION_SCALE } from "../world/mesher";
 
 /** Every block texture as one array texture; repeat wrapping lets merged quads tile per block. */
@@ -61,7 +61,7 @@ vec3 axis(int a) {
 
 void main() {
   vUv = uv / POSITION_SCALE;
-  vGlow = light > 0.0 ? pow(lampFade, (MAX_LIGHT - light) / METRE) : 0.0; // each metre away dims it a little
+  vGlow = light > 0.0 ? pow(lampFade, (MAX_LIGHT - light) / METER) : 0.0; // each meter away dims it a little
   vLayer = layer;
   vAo = ao / 3.0;
   int f = int(face + 0.5);
@@ -98,7 +98,7 @@ uniform vec3 lamp;
 uniform float waterOpacity;
 uniform float detail;
 uniform float wash;
-uniform float fibre;
+uniform float fiber;
 uniform float pool;
 uniform vec3 stitch;
 varying vec2 vUv;
@@ -135,7 +135,7 @@ float blockTint(vec3 p) {
   return 1.0 + tint * (float(h & 255u) / 127.5 - 1.0);
 }
 
-#if defined(WASH) || defined(FIBRE)
+#if defined(WASH) || defined(FIBER)
 float hash3(vec3 p) {
   p = fract(p * 0.1031);
   p += dot(p, p.zyx + 31.32);
@@ -173,17 +173,17 @@ float stitches() {
 }
 #endif
 
-// Touches fixed to the world that a look may add: washes, fibres, pooled edges and stitches.
+// Touches fixed to the world that a look may add: washes, fibers, pooled edges and stitches.
 vec3 styled(vec3 c) {
   #ifdef WASH
   float hue = noise3(vWorld * 0.06 + 3.0), depth = noise3(vWorld * 0.21);
   vec3 w = mix(vec3(1.04, 1.0, 0.94), vec3(0.92, 0.97, 1.06), hue) * (0.86 + 0.28 * depth);
   c *= mix(vec3(1.0), w, wash);
   #endif
-  #ifdef FIBRE
+  #ifdef FIBER
   float near = 1.0 - smoothstep(6.0, 20.0, distance(vWorld, cameraPosition)); // fades before it shimmers
   float fib = noise3(vWorld * vec3(9.0, 26.0, 9.0)) * 0.5 + hash3(floor(vWorld * 30.0)) * 0.5;
-  c *= 1.0 + fibre * (fib - 0.5) * 0.24 * near;
+  c *= 1.0 + fiber * (fib - 0.5) * 0.24 * near;
   #endif
   #ifdef POOL
   c *= 1.0 - pool * (1.0 - smoothstep(0.0, 0.22, openEdge()));
@@ -198,7 +198,7 @@ vec4 picture() {
   return texture(blocks, vec3(vUv, vLayer));
 }
 
-// The flat colour lightened and darkened where the picture is lighter or darker than its average.
+// The flat color lightened and darkened where the picture is lighter or darker than its average.
 vec3 detailed(vec3 flatRgb, vec4 pic, int layer) {
   #ifdef DETAIL
   vec4 average = texelFetch(layerColors, ivec2(layer, 1), 0);
@@ -210,7 +210,7 @@ vec3 detailed(vec3 flatRgb, vec4 pic, int layer) {
   #endif
 }
 
-// The block's picture, or in untextured looks its flat colour; stickers keep their picture.
+// The block's picture, or in untextured looks its flat color; stickers keep their picture.
 vec4 surface() {
   #ifdef FLAT
   int layer = int(vLayer + 0.5);
@@ -269,7 +269,7 @@ function chunkMaterial(
   const defines = {
     POSITION_SCALE: POSITION_SCALE.toFixed(1),
     MAX_LIGHT: MAX_LIGHT.toFixed(1),
-    METRE: METRE.toFixed(1),
+    METER: METER.toFixed(1),
     EDGE_ROUND: "0.42", // blocks from an open side where rounding starts
     ...lookFeatures(look),
     ...extra?.defines,

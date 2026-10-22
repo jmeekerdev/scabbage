@@ -9,7 +9,7 @@ import (
 )
 
 // MaxBrush is the widest brush, a cube as big as one block was before blocks shrank.
-const MaxBrush = world.Metre
+const MaxBrush = world.Meter
 
 // Brush sets every block in a cube of Size blocks a side whose lowest corner is X,Y,Z.
 type Brush struct {

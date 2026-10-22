@@ -9,7 +9,15 @@ export const LOOKS: ReadonlyMap<string, Look> = new Map(
 
 export const DEFAULT_LOOK = "today";
 
+// Old ids of renamed looks, so a saved choice survives the rename.
+const RENAMED: ReadonlyMap<string, string> = new Map([["watercolour", "watercolor"]]);
+
+/** The id a look goes by now. */
+export function currentLookId(id: string): string {
+  return RENAMED.get(id) ?? id;
+}
+
 /** The named look, or the default one if it no longer exists. */
 export function lookById(id: string): Look {
-  return LOOKS.get(id) ?? (LOOKS.get(DEFAULT_LOOK) as Look);
+  return LOOKS.get(currentLookId(id)) ?? (LOOKS.get(DEFAULT_LOOK) as Look);
 }

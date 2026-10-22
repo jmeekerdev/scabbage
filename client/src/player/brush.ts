@@ -1,8 +1,8 @@
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import type { RayHit } from "../world/raycast";
 
 /** The widest brush: a cube as big as one block was before blocks shrank. */
-export const MAX_BRUSH = METRE;
+export const MAX_BRUSH = METER;
 
 export interface Cell {
   x: number;
@@ -22,7 +22,7 @@ export function nextBrush(size: number): number {
 
 /**
  * The cube a brush covers at a hit: digging reaches into the face and building grows out of it.
- * Across the face x and z snap to the brush's grid, so walls line up, and y centres on the hit.
+ * Across the face x and z snap to the brush's grid, so walls line up, and y centers on the hit.
  */
 export function brushCube(hit: RayHit, size: number, placing: boolean): Cube {
   const normal = [hit.nx, hit.ny, hit.nz];

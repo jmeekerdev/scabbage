@@ -137,8 +137,8 @@ void main() {
   #endif
   #ifdef PAPER
   float grain = hash(floor(vUv * res)), blot = noise(vUv * vec2(7.0, 5.0));
-  float fibre = noise(vUv * res * vec2(0.04, 0.5));
-  col *= 1.0 - paper * (0.05 * grain + 0.08 * blot + 0.04 * fibre);
+  float fiber = noise(vUv * res * vec2(0.04, 0.5));
+  col *= 1.0 - paper * (0.05 * grain + 0.08 * blot + 0.04 * fiber);
   #endif
   #ifdef VIGNETTE
   col *= vignetted();

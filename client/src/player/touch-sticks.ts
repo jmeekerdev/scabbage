@@ -51,7 +51,7 @@ export class TouchSticks {
     return { forward: -y, right: x };
   }
 
-  /** Where to draw the stick: its centre and the knob's offset. */
+  /** Where to draw the stick: its center and the knob's offset. */
   joystick(): { x: number; y: number; dx: number; dy: number } | undefined {
     if (!this.stick) return undefined;
     const { x, y, dx, dy } = this.stick;

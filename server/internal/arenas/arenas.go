@@ -66,9 +66,9 @@ type Mark struct {
 	X, Y, Z int32
 }
 
-// At reports whether x, y, z is on the mark: in the metre-wide square around its block, on its level.
+// At reports whether x, y, z is on the mark: in the meter-wide square around its block, on its level.
 func (m Mark) At(x, y, z int32) bool {
-	const r = world.Metre / 2
+	const r = world.Meter / 2
 	return m.Y == y && x >= m.X-r && x <= m.X+r && z >= m.Z-r && z <= m.Z+r
 }
 
