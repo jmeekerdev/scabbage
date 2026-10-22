@@ -9,5 +9,6 @@ pkgs.mkShell {
     protoc-gen-go
     gnumake
     golangci-lint
+    glslang # compiles every look's shaders in the client tests
   ];
 }

@@ -16,6 +16,8 @@ export interface GameScene {
   readonly camera: PerspectiveCamera;
   /** Applies new settings live, including the look's sky and fog; antialiasing only changes on reload. */
   apply(s: Settings): void;
+  /** Shows a look's sky, fog and afterwards pass without changing the settings, e.g. while tuning one. */
+  showLook(look: Look): void;
   /** How lit the world is right now, from MIN_LIGHT at night to 1 by day. */
   daylight(): number;
   /** Runs fn on each frame the limiter allows, before deciding whether to draw it. */
@@ -61,12 +63,18 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   new ResizeObserver(resize).observe(canvas);
 
   let look = lookById(initial.look);
-  const apply = (s: Settings) => {
-    look = lookById(s.look);
+  let viewDistance = initial.viewDistance;
+  const showLook = (next: Look) => {
+    look = next;
     sky.setLook(look.sky);
     after.setLook(look, false); // no overhead map view yet
+    setViewDistance(scene.fog as Fog, camera, viewDistance, look);
+    frame.invalidate();
+  };
+  const apply = (s: Settings) => {
+    viewDistance = s.viewDistance;
+    showLook(lookById(s.look));
     renderer.setPixelRatio(pixelRatioFor(s.preset, window.devicePixelRatio));
-    setViewDistance(scene.fog as Fog, camera, s.viewDistance, look);
     limiter.fps = s.fpsCap;
     resize();
   };
@@ -130,6 +138,7 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
     scene,
     camera,
     apply,
+    showLook,
     daylight: () => daylight.value,
     onFrame: (fn) => frameHooks.push(fn),
     onDrawn: (fn) => drawnHooks.push(fn),

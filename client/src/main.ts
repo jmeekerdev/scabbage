@@ -107,6 +107,7 @@ import {
   unlockOnFullscreenExit,
 } from "./ui/pwa";
 import { settingsPanel } from "./ui/settings-panel";
+import type { Look } from "./looks/look";
 import { lookById } from "./looks/registry";
 import { TouchControls } from "./ui/touch-controls";
 import { collisionBoxes, FULL_BLOCK, type Box } from "./world/shapes";
@@ -144,6 +145,7 @@ const world = createWorldRenderer(
 const player = new Player();
 const selection = new Selection(gameScene.scene, (x, y, z) => world.softCorner(x, y, z));
 selection.setLook(lookById(settings.look));
+openLookTunerIfAsked();
 const hotbar = new Hotbar([]);
 const picker = new BlockPicker((block) => {
   hotbar.pick(block);
@@ -791,7 +793,21 @@ function changeSettings(s: Settings): void {
   settings = s;
   saveSettings(store, s);
   gameScene.apply(s);
-  world.setLook(lookById(s.look));
-  selection.setLook(lookById(s.look));
+  showLook(lookById(s.look));
   audio.set(s.sound, s.music);
+}
+
+/** Draws everything in a look, without saving it as the chosen one. */
+function showLook(look: Look): void {
+  gameScene.showLook(look);
+  world.setLook(look);
+  selection.setLook(look);
+}
+
+/** With ?tune in the address, opens the look tuner; it is only loaded then. */
+function openLookTunerIfAsked(): void {
+  if (!new URLSearchParams(location.search).has("tune")) return;
+  void import("./ui/look-tuner").then(({ LookTuner }) =>
+    document.body.append(new LookTuner(lookById(settings.look), showLook).node),
+  );
 }

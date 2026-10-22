@@ -405,9 +405,13 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       sun colours and bands, and hide behind the veil with the chunks; outlines reach them through the
       afterwards pass. The selection outline bends to soft corners and takes the look's outline colour.
       There is no held item or hand view drawn yet, so nothing there to follow
-- [ ] Tests and tuning: every look's config passes the schema and its shader compiles in a headless test,
-      so a typo fails `make check`; a developer overlay with sliders for the live numbers and an
-      "export config" button for making new looks
+- [x] Tests and a tuner: every look passes `checkLook` (ranges, sRGB colours, palette and solid
+      texture names, sun bands and direction, edge touches needing edges), and every look's shaders
+      (blocks, far land, afterwards, figures, drops) compile through glslang in the client tests, so a
+      typo fails `make check`. `?tune` opens a developer panel, loaded only then, with sliders and
+      colour pickers over the live numbers and an export to a new `*.look.ts` file
+- [ ] Tuning: Watercolour's line wobble and soft blur, Dusk Pastel's height gradient, and whether
+      Dusk Pastel and Felt get their vignettes back at the cost of a pass
 
 ## Open questions
 
