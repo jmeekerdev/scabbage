@@ -7,6 +7,8 @@ minigames, write scripts with Blockly or Lua, and play adventures.
 The server is one small Go binary with SQLite and the client built in. It runs comfortably on a
 home server with 2 GB RAM and 2 cores, and does almost nothing while nobody is playing.
 
+![A lake shore with trees, terraced hills and a stone tower](docs/screenshots/world.jpg)
+
 ## Features
 
 - **Building:** a seeded, bounded world with metre-sized blocks, brush sizes, glass, lights,
@@ -23,6 +25,14 @@ home server with 2 GB RAM and 2 cores, and does almost nothing while nobody is p
 - **Looks:** each player picks how the world is drawn, from the default to pastel, clay,
   ink & cel, watercolour and more. Weather and a day–night cycle are the same for everyone.
 - **Social:** text chat, emotes and blocky avatars with skins you paint yourself.
+
+The same shore in six of the looks:
+
+| Today                                                   | Watercolour                                           | Ink & Cel                                                   |
+| ------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| ![Today](docs/screenshots/look-today.jpg)               | ![Watercolour](docs/screenshots/look-watercolour.jpg) | ![Ink & Cel](docs/screenshots/look-ink-and-cel.jpg)         |
+| **Clay Diorama**                                        | **Dusk Pastel**                                       | **Felt & Stitch**                                           |
+| ![Clay Diorama](docs/screenshots/look-clay-diorama.jpg) | ![Dusk Pastel](docs/screenshots/look-dusk-pastel.jpg) | ![Felt & Stitch](docs/screenshots/look-felt-and-stitch.jpg) |
 
 ## Run it with Docker
 
@@ -74,6 +84,8 @@ setting is also a flag on the binary (`scabbage-server -help`).
 | `G`               | Next brush size                                                         |
 | `R`               | Script the block you are looking at                                     |
 | Esc               | Release the mouse                                                       |
+
+![The block menu open over a rainy beach](docs/screenshots/blocks.jpg)
 
 Type `/help` in game for the full list. Some useful commands:
 
