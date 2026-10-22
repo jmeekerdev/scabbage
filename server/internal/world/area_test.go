@@ -102,3 +102,16 @@ func mustSet(t *testing.T, w *World, x, y, z int32, b Block) {
 		t.Fatal(err)
 	}
 }
+
+func TestPasteSchedulesDirectedBlocks(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	a := Area{X0: 0, Z0: 0, X1: 1, Z1: 1}
+	blocks, _ := w.Copy(a)
+	blocks[a.Index(1, 60, 1)] = Diode
+	if _, err := w.Paste(a, blocks); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.TakeScheduled(); !slices.Equal(got, []Due{{Pos: Pos{1, 60, 1}}}) {
+		t.Fatalf("scheduled = %v", got)
+	}
+}

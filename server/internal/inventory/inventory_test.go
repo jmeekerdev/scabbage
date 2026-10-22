@@ -106,8 +106,9 @@ func TestForgetCustomEmptiesCustomBlockSlots(t *testing.T) {
 	var inv Inventory
 	inv[0] = Stack{world.Stone, 5}
 	inv[3] = Stack{world.FirstCustom + 2, 9}
+	inv[4] = Stack{world.SecondBuiltin, 1}
 	inv.ForgetCustom()
-	if inv[0] != (Stack{world.Stone, 5}) || inv[3] != (Stack{}) {
+	if inv[0] != (Stack{world.Stone, 5}) || inv[3] != (Stack{}) || inv[4] != (Stack{world.SecondBuiltin, 1}) {
 		t.Fatalf("inventory = %v", inv[:4])
 	}
 }

@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"bytes"
+	"slices"
 	"testing"
 
 	"github.com/coder/websocket"
@@ -65,9 +66,9 @@ func TestApprovedBlockReachesEveryone(t *testing.T) {
 	send(t, admin, decideArt(r.Id, true))
 	for _, c := range []*websocket.Conn{admin, kid} {
 		changed := recvWhere(t, c, func(m *pb.ServerMessage) bool { return m.GetBlocksChanged() != nil }).GetBlocksChanged()
-		last := changed.Blocks[len(changed.Blocks)-1]
-		if last.Name != "Flower" || last.Id != uint32(world.FirstCustom) || !bytes.Equal(last.Pixels, blockArt) {
-			t.Fatalf("last block = %v", last)
+		i := slices.IndexFunc(changed.Blocks, func(b *pb.BlockType) bool { return b.Id == uint32(world.FirstCustom) })
+		if i < 0 || changed.Blocks[i].Name != "Flower" || !bytes.Equal(changed.Blocks[i].Pixels, blockArt) {
+			t.Fatalf("painted block missing from %v", changed.Blocks)
 		}
 	}
 	recvWhere(t, kid, noticeOf("Flower"))

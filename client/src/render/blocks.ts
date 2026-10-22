@@ -2,14 +2,15 @@ import type { RenderTable } from "../world/mesher";
 import { customLayerName } from "./atlas";
 import { Shape } from "../world/shapes";
 import { Smooth } from "../world/soft-corners";
-import { COUNT_DOWN } from "./machine-textures";
-import { TEXTURE_NAMES, WOOL_COLORS } from "./textures";
+import { Wiring } from "../world/wire";
+import { CHANNELS, CLOCK_MODES, COUNT_DOWN, GATE_MODES } from "./machine-textures";
+import { CABLE_MATERIALS, TEXTURE_NAMES, WOOL_COLORS } from "./textures";
 
 export interface BlockStyle {
   top: string;
   side: string;
   bottom: string;
-  front?: string; // the face a piston pushes from
+  front?: string; // the face a piston pushes from or a diode gives power out of
   translucent?: boolean;
   natural?: boolean; // ground the world grows, which soft corners round off
 }
@@ -23,7 +24,17 @@ const FACINGS: [string, number][] = [
   ["_up", 2],
   ["_down", 3],
 ];
+// Each launch pad facing's name suffix and the way its top's arrow points.
+const PAD_FACINGS = [
+  ["", "north"],
+  ["_east", "east"],
+  ["_south", "south"],
+  ["_west", "west"],
+  ["_up", "up"],
+];
 const piston = (front: string): BlockStyle => ({ ...same("piston_side"), front });
+const diode = (front: string): BlockStyle => ({ ...same("diode_side"), front });
+const sensor = (side: string, top: string): BlockStyle => ({ top, side, bottom: side });
 const numbered = (block: string, texture: string, n: number) =>
   Array.from({ length: n }, (_, i) => {
     const name = i ? `${block}_${i}` : block;
@@ -53,12 +64,13 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
   lamp: same("lamp"),
   torch: same("torch"),
   ...Object.fromEntries(
-    ["wire", "switch", "button", "pressure_plate", "signal_lamp", "timer", "script_block"].flatMap(
-      (b) => [
-        [b, same(b)],
-        [`${b}_on`, same(`${b}_on`)],
-      ],
-    ),
+    [
+      ...["wire", "switch", "button", "pressure_plate", "signal_lamp", "timer", "script_block"],
+      ...["timer_1", "timer_2", "timer_8", "timer_16", "tripwire"],
+    ].flatMap((b) => [
+      [b, same(b)],
+      [`${b}_on`, same(`${b}_on`)],
+    ]),
   ),
   door: same("door"),
   door_open: same("door_open"),
@@ -66,6 +78,32 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
     FACINGS.flatMap(([f]) => [
       [`piston${f}`, piston("piston_front")],
       [`piston${f}_on`, piston("piston_front_on")],
+      [`diode${f}`, diode("diode_front")],
+      [`diode${f}_on`, diode("diode_front_on")],
+      ...GATE_MODES.flatMap((m) => [
+        [`gate_${m}${f}`, { ...same(`gate_${m}`), front: "diode_front" }],
+        [`gate_${m}${f}_on`, { ...same(`gate_${m}_on`), front: "diode_front_on" }],
+      ]),
+      ...Array.from({ length: 8 }, (_, i) => [
+        [`delay_${i + 1}${f}`, { ...same(`delay_${i + 1}`), front: "diode_front" }],
+        [`delay_${i + 1}${f}_on`, { ...same(`delay_${i + 1}`), front: "diode_front_on" }],
+      ]).flat(),
+      [`relay${f}`, { ...same("relay_side"), front: "diode_front" }],
+      [`relay${f}_on`, { ...same("relay_side"), front: "diode_front_on" }],
+      ...Array.from({ length: 10 }, (_, i) => [
+        [`capacitor_${i + 1}${f}`, { ...same(`capacitor_${i + 1}`), front: "diode_front" }],
+        [`capacitor_${i + 1}${f}_on`, { ...same(`capacitor_${i + 1}`), front: "diode_front_on" }],
+      ]).flat(),
+      [`sticky_piston${f}`, piston("sticky_piston_front")],
+      [`sticky_piston${f}_on`, piston("sticky_piston_front_on")],
+      [`block_detector${f}`, diode("block_detector_eye")],
+      [`block_detector${f}_on`, diode("block_detector_eye_on")],
+    ]),
+  ),
+  ...Object.fromEntries(
+    CABLE_MATERIALS.flatMap((m) => [
+      [`${m}_cable`, same(`${m}_cable`)],
+      [`${m}_cable_on`, same(`${m}_cable_on`)],
     ]),
   ),
   ...Object.fromEntries(numbered("counter", "counter", 10)),
@@ -75,6 +113,43 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
       [`counter_down_${d}_on`, same(`counter_down_${d}`)],
     ]),
   ),
+  ...Object.fromEntries(
+    ["transmitter", "receiver"].flatMap((kind) =>
+      Array.from({ length: CHANNELS }, (_, i) => {
+        const name = i ? `${kind}_${i}` : kind;
+        const side = `${kind}_${i}`;
+        return [
+          [name, { top: "radio_top", side, bottom: side }],
+          [`${name}_on`, { top: "radio_top_on", side, bottom: side }],
+        ];
+      }).flat(),
+    ),
+  ),
+  ...Object.fromEntries(
+    [
+      "player_detector",
+      "creature_detector",
+      "weather_sensor",
+      ...CLOCK_MODES.map((m) => `clock_${m}`),
+    ].flatMap((name) => [
+      [name, sensor(name, "radio_top")],
+      [`${name}_on`, sensor(name, "radio_top_on")],
+    ]),
+  ),
+  ...Object.fromEntries(
+    ["trapdoor", "trapdoor_open", "fence_gate", "fence_gate_open"].map((b) => [b, same(b)]),
+  ),
+  ...Object.fromEntries(
+    PAD_FACINGS.flatMap(([suffix, way]) => [
+      [`launch_pad${suffix}`, { ...same("launch_pad_side"), top: `launch_pad_${way}` }],
+      [`launch_pad${suffix}_on`, { ...same("launch_pad_side"), top: `launch_pad_${way}_on` }],
+    ]),
+  ),
+  ...Object.fromEntries(numbered("number_display", "display", 10)),
+  toggle: same("toggle"),
+  toggle_on: same("toggle"),
+  toggle_1: same("toggle_1"),
+  toggle_1_on: same("toggle_1"),
   teleporter: same("teleporter"),
   portal: same("portal"),
   ...Object.fromEntries(numbered("note_block", "note", 8)),
@@ -100,6 +175,7 @@ export interface BlockTypeInfo {
   id: number;
   name: string;
   transparent: boolean;
+  solid?: boolean;
   shape?: number;
   light?: number;
   pixels?: Uint8Array; // custom blocks only
@@ -127,11 +203,13 @@ export function buildRenderTable(
     shape: new Uint8Array(n),
     light: new Uint8Array(n),
     smooth: new Uint8Array(n),
+    wiring: new Uint8Array(n),
   };
   for (const t of types) {
     table.transparent[t.id] = t.transparent ? 1 : 0;
     table.shape[t.id] = t.shape ?? Shape.CUBE;
     table.light[t.id] = t.light ?? 0;
+    table.wiring![t.id] = wiringOf(t);
     if (t.name === "air") continue;
     const style = styleOf(t);
     table.translucent[t.id] = style.translucent ? 1 : 0;
@@ -146,6 +224,16 @@ export function buildRenderTable(
     });
   }
   return table;
+}
+
+const WIRED =
+  /^(wire|switch|button|pressure_plate|signal_lamp|timer|script_block|door|piston|sticky_piston|trapdoor|fence_gate|launch_pad|number_display|tripwire|diode|gate|delay|relay|capacitor|toggle|player_detector|creature_detector|clock|block_detector|weather_sensor|transmitter|receiver|counter|note_block|teleporter)(_|$)|_cable(_on)?$/;
+
+/** How a block meets drawn wire: wire joins up to circuit blocks and lies on solid ones. */
+function wiringOf(t: BlockTypeInfo): number {
+  const wire = /^wire(_on)?$/.test(t.name) ? Wiring.WIRE : 0;
+  const joins = WIRED.test(t.name) ? Wiring.JOINS : 0;
+  return wire | joins | (t.solid ? Wiring.HOLDS : 0);
 }
 
 /** Natural cubes soften; water and plants leave room for them; anything else is built and pins them. */

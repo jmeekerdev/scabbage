@@ -1,5 +1,5 @@
 import { lookDirection, raycast, type RayHit, type Vec3 } from "../world/raycast";
-import { isStairs, pistonFacing, Shape, stairsFacing } from "../world/shapes";
+import { isStairs, padFacing, pistonFacing, Shape, stairsFacing } from "../world/shapes";
 import { HALF_WIDTH, HEIGHT, type Body } from "./physics";
 import { METRE } from "../world/constants";
 import { brushCube, cubeCells, type Cell, type Cube } from "./brush";
@@ -7,6 +7,17 @@ import { brushCube, cubeCells, type Cell, type Cube } from "./brush";
 /** How far the eye reaches; server/internal/edit allows a little more. */
 export const REACH = 5 * METRE;
 const AIR = 0;
+// Blocks placed facing any of six ways, like pistons.
+const SIX_WAY = [
+  "piston",
+  "sticky_piston",
+  "diode",
+  "gate_and",
+  "delay_1",
+  "relay",
+  "capacitor_1",
+  "block_detector",
+];
 
 /** What the building rules need to know about the world; mirrors server/internal/edit. */
 export interface BuildWorld {
@@ -16,6 +27,7 @@ export interface BuildWorld {
   shape: readonly number[];
   usable: ReadonlySet<number>; // pressed by hand, like switches, instead of built against
   sixWay: ReadonlySet<number>; // placed facing any of six ways, like pistons
+  padWay: ReadonlySet<number>; // placed facing along the ground or up, like launch pads
   item: readonly number[]; // the block players hold for each one
   unbreakable: ReadonlySet<number>; // also never placeable
   mineMs: readonly number[]; // how long survival players dig each block
@@ -63,7 +75,8 @@ export function buildWorldFor(
     mineMs,
     item,
     usable: new Set(info.blocks.filter((b) => b.usable).map((b) => b.id)),
-    sixWay: new Set(info.blocks.filter((b) => b.name === "piston").map((b) => b.id)),
+    sixWay: new Set(info.blocks.filter((b) => SIX_WAY.includes(b.name)).map((b) => b.id)),
+    padWay: new Set(info.blocks.filter((b) => b.name === "launch_pad").map((b) => b.id)),
     unbreakable: new Set(info.blocks.filter((b) => b.name === "bedrock").map((b) => b.id)),
     inside: (x, y, z) => y >= 0 && y < height && (r < 0 || (x >= -r && x < r && z >= -r && z < r)),
   };
@@ -124,6 +137,7 @@ export function placeEdit(
 
 function turned(block: number, look: { yaw: number; pitch: number }, w: BuildWorld): number {
   if (w.sixWay.has(block)) return pistonFacing(block, look.yaw, look.pitch);
+  if (w.padWay.has(block)) return padFacing(block, look.yaw, look.pitch);
   return isStairs(w.shape[block] ?? 0) ? stairsFacing(block, look.yaw) : block;
 }
 

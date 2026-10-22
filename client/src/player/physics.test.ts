@@ -4,6 +4,7 @@ import {
   FLY_SPEED,
   HALF_WIDTH,
   HEIGHT,
+  launch,
   newBody,
   stepBody,
   WALK_SPEED,
@@ -134,5 +135,30 @@ describe("stepBody", () => {
     const blocked = run(newBody(3.5, 10, 0.5), { right: 1 }, 1, wallAtX5);
     expect(blocked.x).toBeCloseTo(5 - HALF_WIDTH, 5);
     expect(blocked.y).toBeCloseTo(10, 5);
+  });
+});
+
+describe("launch", () => {
+  const settled = () => run(newBody(0.5, 10, 0.5), {}, 0.1);
+
+  it("throws a body high straight up and lets it fall back", () => {
+    const b = settled();
+    launch(b, { x: 0, y: 13 * METRE, z: 0 });
+    let top = b.y;
+    for (let t = 0; t < 2; t += DT) {
+      stepBody(b, idle, 0, DT, floor);
+      top = Math.max(top, b.y);
+    }
+    expect(top - 10).toBeGreaterThan(2.5 * METRE);
+    expect([b.y, b.x]).toEqual([10, 0.5]);
+  });
+
+  it("carries a body along through the air and stops it on landing", () => {
+    const b = settled();
+    launch(b, { x: 9 * METRE, y: 9 * METRE, z: 0 });
+    run(b, {}, 2);
+    expect(b.x - 0.5).toBeGreaterThan(5 * METRE);
+    expect(b.x - 0.5).toBeLessThan(7 * METRE);
+    expect([b.vx, b.vz, b.onGround]).toEqual([0, 0, true]);
   });
 });

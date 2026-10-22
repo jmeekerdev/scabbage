@@ -4,6 +4,7 @@ import (
 	"maps"
 	"slices"
 	"testing"
+	"time"
 
 	"scabbage/internal/world"
 )
@@ -24,6 +25,20 @@ const fence = 50
 func (g grid) CanPush(_, at Pos) bool { return at.X < fence }
 
 func (g grid) Occupied(Pos) bool { return false }
+
+// Schedule drops the switch: plain grids never tick; see ticked for those that do.
+func (g grid) Schedule(Pos, time.Duration, bool) {}
+
+func (g grid) Transmitters() []Pos {
+	var out []Pos
+	for p, b := range g {
+		if b.Item() == world.Transmitter {
+			out = append(out, p)
+		}
+	}
+	slices.SortFunc(out, comparePos)
+	return out
+}
 
 // crowded is a grid with people standing in it.
 type crowded struct {
@@ -358,7 +373,11 @@ func set(t *testing.T, g grid, at Pos, b world.Block) {
 
 func beat(t *testing.T, g grid, on bool) {
 	t.Helper()
-	if _, err := Beat(g, []Pos{{}}, on); err != nil {
+	quarter := int64(4)
+	if on {
+		quarter = 0
+	}
+	if _, err := Beat(g, []Pos{{}}, quarter); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -13,7 +13,7 @@ import {
 import { newBody } from "./physics";
 import { Shape } from "../world/shapes";
 
-const [AIR, STONE, WATER, BEDROCK, TORCH, STAIRS, PISTON] = [0, 1, 5, 12, 30, 40, 70];
+const [AIR, STONE, WATER, BEDROCK, TORCH, STAIRS, PISTON, PAD] = [0, 1, 5, 12, 30, 40, 70, 80];
 const solid = Array.from({ length: 44 }, (_, id) => id === STONE || id === BEDROCK || id >= STAIRS);
 const targetable = solid.map((s, id) => s || id === TORCH);
 const shape = solid.map((_, id) => (id >= STAIRS ? Shape.STAIRS_NORTH + id - STAIRS : Shape.CUBE));
@@ -26,6 +26,7 @@ function world(): BuildWorld {
     shape,
     usable: new Set(),
     sixWay: new Set([PISTON]),
+    padWay: new Set([PAD]),
     item: [],
     unbreakable: new Set([BEDROCK]),
     mineMs: [],
@@ -59,11 +60,20 @@ describe("buildWorldFor", () => {
       { id: 62, name: "switch", solid: true, shape: 0, mineMs: 300, usable: true },
       { id: 63, name: "door_open", solid: false, shape: 0, mineMs: 600, usable: true, item: 62 },
       { id: 64, name: "piston", solid: true, shape: 0, mineMs: 600 },
+      { id: 65, name: "diode", solid: true, shape: 0, mineMs: 300 },
+      { id: 66, name: "gate_and", solid: true, shape: 0, mineMs: 300, usable: true },
+      { id: 67, name: "delay_1", solid: true, shape: 0, mineMs: 300, usable: true },
+      { id: 68, name: "relay", solid: true, shape: 0, mineMs: 300 },
+      { id: 69, name: "capacitor_1", solid: true, shape: 0, mineMs: 300, usable: true },
+      { id: 70, name: "block_detector", solid: true, shape: 0, mineMs: 300 },
+      { id: 71, name: "sticky_piston", solid: true, shape: 0, mineMs: 600 },
+      { id: 72, name: "launch_pad", solid: false, shape: Shape.FLAT, mineMs: 300 },
     ];
     const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
     expect(w.targetable[61] && w.targetable[63]).toBe(true);
-    expect([...w.sixWay]).toEqual([64]);
-    expect([...w.usable]).toEqual([62, 63]);
+    expect([...w.sixWay]).toEqual([64, 65, 66, 67, 68, 69, 70, 71]);
+    expect([...w.padWay]).toEqual([72]);
+    expect([...w.usable]).toEqual([62, 63, 66, 67, 69]);
     expect([w.item[61], w.item[62]]).toEqual([60, 62]);
   });
 });
@@ -197,6 +207,15 @@ describe("torches and stairs", () => {
       PISTON + 2,
     );
     expect(placeEdit(hit, PISTON, body, { yaw: 0, pitch: down }, world())?.block).toBe(PISTON + 10);
+  });
+
+  it("turns launch pads to throw where the player looks, or up when they look down", () => {
+    const hit = { x: 2, y: 9, z: 0, nx: 0, ny: 1, nz: 0, distance: 2 };
+    const body = newBody(0.5, 10, 0.5);
+    const place = (yaw: number, pitch: number) =>
+      placeEdit(hit, PAD, body, { yaw, pitch }, world());
+    expect(place(-Math.PI / 2, -0.3)?.block).toBe(PAD + 2);
+    expect(place(0, down)?.block).toBe(PAD + 8);
   });
 });
 

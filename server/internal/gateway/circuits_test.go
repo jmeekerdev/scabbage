@@ -148,6 +148,22 @@ func TestStandingOnAPlatePressesIt(t *testing.T) {
 	waitForBlocks(t, admin, changed(x, y, z, world.Plate), changed(x+1, y, z, world.SignalLamp))
 }
 
+func TestCrossingATripwirePowersIt(t *testing.T) {
+	ts := startServer(t)
+	admin := ts.joinAdmin(t)
+	sx, sy, sz := ts.spawn()
+	x, y, z := int32(sx), int32(sy)+1, int32(sz)
+	for i, b := range []world.Block{world.Tripwire, world.Wire, world.SignalLamp} {
+		if err := ts.world.SetBlock(x, y, z+int32(i), b); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waitForBlock(t, admin, x, y, z+2, world.SignalLamp+1)
+
+	send(t, admin, move(sx-3, sy, sz, 0))
+	waitForBlocks(t, admin, changed(x, y, z, world.Tripwire), changed(x, y, z+2, world.SignalLamp))
+}
+
 func TestDoorsOpenByHand(t *testing.T) {
 	ts := startServer(t)
 	admin := ts.joinAdmin(t)
@@ -164,6 +180,14 @@ func TestTimersBlink(t *testing.T) {
 
 	waitForBlock(t, admin, x+1, y, z, world.SignalLamp+1)
 	waitForBlock(t, admin, x+1, y, z, world.SignalLamp)
+}
+
+func TestSensorsNoticePlayersAndBlocks(t *testing.T) {
+	ts := startServer(t)
+	admin := ts.joinAdmin(t)
+	x, y, z := ts.circuit(t, world.PlayerDetector, world.SignalLamp, world.Air, world.BlockDetector+2, world.Stone)
+
+	waitForBlocks(t, admin, changed(x+1, y, z, world.SignalLamp+1), changed(x+3, y, z, world.BlockDetector+3))
 }
 
 func TestTeleportersCarryPlayersAlongTheirWire(t *testing.T) {
@@ -217,4 +241,39 @@ func TestDoorsCloseOnlyOncePlayersStepOut(t *testing.T) {
 
 	send(t, admin, move(sx-2, sy, sz, 0))
 	waitForBlocks(t, admin, changed(x, y, z, world.Door), changed(x, y+1, z, world.Door))
+}
+
+func TestDiodesPassPowerOnALaterTick(t *testing.T) {
+	ts := startServer(t)
+	admin, kid := ts.joinKid(t)
+	x, y, z := ts.circuit(t, world.Switch, world.Diode+2, world.SignalLamp)
+
+	send(t, kid, useBlock(x, y, z))
+	waitForBlock(t, admin, x+2, y, z, world.SignalLamp+1)
+	if b, _ := ts.world.Block(x+1, y, z); b != world.Diode+3 {
+		t.Fatalf("diode = %v", b)
+	}
+}
+
+func TestDelaysWaitTheirSettingBeforePassingPower(t *testing.T) {
+	ts := startServer(t)
+	admin, kid := ts.joinKid(t)
+	const halfSecondEast = world.Delay + 12 + 2
+	x, y, z := ts.circuit(t, world.Switch, halfSecondEast, world.SignalLamp)
+
+	start := time.Now()
+	send(t, kid, useBlock(x, y, z))
+	waitForBlock(t, admin, x+2, y, z, world.SignalLamp+1)
+	if waited := time.Since(start); waited < 400*time.Millisecond {
+		t.Fatalf("lit after %v", waited)
+	}
+}
+
+func TestTransmittersPowerReceiversOnTheirChannel(t *testing.T) {
+	ts := startServer(t)
+	admin, kid := ts.joinKid(t)
+	x, y, z := ts.circuit(t, world.Switch, world.Transmitter+2, world.Air, world.Receiver+2, world.SignalLamp)
+
+	send(t, kid, useBlock(x, y, z))
+	waitForBlocks(t, admin, changed(x+3, y, z, world.Receiver+3), changed(x+4, y, z, world.SignalLamp+1))
 }

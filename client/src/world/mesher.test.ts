@@ -3,6 +3,7 @@ import { CHUNK_SIZE as S } from "./constants";
 import { MAX_LIGHT } from "./light";
 import { Shape } from "./shapes";
 import { Smooth } from "./soft-corners";
+import { Wiring } from "./wire";
 import {
   FACE_NORMALS,
   meshChunk,
@@ -145,6 +146,23 @@ describe("shaped blocks", () => {
     expect(quads(m)).toBe(12);
     const ys = new Set(Array.from({ length: m.faces.length }, (_, i) => vertex(m, i)[1]));
     expect([...ys].sort()).toEqual([5, 5.5, 6]);
+  });
+
+  it("draws wire joined to what's around it instead of by its shape", () => {
+    const wired = {
+      ...table(),
+      wiring: Uint8Array.from([0, Wiring.HOLDS, 0, 0, 0, Wiring.WIRE, 0]),
+    };
+    const m = meshChunk(
+      volume([
+        [5, 4, 5, STONE],
+        [5, 5, 5, SLAB],
+      ]),
+      wired,
+    ).opaque;
+    expect(quads(m)).toBe(6 + 5 * 5); // a cross of five boxes, their bottoms on the stone
+    const ys = new Set(Array.from({ length: m.faces.length }, (_, i) => vertex(m, i)[1]));
+    expect([...ys].sort()).toEqual([4, 5, 5.125]);
   });
 
   it("shows a full block's face beside a shape but hides the shape's face against it", () => {

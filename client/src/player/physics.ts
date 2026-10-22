@@ -31,12 +31,14 @@ export interface Body {
   y: number;
   z: number;
   vy: number;
+  vx: number; // momentum from a launch pad, carried through the air until landing
+  vz: number;
   onGround: boolean;
   flying: boolean;
 }
 
 export function newBody(x: number, y: number, z: number): Body {
-  return { x, y, z, vy: 0, onGround: false, flying: false };
+  return { x, y, z, vy: 0, vx: 0, vz: 0, onGround: false, flying: false };
 }
 
 /** Advances the body by dt seconds, facing yaw (0 looks toward -z). */
@@ -56,8 +58,14 @@ export function stepBody(
   b.onGround = falling && hitY;
   if (hitY) b.vy = 0;
   if (b.onGround) b.flying = false;
-  walkAxis(b, 0, vx * dt, boxesAt);
-  walkAxis(b, 2, vz * dt, boxesAt);
+  if (b.onGround || b.flying) [b.vx, b.vz] = [0, 0];
+  walkAxis(b, 0, (vx + b.vx) * dt, boxesAt);
+  walkAxis(b, 2, (vz + b.vz) * dt, boxesAt);
+}
+
+/** Throws the body off the ground with velocity v, in blocks per second. */
+export function launch(b: Body, v: { x: number; y: number; z: number }): void {
+  [b.vx, b.vy, b.vz, b.onGround] = [v.x, v.y, v.z, false];
 }
 
 function horizontalVelocity(input: MoveInput, yaw: number, speed: number): [number, number] {

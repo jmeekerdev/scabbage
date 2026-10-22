@@ -51,11 +51,7 @@ func (w *World) Paste(a Area, blocks []Block) ([]Change, error) {
 		}
 		c.Set(lx, ly, lz, b)
 		w.dirty[chunkHolding(at)] = struct{}{}
-		if Info(b).Ticks {
-			w.ticking[at] = struct{}{}
-		} else {
-			delete(w.ticking, at)
-		}
+		w.index(at, b)
 		changes = append(changes, Change{at, b, was})
 	})
 	return changes, err

@@ -1,6 +1,10 @@
 import { Look } from "./input";
 import type { Pose } from "./move-sync";
-import { EYE_HEIGHT, newBody, stepBody, type MoveInput, type BoxesAt } from "./physics";
+import { EYE_HEIGHT, launch, newBody, stepBody, type MoveInput, type BoxesAt } from "./physics";
+import type { Velocity } from "./launch-pads";
+
+/** How a powered launch pad in the cell at x,y,z throws players, if one is there. */
+export type PadAt = (x: number, y: number, z: number) => Velocity | undefined;
 
 const STEP = 1 / 60;
 const STEP_SLOP = 1e-9; // summed frame times drift just below whole steps
@@ -16,7 +20,7 @@ export class Player {
   private canFly = true;
 
   place(x: number, y: number, z: number): void {
-    Object.assign(this.body, { x, y, z, vy: 0 });
+    Object.assign(this.body, { x, y, z, vx: 0, vy: 0, vz: 0 });
     this.prev = { x, y, z };
     this.spare = 0;
   }
@@ -40,12 +44,14 @@ export class Player {
     if (!on) this.body.flying = false;
   }
 
-  update(dt: number, input: MoveInput, solid: BoxesAt): void {
+  update(dt: number, input: MoveInput, solid: BoxesAt, padAt?: PadAt): void {
     this.spare += Math.min(dt, MAX_FRAME);
     while (this.spare >= STEP - STEP_SLOP) {
       this.spare -= STEP;
       const { x, y, z } = this.body;
       this.prev = { x, y, z };
+      const pad = this.body.onGround && padAt?.(Math.floor(x), Math.floor(y), Math.floor(z));
+      if (pad) launch(this.body, pad);
       stepBody(this.body, input, this.look.yaw, STEP, solid);
     }
   }

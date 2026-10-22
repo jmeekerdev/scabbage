@@ -107,7 +107,7 @@ var ErrCorrupt = errors.New("inventory: wrong saved size")
 // ForgetCustom empties the slots holding custom blocks, e.g. when they are wiped.
 func (inv *Inventory) ForgetCustom() {
 	for i, s := range inv {
-		if s.Block >= world.FirstCustom {
+		if world.IsCustom(s.Block) {
 			inv[i] = Stack{}
 		}
 	}

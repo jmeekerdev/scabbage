@@ -75,6 +75,8 @@ type BlockInfo struct {
 	Variant     uint8  // how many IDs past the block players hold it is
 	Facing      bool   // its item turned another way, so players place it as it is
 	Ticks       bool   // the server steps it while its chunk is loaded
+	Directed    bool   // gives power out its front a tick after its input changes; rechecked on load
+	Conducts    bool   // carries power to its neighbours like wire
 }
 
 var (
@@ -84,10 +86,182 @@ var (
 	}
 	flowerColors    = []string{"red", "yellow", "blue", "white"}
 	shapedMaterials = []string{"stone", "cobblestone", "planks", "brick"}
+	cableMaterials  = []Block{Stone, Cobblestone, Planks, Brick, Dirt}
 	facings         = []string{"", "_east", "_south", "_west", "_up", "_down"}
 )
 
-var blocks = perSmallBlock(palette())
+var (
+	blocks = perSmallBlock(palette())
+	later  = perSmallBlock(numberFrom(SecondBuiltin, laterPalette()))
+)
+
+// SecondBuiltin is where built-ins continue, past the IDs kept for painted blocks.
+const SecondBuiltin Block = 4096
+
+// Built-in blocks from SecondBuiltin, in laterPalette order.
+const (
+	Diode  = SecondBuiltin // passes power back to front; six facings, each followed by its powered state
+	Cables = Diode + 12    // stone, cobblestone, planks, brick and dirt that carry power, each then on
+	Gate   = Cables + 10   // GateModes, each facing six ways, each then on
+	Delay  = Gate + 72     // Delays settings, each facing six ways, each then on
+	Relay  = Delay + 96    // passes power back to front while a side is on; six facings, each then on
+	// Transmitter powers every loaded receiver on its channel; Channels of them, each then on.
+	Transmitter = Relay + 12
+	Receiver    = Transmitter + 2*Channels // gives power while its channel is on; Channels of them
+	// Capacitor keeps giving power a while after its input stops; Capacitors settings, each
+	// facing six ways, each then on.
+	Capacitor = Receiver + 2*Channels
+	Toggle    = Capacitor + 12*Capacitors // flips on each time power arrives; off then giving, each then fed
+	// PlayerDetector and CreatureDetector give power while someone is near; each then on.
+	PlayerDetector   = Toggle + 4
+	CreatureDetector = PlayerDetector + 2
+	Clock            = CreatureDetector + 2 // gives power in one of ClockModes; each then on
+	// BlockDetector gives power while a block is in front of it; six facings, each then on.
+	BlockDetector = Clock + 2*6
+	// WeatherSensor gives power while it rains or snows; then on.
+	WeatherSensor = BlockDetector + 2*6
+	// StickyPiston pushes like a piston and pulls the block back when power stops; six facings, each then on.
+	StickyPiston = WeatherSensor + 2
+	Trapdoor     = StickyPiston + 2*6 // closed, then open; opens with the trapdoors beside it
+	FenceGate    = Trapdoor + 2       // closed, then open; opens with the fence gates joined to it
+	// LaunchPad throws players along its facing while powered: north, east, south, west, up; each then on.
+	LaunchPad = FenceGate + 2
+	// NumberDisplay shows 0 to 9: the count of a counter beside it, or its own pulses; each then fed.
+	NumberDisplay = LaunchPad + 2*5
+	// Timers beat on and off every TimerBeats quarter seconds; each then on. Tapping a timer
+	// steps through these and Timer by speed.
+	Timers   = NumberDisplay + 2*10
+	Tripwire = Timers + 2*4 // gives power while anyone is crossing it; then on
+)
+
+// TimerBeats is how many quarter seconds each of Timers stays on, then off; Timer itself beats 4.
+var TimerBeats = []int{1, 2, 8, 16}
+
+const (
+	// Delays is how many settings a delay has, a quarter second apart.
+	Delays = 8
+	// Channels is how many channels wireless blocks have, shown as colours.
+	Channels = 16
+	// Capacitors is how many settings a capacitor has, a second apart.
+	Capacitors = 10
+)
+
+// ClockModes are the parts of the day a clock sensor gives power in, in the order tapping cycles them.
+var ClockModes = []string{"day", "night", "dawn", "dusk", "noon", "midnight"}
+
+// GateModes are what a gate gives power for, in the order tapping cycles them.
+var GateModes = []string{"and", "or", "xor", "nand", "nor", "not"}
+
+// laterPalette lists the built-ins from SecondBuiltin by ID; only ever append to it.
+func laterPalette() []BlockInfo {
+	out := faced(BlockInfo{Name: "diode", Solid: true, MineMs: 300, Directed: true})
+	out = append(out, cables()...)
+	out = append(out, gates()...)
+	out = append(out, delays()...)
+	out = append(out, faced(BlockInfo{Name: "relay", Solid: true, MineMs: 300, Directed: true})...)
+	out = append(out, numbered(BlockInfo{Name: "transmitter", Solid: true, Usable: true, MineMs: 300}, Channels)...)
+	out = append(out, numbered(BlockInfo{Name: "receiver", Solid: true, Usable: true, MineMs: 300}, Channels)...)
+	out = append(out, capacitors()...)
+	out = append(out, numbered(BlockInfo{Name: "toggle", Solid: true, Usable: true, MineMs: 300}, 2)...)
+	out = append(out, sensors()...)
+	out = append(out, faced(BlockInfo{Name: "sticky_piston", Solid: true, MineMs: 600})...)
+	out = append(out, hatches()...)
+	out = append(out, turnedWays(BlockInfo{Name: "launch_pad", Transparent: true, Shape: Flat, MineMs: 300}, facings[:5])...)
+	display := BlockInfo{Name: "number_display", Solid: true, Usable: true, Light: MaxLight / 4, MineMs: 300}
+	out = append(out, numbered(display, 10)...)
+	for i, beats := range TimerBeats {
+		timer := BlockInfo{Name: fmt.Sprintf("timer_%d", beats), Solid: true, Usable: true, MineMs: 300, Ticks: true}
+		out = append(out, withOn(timer, "_on", 2*i)...)
+	}
+	return append(out, withOn(BlockInfo{Name: "tripwire", Transparent: true, Shape: Flat, MineMs: 100}, "_on", 0)...)
+}
+
+// hatches are trapdoors and fence gates: closed and solid, or open to walk through.
+func hatches() []BlockInfo {
+	var out []BlockInfo
+	for _, name := range []string{"trapdoor", "fence_gate"} {
+		h := withOn(BlockInfo{Name: name, Solid: true, Transparent: name == "fence_gate", Usable: true, MineMs: 600}, "_open", 0)
+		h[1].Solid, h[1].Transparent = false, true
+		out = append(out, h...)
+	}
+	return out
+}
+
+// sensors are blocks the server checks while loaded, giving power while they notice something.
+func sensors() []BlockInfo {
+	sensor := BlockInfo{Solid: true, MineMs: 300, Ticks: true}
+	var out []BlockInfo
+	for _, name := range []string{"player_detector", "creature_detector"} {
+		sensor.Name = name
+		out = append(out, withOn(sensor, "_on", 0)...)
+	}
+	for m, mode := range ClockModes {
+		clock := sensor
+		clock.Name, clock.Usable = "clock_"+mode, true
+		out = append(out, withOn(clock, "_on", 2*m)...)
+	}
+	sensor.Name = "block_detector"
+	out = append(out, faced(sensor)...)
+	sensor.Name = "weather_sensor"
+	return append(out, withOn(sensor, "_on", 0)...)
+}
+
+// gates are directed blocks in each of GateModes; every mode is placeable as it is.
+func gates() []BlockInfo {
+	var out []BlockInfo
+	for m, mode := range GateModes {
+		out = append(out, setting(BlockInfo{Name: "gate_" + mode}, m)...)
+	}
+	return out
+}
+
+// delays are directed blocks waiting 1 to Delays quarter seconds; every setting is placeable.
+func delays() []BlockInfo {
+	var out []BlockInfo
+	for n := range Delays {
+		out = append(out, setting(BlockInfo{Name: fmt.Sprintf("delay_%d", n+1)}, n)...)
+	}
+	return out
+}
+
+// capacitors are directed blocks holding power 1 to Capacitors seconds; every setting is placeable.
+func capacitors() []BlockInfo {
+	var out []BlockInfo
+	for n := range Capacitors {
+		out = append(out, setting(BlockInfo{Name: fmt.Sprintf("capacitor_%d", n+1)}, n)...)
+	}
+	return out
+}
+
+// setting is the usable directed block b, set the n-th of its item's ways, facing each way.
+func setting(b BlockInfo, n int) []BlockInfo {
+	b.Solid, b.Usable, b.MineMs, b.Directed = true, true, 300, true
+	out := faced(b)
+	for i := range out {
+		out[i].Variant += uint8(len(out) * n)
+		out[i].Facing = !out[i].Powered && out[i].Variant > 0
+	}
+	return out
+}
+
+// cables are blocks that look and dig like their material but carry power like wire.
+func cables() []BlockInfo {
+	first := palette()
+	var out []BlockInfo
+	for _, m := range cableMaterials {
+		cable := BlockInfo{Name: first[m].Name + "_cable", Solid: true, MineMs: first[m].MineMs, Conducts: true}
+		out = append(out, withOn(cable, "_on", 0)...)
+	}
+	return out
+}
+
+// numberFrom gives blocks consecutive IDs from first.
+func numberFrom(first Block, out []BlockInfo) []BlockInfo {
+	for i := range out {
+		out[i].ID = first + Block(i)
+	}
+	return out
+}
 
 // perSmallBlock turns the palette's digging times, written for blocks a metre across, into times
 // for blocks a third that size.
@@ -149,7 +323,7 @@ func palette() []BlockInfo {
 func logicBlocks() []BlockInfo {
 	var out []BlockInfo
 	for _, off := range []BlockInfo{
-		{Name: "wire", Transparent: true, Shape: Flat},
+		{Name: "wire", Transparent: true, Shape: Flat, Conducts: true},
 		{Name: "switch", Solid: true, Usable: true, MineMs: 300},
 		{Name: "button", Solid: true, Usable: true, MineMs: 300},
 		{Name: "pressure_plate", Transparent: true, Shape: Flat, MineMs: 300},
@@ -177,11 +351,8 @@ func nature() []BlockInfo {
 func machines() []BlockInfo {
 	door := withOn(BlockInfo{Name: "door", Solid: true, Usable: true, MineMs: 600}, "_open", 0)
 	door[1].Solid, door[1].Transparent = false, true
-	out := door
-	for f, suffix := range facings {
-		out = append(out, withOn(BlockInfo{Name: "piston" + suffix, Solid: true, MineMs: 600, Facing: f > 0}, "_on", 2*f)...)
-	}
-	out = append(out, withOn(BlockInfo{Name: "timer", Solid: true, MineMs: 300, Ticks: true}, "_on", 0)...)
+	out := append(door, faced(BlockInfo{Name: "piston", Solid: true, MineMs: 600})...)
+	out = append(out, withOn(BlockInfo{Name: "timer", Solid: true, Usable: true, MineMs: 300, Ticks: true}, "_on", 0)...)
 	out = append(out, numbered(BlockInfo{Name: "counter", Solid: true, Usable: true, MineMs: 300}, 10)...)
 	out = append(out, BlockInfo{Name: "teleporter", Transparent: true, Shape: Flat, Light: MaxLight / 2, MineMs: 300})
 	out = append(out, numbered(BlockInfo{Name: "note_block", Solid: true, Usable: true, MineMs: 300}, 8)...)
@@ -213,6 +384,20 @@ func countingDown() []BlockInfo {
 	return out
 }
 
+// faced is b turned each of the six facings, each followed by its powered state.
+func faced(b BlockInfo) []BlockInfo { return turnedWays(b, facings) }
+
+// turnedWays is b turned each of the given facings, each followed by its powered state.
+func turnedWays(b BlockInfo, ways []string) []BlockInfo {
+	var out []BlockInfo
+	for f, suffix := range ways {
+		turned := b
+		turned.Name, turned.Facing = b.Name+suffix, f > 0
+		out = append(out, withOn(turned, "_on", 2*f)...)
+	}
+	return out
+}
+
 // withOn is b and its powered state, both `variant` IDs past their item.
 func withOn(b BlockInfo, suffix string, variant int) []BlockInfo {
 	b.Variant = uint8(variant)
@@ -234,11 +419,14 @@ func numbered(b BlockInfo, n int) []BlockInfo {
 	return out
 }
 
-// FirstCustom is the lowest ID for blocks players paint; built-ins stay below it.
+// FirstCustom is the lowest ID for blocks players paint; they stay below SecondBuiltin.
 const FirstCustom Block = 256
 
+// IsCustom reports whether b is in the range kept for painted blocks.
+func IsCustom(b Block) bool { return b >= FirstCustom && b < SecondBuiltin }
+
 var (
-	ErrBuiltinID = errors.New("custom block IDs start at FirstCustom")
+	ErrBuiltinID = errors.New("custom block IDs run from FirstCustom to SecondBuiltin")
 	customMu     sync.Mutex                          // serializes Register
 	custom       atomic.Pointer[map[Block]BlockInfo] // copy-on-write, so lookups never lock
 )
@@ -248,7 +436,7 @@ const customMineMs = 250
 
 // Register adds or replaces a custom block, e.g. one approved by an admin.
 func Register(b BlockInfo) error {
-	if b.ID < FirstCustom {
+	if !IsCustom(b.ID) {
 		return ErrBuiltinID
 	}
 	if b.MineMs == 0 {
@@ -275,7 +463,7 @@ func ForgetCustomBlocks() {
 	custom.Store(nil)
 }
 
-// Blocks returns every known block in ID order: built-ins (indexed by ID), then custom blocks.
+// Blocks returns every known block in ID order: the first built-ins, custom blocks, then later built-ins.
 func Blocks() []BlockInfo {
 	out := slices.Clone(blocks)
 	if m := custom.Load(); m != nil {
@@ -285,7 +473,7 @@ func Blocks() []BlockInfo {
 		}
 		slices.SortFunc(out[start:], func(a, b BlockInfo) int { return int(a.ID) - int(b.ID) })
 	}
-	return out
+	return append(out, later...)
 }
 
 // IsBuiltinName reports whether a built-in block is called name.
@@ -296,9 +484,9 @@ func IsBuiltinName(name string) bool {
 
 // Builtin finds the built-in block called name.
 func Builtin(name string) (Block, bool) {
-	for _, b := range blocks {
-		if b.Name == name {
-			return b.ID, true
+	for _, table := range [][]BlockInfo{blocks, later} {
+		if i := slices.IndexFunc(table, func(b BlockInfo) bool { return b.Name == name }); i >= 0 {
+			return table[i].ID, true
 		}
 	}
 	return Air, false
@@ -323,6 +511,9 @@ func Named(name string) (Block, bool) {
 func Info(b Block) BlockInfo {
 	if int(b) < len(blocks) {
 		return blocks[b]
+	}
+	if b >= SecondBuiltin && int(b-SecondBuiltin) < len(later) {
+		return later[b-SecondBuiltin]
 	}
 	if m := custom.Load(); m != nil {
 		if info, ok := (*m)[b]; ok {

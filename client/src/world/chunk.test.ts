@@ -24,6 +24,13 @@ describe("decodeChunk", () => {
     expect(blockAt(c, 3, 4, 5)).toBe(STONE);
   });
 
+  it("decodes block IDs past the second built-in range's start", () => {
+    // 4100 then 32767 stones: palette [stone, 4100], runs (1, 1) and (32767, 0).
+    const c = decodeChunk(Uint8Array.of(2, 2, STONE, 0x84, 0x20, 1, 1, 0xff, 0xff, 0x01, 0));
+    expect(blockAt(c, 0, 0, 0)).toBe(4100);
+    expect(blockAt(c, 1, 0, 0)).toBe(STONE);
+  });
+
   it("rejects malformed data", () => {
     expect(() => decodeChunk(Uint8Array.of(1, 1, 0))).toThrow(); // an older encoding
     expect(() => decodeChunk(Uint8Array.of(2, 2, 0, 1, 5, 0))).toThrow(); // runs stop short

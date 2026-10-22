@@ -24,6 +24,19 @@ type World struct {
 	chunks  map[ChunkPos]*Chunk
 	dirty   map[ChunkPos]struct{}
 	ticking map[Pos]struct{} // loaded blocks the server steps, like timers
+	due     map[Pos]wait     // loaded blocks to switch on a coming tick, like diodes
+	radios  radios
+}
+
+// Due is a block whose wait is over; Flip means it switches whatever its input is by now.
+type Due struct {
+	Pos
+	Flip bool
+}
+
+type wait struct {
+	ticks int
+	flip  bool
 }
 
 // Pos is a block position.
@@ -40,7 +53,8 @@ func Open(s *Store, name string, d Defaults) (*World, error) {
 		return nil, err
 	}
 	return &World{meta: meta, store: s, gen: gen,
-		chunks: map[ChunkPos]*Chunk{}, dirty: map[ChunkPos]struct{}{}, ticking: map[Pos]struct{}{}}, nil
+		chunks: map[ChunkPos]*Chunk{}, dirty: map[ChunkPos]struct{}{},
+		ticking: map[Pos]struct{}{}, due: map[Pos]wait{}, radios: newRadios()}, nil
 }
 
 // Wipe forgets every change and starts the world over from seed, as if it were new.
@@ -55,7 +69,8 @@ func (w *World) Wipe(seed int64) error {
 		return err
 	}
 	w.meta.Seed, w.gen = seed, gen
-	w.chunks, w.dirty, w.ticking = map[ChunkPos]*Chunk{}, map[ChunkPos]struct{}{}, map[Pos]struct{}{}
+	w.chunks, w.dirty = map[ChunkPos]*Chunk{}, map[ChunkPos]struct{}{}
+	w.ticking, w.due, w.radios = map[Pos]struct{}{}, map[Pos]wait{}, newRadios()
 	return nil
 }
 
@@ -169,35 +184,106 @@ func (w *World) chunk(p ChunkPos) (*Chunk, error) {
 		return nil, fmt.Errorf("chunk %v: %w", p, err)
 	}
 	w.chunks[p] = c
-	w.indexTicking(p, c)
+	w.indexLoaded(p, c)
 	return c, nil
 }
 
-// indexTicking remembers the ticking blocks in a freshly loaded chunk.
-func (w *World) indexTicking(p ChunkPos, c *Chunk) {
+// indexLoaded remembers the ticking blocks in a freshly loaded chunk and rechecks its directed ones.
+func (w *World) indexLoaded(p ChunkPos, c *Chunk) {
 	if c.Uniform() {
 		return
 	}
 	ox, oy, oz := p.Origin()
 	for i, b := range c.blocks {
-		if Info(b).Ticks {
-			w.ticking[Pos{ox + int32(i%Size), oy + int32(i/(Size*Size)), oz + int32(i/Size%Size)}] = struct{}{}
-		}
+		w.index(Pos{ox + int32(i%Size), oy + int32(i/(Size*Size)), oz + int32(i/Size%Size)}, b)
 	}
+}
+
+// index notes b arriving at p by load or paste: it ticks if it should, and directed blocks are rechecked.
+func (w *World) index(p Pos, b Block) {
+	info := Info(b)
+	if info.Ticks {
+		w.ticking[p] = struct{}{}
+	} else {
+		delete(w.ticking, p)
+	}
+	if info.Directed || b.Item() == Receiver {
+		w.schedule(p, wait{ticks: 1})
+	}
+	w.noteRadio(p, b)
+}
+
+// noteRadio notes b arriving at p, rechecking every receiver if a transmitter came or went.
+func (w *World) noteRadio(p Pos, b Block) {
+	if w.radios.note(p, b) {
+		w.recheckReceivers()
+	}
+}
+
+func (w *World) recheckReceivers() {
+	for r := range w.radios.receivers {
+		w.schedule(r, wait{ticks: 1})
+	}
+}
+
+// Schedule asks for the block at p to be rechecked after `ticks` ticks, at least one, or to flip
+// then if flip is set; a block already waiting keeps its wait, unless a longer judged one is asked.
+func (w *World) Schedule(p Pos, ticks int, flip bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.schedule(p, wait{ticks: max(ticks, 1), flip: flip})
+}
+
+// schedule keeps a wait already running unless both are judged and the new one is longer.
+func (w *World) schedule(p Pos, at wait) {
+	if was, waiting := w.due[p]; !waiting || (!was.flip && !at.flip && at.ticks > was.ticks) {
+		w.due[p] = at
+	}
+}
+
+// TakeScheduled counts down one tick, then lists the blocks whose wait is over in a stable order.
+func (w *World) TakeScheduled() []Due {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	var out []Due
+	for p, at := range w.due {
+		if at.ticks--; at.ticks > 0 {
+			w.due[p] = at
+			continue
+		}
+		delete(w.due, p)
+		out = append(out, Due{p, at.flip})
+	}
+	slices.SortFunc(out, func(a, b Due) int { return comparePos(a.Pos, b.Pos) })
+	return out
+}
+
+// Transmitters lists the loaded transmitters in a stable order; whenever one changes, comes or
+// goes, every receiver is rechecked on the next tick.
+func (w *World) Transmitters() []Pos {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return sortedPos(w.radios.transmitters)
 }
 
 // Ticking lists the loaded blocks the server steps, in a stable order.
 func (w *World) Ticking() []Pos {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	out := make([]Pos, 0, len(w.ticking))
-	for p := range w.ticking {
+	return sortedPos(w.ticking)
+}
+
+func sortedPos(set map[Pos]struct{}) []Pos {
+	out := make([]Pos, 0, len(set))
+	for p := range set {
 		out = append(out, p)
 	}
-	slices.SortFunc(out, func(a, b Pos) int {
-		return cmp.Or(cmp.Compare(a.X, b.X), cmp.Compare(a.Y, b.Y), cmp.Compare(a.Z, b.Z))
-	})
+	slices.SortFunc(out, comparePos)
 	return out
+}
+
+func comparePos(a, b Pos) int {
+	return cmp.Or(cmp.Compare(a.X, b.X), cmp.Compare(a.Y, b.Y), cmp.Compare(a.Z, b.Z))
 }
 
 // Block returns the block at world coordinates.
@@ -231,12 +317,16 @@ func (w *World) SetBlock(x, y, z int32, b Block) error {
 	if err != nil {
 		return err
 	}
+	was := c.Get(lx, ly, lz)
 	c.Set(lx, ly, lz, b)
 	w.dirty[p] = struct{}{}
 	if Info(b).Ticks {
 		w.ticking[Pos{x, y, z}] = struct{}{}
 	} else {
 		delete(w.ticking, Pos{x, y, z})
+	}
+	if was != b {
+		w.noteRadio(Pos{x, y, z}, b)
 	}
 	return nil
 }
@@ -292,6 +382,8 @@ func (w *World) Unload() error {
 	}
 	w.chunks = map[ChunkPos]*Chunk{}
 	clear(w.ticking)
+	clear(w.due)
+	w.radios = newRadios()
 	return nil
 }
 
@@ -310,18 +402,26 @@ func (w *World) Evict(keep func(ChunkPos) bool) (int, error) {
 		}
 	}
 	if dropped > 0 {
-		w.forgetTicking()
+		forgetUnloaded(w.chunks, w.ticking)
+		forgetUnloaded(w.chunks, w.due)
+		forgetUnloaded(w.chunks, w.radios.receivers)
+		if forgetUnloaded(w.chunks, w.radios.transmitters) > 0 {
+			w.recheckReceivers()
+		}
 	}
 	return dropped, nil
 }
 
-// forgetTicking drops ticking blocks whose chunks are no longer loaded.
-func (w *World) forgetTicking() {
-	for p := range w.ticking {
-		if c, _, _, _ := ChunkOf(p.X, p.Y, p.Z); w.chunks[c] == nil {
-			delete(w.ticking, p)
+// forgetUnloaded drops the positions in set whose chunks are no longer loaded, returning how many.
+func forgetUnloaded[V any](chunks map[ChunkPos]*Chunk, set map[Pos]V) int {
+	n := 0
+	for p := range set {
+		if c, _, _, _ := ChunkOf(p.X, p.Y, p.Z); chunks[c] == nil {
+			delete(set, p)
+			n++
 		}
 	}
+	return n
 }
 
 // Loaded returns the number of chunks in memory.

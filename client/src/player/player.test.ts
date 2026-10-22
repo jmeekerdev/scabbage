@@ -67,4 +67,16 @@ describe("Player", () => {
     p.toggleFly();
     expect(p.body.flying).toBe(true);
   });
+
+  it("is thrown by a launch pad it stands on, and stopped when placed", () => {
+    const p = new Player();
+    p.place(0.5, 10, 0.5);
+    p.update(1 / 60, walk, floor); // lands on the ground
+    const padAt = (x: number, y: number, z: number) =>
+      x === 0 && y === 10 && z <= 0 ? { x: 0, y: 30, z: 0 } : undefined;
+    p.update(0.2, walk, floor, padAt);
+    expect(p.body.y).toBeGreaterThan(12);
+    p.place(5.5, 10, 5.5);
+    expect([p.body.vx, p.body.vy, p.body.vz]).toEqual([0, 0, 0]);
+  });
 });

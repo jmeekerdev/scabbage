@@ -1,6 +1,7 @@
 import { CHUNK_SIZE as S } from "./constants";
 import { SHAPE_BOXES, Shape, type Box } from "./shapes";
 import { Smooth, SoftCorners } from "./soft-corners";
+import { wireBoxes, Wiring } from "./wire";
 
 /** Mesh positions and uvs count eighths of a block, so shapes like slabs land on whole numbers. */
 export const POSITION_SCALE = 8;
@@ -32,6 +33,7 @@ export interface RenderTable {
   shape: Uint8Array; // a Shape; anything but a cube is drawn box by box
   light: Uint8Array; // how brightly it glows
   smooth: Uint8Array; // a Smooth kind, for soft corners
+  wiring?: Uint8Array; // Wiring flags: how each block meets drawn wire
 }
 
 /** Extra mesh data a look asks for; see Look.shape. */
@@ -132,7 +134,7 @@ function meshShapes(vol: Volume, out: MeshBuilder): void {
         const shape = table.shape[block] ?? Shape.CUBE;
         if (block === 0 || shape === Shape.CUBE) continue;
         const l = lightAt(vol, x, y, z) * ALL_CORNERS; // the same level at all four corners
-        for (const box of SHAPE_BOXES[shape] ?? []) {
+        for (const box of boxesAt(vol, block, shape, x, y, z)) {
           for (let face = 0; face < 6; face++) {
             if (hiddenByNeighbor(vol, box, face, x, y, z)) continue;
             emitBoxFace(out, box, face, [x, y, z], table.layers[block * 6 + face], l);
@@ -141,6 +143,13 @@ function meshShapes(vol: Volume, out: MeshBuilder): void {
       }
     }
   }
+}
+
+/** The boxes a block is drawn as: wire is joined to its neighbours, the rest by shape. */
+function boxesAt(vol: Volume, block: number, shape: number, x: number, y: number, z: number) {
+  const wiring = vol.table.wiring;
+  if (!wiring || !(wiring[block] & Wiring.WIRE)) return SHAPE_BOXES[shape] ?? [];
+  return wireBoxes((dx, dy, dz) => wiring[vol.blocks[paddedIndex(x + dx, y + dy, z + dz)]] ?? 0);
 }
 
 function hiddenByNeighbor(vol: Volume, box: Box, face: number, x: number, y: number, z: number) {

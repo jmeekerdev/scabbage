@@ -88,7 +88,13 @@ function compassFacing(yaw: number): number {
  * Picks the one that pushes where the player looks.
  */
 export function pistonFacing(northId: number, yaw: number, pitch: number): number {
-  const steep = Math.PI / 4;
-  const facing = pitch > steep ? 4 : pitch < -steep ? 5 : compassFacing(yaw);
+  const facing = pitch > STEEP ? 4 : pitch < -STEEP ? 5 : compassFacing(yaw);
   return northId + 2 * facing;
 }
+
+/** Launch pads face north, east, south, west or up; one looked at steeply throws up. */
+export function padFacing(northId: number, yaw: number, pitch: number): number {
+  return northId + 2 * (Math.abs(pitch) > STEEP ? 4 : compassFacing(yaw));
+}
+
+const STEEP = Math.PI / 4;

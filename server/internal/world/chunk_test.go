@@ -131,3 +131,12 @@ func TestEncodeGoldenFile(t *testing.T) {
 		t.Fatalf("encoding changed (run with -update and bump encodingVersion): %v", err)
 	}
 }
+
+func TestEncodeKeepsSecondRangeIDs(t *testing.T) {
+	c := NewChunk(SecondBuiltin + 300)
+	c.Set(1, 2, 3, Stone)
+	got, err := Decode(Encode(c))
+	if err != nil || got.Get(0, 0, 0) != SecondBuiltin+300 || got.Get(1, 2, 3) != Stone {
+		t.Fatalf("decoded %v, err %v", got.Get(0, 0, 0), err)
+	}
+}

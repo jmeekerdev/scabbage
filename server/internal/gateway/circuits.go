@@ -3,12 +3,14 @@ package gateway
 import (
 	"context"
 	"math"
+	"slices"
 	"time"
 
 	"scabbage/internal/edit"
 	"scabbage/internal/logic"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/weather"
 	"scabbage/internal/world"
 )
 
@@ -19,9 +21,14 @@ const buttonPress = time.Second
 type circuits struct {
 	letGo   map[logic.Pos]time.Time // pressed buttons and when they pop back up
 	pressed map[logic.Pos]bool      // plates someone stands on
+	crossed map[logic.Pos]bool      // tripwires someone is inside
 	held    map[logic.Pos]bool      // doors kept open for someone inside, to close once they leave
-	beat    int64                   // the second timers last changed on
+	beat    int64                   // the quarter second timers last changed on
+	sensed  time.Time               // when sensors last looked around
 }
+
+// senseEvery is how often sensors look around.
+const senseEvery = time.Second / 4
 
 // useBlock presses a usable block, or tells the sender what is really there.
 func (s *session) useBlock(ctx context.Context, m *pb.UseBlock) error {
@@ -81,6 +88,20 @@ func (w circuitWorld) Occupied(p logic.Pos) bool {
 	return in
 }
 
+// Schedule asks for the block at p to be stepped after `after`, rounded to whole ticks.
+func (w circuitWorld) Schedule(p logic.Pos, after time.Duration, flip bool) {
+	ticks := int(math.Round(after.Seconds() * float64(w.g.cfg.Hub.TickRate())))
+	w.g.cfg.World.Schedule(world.Pos(p), ticks, flip)
+}
+
+func (w circuitWorld) Transmitters() []logic.Pos {
+	var out []logic.Pos
+	for _, p := range w.g.cfg.World.Transmitters() {
+		out = append(out, logic.Pos(p))
+	}
+	return out
+}
+
 func (w circuitWorld) CanPush(piston, at logic.Pos) bool {
 	from, inFrom := w.g.cfg.Zones.At(piston.X, piston.Z)
 	to, inTo := w.g.cfg.Zones.At(at.X, at.Z)
@@ -108,9 +129,10 @@ func (g *Gateway) powerLocked(p logic.Pos) error {
 	return err
 }
 
-// stepCircuits lets go of buttons whose time is up, beats timers, runs scripts' timers and presses the plates players stand on.
+// stepCircuits lets go of buttons whose time is up, switches directed blocks, beats timers, lets
+// sensors look around, runs scripts' timers, trips tripwires and presses the plates players stand on.
 func (g *Gateway) stepCircuits(now time.Time) error {
-	feet := g.bodies()
+	feet, creatures := g.bodies(), g.creatures()
 	g.editMu.Lock()
 	defer g.editMu.Unlock()
 	for p, at := range g.circuits.letGo {
@@ -122,7 +144,13 @@ func (g *Gateway) stepCircuits(now time.Time) error {
 			return err
 		}
 	}
+	if err := g.switchDueLocked(); err != nil {
+		return err
+	}
 	if err := g.beatLocked(now); err != nil {
+		return err
+	}
+	if err := g.senseLocked(now, feet, creatures); err != nil {
 		return err
 	}
 	g.reportScriptsLocked(g.scripts.RunTimers(now), nil)
@@ -130,12 +158,41 @@ func (g *Gateway) stepCircuits(now time.Time) error {
 	if err := g.releaseDoorsLocked(feet); err != nil {
 		return err
 	}
+	if err := g.crossTripwiresLocked(slices.Concat(feet, creatures)); err != nil {
+		return err
+	}
 	return g.pressPlatesLocked(feet)
 }
 
-// beatLocked turns every loaded timer on for one second and off for the next.
+// switchDueLocked makes the switches directed blocks and receivers asked for by now.
+func (g *Gateway) switchDueLocked() error {
+	due := g.cfg.World.TakeScheduled()
+	if len(due) == 0 {
+		return nil
+	}
+	at := make([]logic.Due, len(due))
+	for i, d := range due {
+		at[i] = logic.Due{Pos: logic.Pos(d.Pos), Flip: d.Flip}
+	}
+	changes, err := logic.Step(circuitWorld{g}, at)
+	g.broadcastChanges(changes)
+	return err
+}
+
+// creatures is where every mob stands.
+func (g *Gateway) creatures() []motion.Vec {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	var out []motion.Vec
+	for _, m := range g.cfg.Mobs.All() {
+		out = append(out, m.Pos)
+	}
+	return out
+}
+
+// beatLocked turns every loaded timer on or off for this quarter second.
 func (g *Gateway) beatLocked(now time.Time) error {
-	beat := now.Unix()
+	beat := now.UnixMilli() / 250
 	if beat == g.circuits.beat {
 		return nil
 	}
@@ -144,9 +201,33 @@ func (g *Gateway) beatLocked(now time.Time) error {
 	for _, p := range g.cfg.World.Ticking() {
 		timers = append(timers, logic.Pos(p))
 	}
-	changes, err := logic.Beat(circuitWorld{g}, timers, beat%2 == 0)
+	changes, err := logic.Beat(circuitWorld{g}, timers, beat)
 	g.broadcastChanges(changes)
 	return err
+}
+
+// senseLocked lets every loaded sensor look around for players, creatures, blocks, the time or weather.
+func (g *Gateway) senseLocked(now time.Time, feet, creatures []motion.Vec) error {
+	if now.Sub(g.circuits.sensed) < senseEvery {
+		return nil
+	}
+	g.circuits.sensed = now
+	var at []logic.Pos
+	for _, p := range g.cfg.World.Ticking() {
+		at = append(at, logic.Pos(p))
+	}
+	senses := logic.Senses{Players: spots(feet), Creatures: spots(creatures), Now: now, Wet: weather.At(now).Wet()}
+	changes, err := logic.Sense(circuitWorld{g}, at, senses)
+	g.broadcastChanges(changes)
+	return err
+}
+
+func spots(vs []motion.Vec) []logic.Spot {
+	out := make([]logic.Spot, len(vs))
+	for i, v := range vs {
+		out[i] = logic.Spot(v)
+	}
+	return out
 }
 
 // releaseDoorsLocked lets held doors follow their power again once nobody is inside.
@@ -167,28 +248,69 @@ func (g *Gateway) releaseDoorsLocked(feet []motion.Vec) error {
 func (g *Gateway) pressPlatesLocked(feet []motion.Vec) error {
 	var now map[logic.Pos]bool
 	for _, f := range feet {
-		p := blockAt(f)
-		if b, err := g.cfg.World.Block(p.X, p.Y, p.Z); err == nil && b.Item() == world.Plate {
-			if now == nil {
-				now = map[logic.Pos]bool{}
-			}
-			now[p] = true
+		now = g.markIfLocked(now, blockAt(f), world.Plate)
+	}
+	err := g.holdLocked(g.circuits.pressed, now, world.Plate)
+	g.circuits.pressed = now
+	return err
+}
+
+// crossTripwiresLocked turns on tripwires anyone's body is in and off those nobody is in.
+func (g *Gateway) crossTripwiresLocked(bodies []motion.Vec) error {
+	var now map[logic.Pos]bool
+	for _, b := range bodies {
+		for _, p := range cellsOf(b) {
+			now = g.markIfLocked(now, p, world.Tripwire)
 		}
 	}
-	for p := range g.circuits.pressed {
+	err := g.holdLocked(g.circuits.crossed, now, world.Tripwire)
+	g.circuits.crossed = now
+	return err
+}
+
+// markIfLocked adds p to marked if the block there is item, making the map only when needed.
+func (g *Gateway) markIfLocked(marked map[logic.Pos]bool, p logic.Pos, item world.Block) map[logic.Pos]bool {
+	if b, err := g.cfg.World.Block(p.X, p.Y, p.Z); err != nil || b.Item() != item {
+		return marked
+	}
+	if marked == nil {
+		marked = map[logic.Pos]bool{}
+	}
+	marked[p] = true
+	return marked
+}
+
+// holdLocked switches the block `off` and its on state at each of now on, and off at those only in was.
+func (g *Gateway) holdLocked(was, now map[logic.Pos]bool, off world.Block) error {
+	for p := range was {
 		if !now[p] {
-			if err := g.setIfLocked(p, world.Plate+1, world.Plate); err != nil {
+			if err := g.setIfLocked(p, off+1, off); err != nil {
 				return err
 			}
 		}
 	}
 	for p := range now {
-		if err := g.setIfLocked(p, world.Plate, world.Plate+1); err != nil {
+		if err := g.setIfLocked(p, off, off+1); err != nil {
 			return err
 		}
 	}
-	g.circuits.pressed = now
 	return nil
+}
+
+// cellsOf is every block a body standing at feet is partly inside.
+func cellsOf(feet motion.Vec) []logic.Pos {
+	const inside = 1e-6
+	lo := blockAt(motion.Vec{X: feet.X - motion.HalfWidth, Y: feet.Y, Z: feet.Z - motion.HalfWidth})
+	hi := blockAt(motion.Vec{X: feet.X + motion.HalfWidth - inside, Y: feet.Y + motion.Height - inside, Z: feet.Z + motion.HalfWidth - inside})
+	var out []logic.Pos
+	for x := lo.X; x <= hi.X; x++ {
+		for y := lo.Y; y <= hi.Y; y++ {
+			for z := lo.Z; z <= hi.Z; z++ {
+				out = append(out, logic.Pos{X: x, Y: y, Z: z})
+			}
+		}
+	}
+	return out
 }
 
 func blockAt(v motion.Vec) logic.Pos {

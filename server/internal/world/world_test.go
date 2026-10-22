@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 
@@ -354,5 +355,135 @@ func TestEvictSavesAndDropsChunksNotKept(t *testing.T) {
 	}
 	if b, _ := w.Block(fx, 40, fx); b != Timer {
 		t.Fatalf("dropped chunk lost its change: %v", b)
+	}
+}
+
+func TestScheduledSwitchesComeOutOnceInOrder(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	for _, p := range []Pos{{2, 50, 1}, {1, 50, 1}, {2, 50, 1}} {
+		w.Schedule(p, 1, false)
+	}
+	if got := w.TakeScheduled(); !slices.Equal(got, []Due{{Pos: Pos{1, 50, 1}}, {Pos: Pos{2, 50, 1}}}) {
+		t.Fatalf("scheduled = %v", got)
+	}
+	if got := w.TakeScheduled(); len(got) != 0 {
+		t.Fatalf("taken twice: %v", got)
+	}
+}
+
+func TestScheduledSwitchesWaitTheirTicks(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	w.Schedule(Pos{1, 50, 1}, 3, true)
+	w.Schedule(Pos{1, 50, 1}, 1, false) // already waiting, so it keeps its wait
+	for range 2 {
+		if got := w.TakeScheduled(); len(got) != 0 {
+			t.Fatalf("came out early: %v", got)
+		}
+	}
+	if got := w.TakeScheduled(); !slices.Equal(got, []Due{{Pos: Pos{1, 50, 1}, Flip: true}}) {
+		t.Fatalf("scheduled = %v", got)
+	}
+}
+
+func TestALongerJudgedWaitRestartsAShorterOne(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	w.Schedule(Pos{1, 50, 1}, 2, false)
+	w.TakeScheduled()
+	w.Schedule(Pos{1, 50, 1}, 3, false) // a capacitor's input stopping again
+	for range 2 {
+		if got := w.TakeScheduled(); len(got) != 0 {
+			t.Fatalf("came out early: %v", got)
+		}
+	}
+	if got := w.TakeScheduled(); len(got) != 1 {
+		t.Fatalf("scheduled = %v", got)
+	}
+}
+
+func TestChangingATransmitterRechecksEveryReceiver(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	mustSet(t, w, 1, 50, 1, Receiver)
+	mustSet(t, w, 3, 50, 1, Receiver+2)
+	if got := w.TakeScheduled(); len(got) != 0 {
+		t.Fatalf("placing receivers scheduled %v", got)
+	}
+	mustSet(t, w, 2, 50, 1, Transmitter+1)
+	want := []Due{{Pos: Pos{1, 50, 1}}, {Pos: Pos{3, 50, 1}}}
+	if got := w.TakeScheduled(); !slices.Equal(got, want) {
+		t.Fatalf("after placing a transmitter: %v", got)
+	}
+	if got := w.Transmitters(); !slices.Equal(got, []Pos{{2, 50, 1}}) {
+		t.Fatalf("transmitters = %v", got)
+	}
+	mustSet(t, w, 2, 50, 1, Air)
+	if got := w.TakeScheduled(); !slices.Equal(got, want) || len(w.Transmitters()) != 0 {
+		t.Fatalf("after breaking it: %v, %v", got, w.Transmitters())
+	}
+}
+
+func TestLoadingAChunkRechecksItsReceivers(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	mustSet(t, w, 1, 50, 1, Receiver)
+	mustSet(t, w, 2, 50, 1, Transmitter)
+	w.TakeScheduled()
+	if err := w.Unload(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Block(1, 50, 1); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.TakeScheduled(); !slices.Equal(got, []Due{{Pos: Pos{1, 50, 1}}}) {
+		t.Fatalf("scheduled after load = %v", got)
+	}
+	if got := w.Transmitters(); !slices.Equal(got, []Pos{{2, 50, 1}}) {
+		t.Fatalf("transmitters after load = %v", got)
+	}
+}
+
+func TestDroppingATransmitterRechecksTheReceiversLeft(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	const fx = -1 - Size // in chunk -2,1,-2
+	mustSet(t, w, 1, 50, 1, Receiver)
+	mustSet(t, w, fx, 40, fx, Transmitter+1)
+	w.TakeScheduled()
+	far := ChunkPos{X: -2, Y: 1, Z: -2}
+	if _, err := w.Evict(func(p ChunkPos) bool { return p != far }); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.TakeScheduled(); !slices.Equal(got, []Due{{Pos: Pos{1, 50, 1}}}) || len(w.Transmitters()) != 0 {
+		t.Fatalf("after dropping: %v, %v", got, w.Transmitters())
+	}
+}
+
+func TestLoadingAChunkRechecksItsDirectedBlocks(t *testing.T) {
+	db := openDB(t)
+	w := openWorld(t, db)
+	if err := w.SetBlock(1, 50, 1, Diode+1); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Unload(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Block(1, 50, 1); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.TakeScheduled(); !slices.Equal(got, []Due{{Pos: Pos{1, 50, 1}}}) {
+		t.Fatalf("scheduled after load = %v", got)
+	}
+}
+
+func TestDroppedChunksForgetTheirScheduledSwitches(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	const fx = -1 - Size // in chunk -2,1,-2
+	if _, err := w.Block(fx, 40, fx); err != nil {
+		t.Fatal(err)
+	}
+	w.Schedule(Pos{fx, 40, fx}, 1, false)
+	far := ChunkPos{X: -2, Y: 1, Z: -2}
+	if _, err := w.Evict(func(p ChunkPos) bool { return p != far }); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.TakeScheduled(); len(got) != 0 {
+		t.Fatalf("scheduled in a dropped chunk: %v", got)
 	}
 }

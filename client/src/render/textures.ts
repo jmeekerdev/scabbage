@@ -1,4 +1,5 @@
 /** Procedural 16×16 pixel-art block textures: no image files to download. */
+import { DEVICE_PAINTERS } from "./device-textures";
 import { MACHINE_PAINTERS } from "./machine-textures";
 import { TREASURE_PAINTERS } from "./treasure-textures";
 
@@ -185,7 +186,24 @@ const PAINTERS: Record<string, Painter> = {
   ...Object.fromEntries(WOOL.map(([name, rgb]) => [`${name}_wool`, wool(rgb)])),
   ...MACHINE_PAINTERS,
   ...TREASURE_PAINTERS,
+  ...DEVICE_PAINTERS,
 };
+
+/** Materials that come as cables, which carry power like wire; see BLOCK_STYLES. */
+export const CABLE_MATERIALS = ["stone", "cobblestone", "planks", "brick", "dirt"];
+
+/** A cable is its material crossed by a thin line of wire, brighter when powered. */
+const cable =
+  (material: Painter, rgb: RGB): Painter =>
+  (x, y, n) =>
+    Math.abs(x - 7.5) < 1 || Math.abs(y - 7.5) < 1
+      ? shade(rgb, 0.9 + n() * 0.2)
+      : material(x, y, n);
+
+for (const m of CABLE_MATERIALS) {
+  PAINTERS[`${m}_cable`] = cable(PAINTERS[m], [110, 20, 20]);
+  PAINTERS[`${m}_cable_on`] = cable(PAINTERS[m], [255, 50, 40]);
+}
 
 export const TEXTURE_NAMES = Object.keys(PAINTERS);
 

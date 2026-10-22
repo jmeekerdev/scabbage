@@ -70,11 +70,14 @@ import { combineIntents, type BuildActions } from "./player/input";
 import { KeyboardMouse } from "./player/keyboard-mouse";
 import { MoveSync, type Pose } from "./player/move-sync";
 import type { BoxesAt } from "./player/physics";
-import { Player } from "./player/player";
+import { Player, type PadAt } from "./player/player";
+import { launchPads } from "./player/launch-pads";
 import { pickPlayer, RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
 import { ArenaMarks } from "./render/arena-marks";
 import { Drops } from "./render/drops";
+import { Precipitation, sheltered } from "./render/precipitation";
+import { weatherAt } from "./render/weather";
 import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
 import { TEXTURE_NAMES } from "./render/textures";
@@ -202,6 +205,7 @@ const footsteps = new Footsteps();
 const health = new HealthView($("#health"), $("#hurt"), $("#faint"));
 const scoreboard = new ScoreboardView($("#scoreboard"));
 const drops = new Drops(gameScene.scene);
+const precipitation = new Precipitation(gameScene.scene, settings.preset);
 const scriptEditor = new ScriptEditor(
   (at, source) => conn?.send(encodeSaveScript(at, source)),
   () =>
@@ -219,6 +223,7 @@ let moves: MoveSync | undefined; // set while in the world
 let others: RemotePlayers | undefined; // set while in the world
 let mobs: Mobs | undefined; // set while in the world
 let solid: BoxesAt = () => FULL_BLOCK;
+let padAt: PadAt = () => undefined;
 let building: BuildWorld | undefined;
 let notes = noteTable([]);
 let bounds: WorldBounds | undefined; // set while in the world
@@ -231,7 +236,7 @@ gameScene.onFrame((timeMs) => {
   const intent = combineIntents(
     [keyboardMouse, gamepad, touchControls].flatMap((c) => c?.poll(timeMs) ?? []),
   );
-  player.update(dt, intent.move, solid);
+  player.update(dt, intent.move, solid, padAt);
   if (moves && footsteps.update(player.body)) audio.play("step");
   if (moves) greetZone();
   const eye = player.eye();
@@ -244,6 +249,8 @@ gameScene.onFrame((timeMs) => {
   showCoords(moves ? coordsText(player.body, player.look.yaw) : "");
   build(intent.build, intent.move.descend, [eye.x, eye.y, eye.z], dt, near);
   drops.update(timeMs);
+  const indoors = !moves || sheltered((x, y, z) => world.blockAt(x, y, z), eye);
+  precipitation.update(Date.now(), eye, weatherAt(Date.now()), indoors);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
   avatars.update(others?.sample(performance.now()) ?? [], performance.now());
@@ -471,6 +478,8 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   const boxesById: (readonly Box[])[] = [];
   for (const b of blocks) boxesById[b.id] = collisionBoxes(b.shape, b.solid);
   solid = solidQuery(bounds, boxesById, blockAt);
+  const pads = launchPads(blocks);
+  padAt = (x, y, z) => pads.get(blockAt(x, y, z) ?? 0);
   building = buildWorldFor({ ...bounds, blocks }, blockAt);
   notes = noteTable(blocks);
   scriptBlocks = new Set(blocks.filter((b) => b.name.startsWith("script_block")).map((b) => b.id));
@@ -793,6 +802,7 @@ function changeSettings(s: Settings): void {
   settings = s;
   saveSettings(store, s);
   gameScene.apply(s);
+  precipitation.setPreset(s.preset);
   showLook(lookById(s.look));
   audio.set(s.sound, s.music);
 }

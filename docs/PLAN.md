@@ -414,6 +414,69 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       frame like old glass); Dusk Pastel lightens from the sea to the high hills; Dusk Pastel and Felt have their vignettes back, at no pass's cost, since
       a lone vignette is multiplied over the finished frame instead of copying it
 
+### Phase 10 — More wire devices
+- [x] Room for more blocks: built-in IDs below 256 are nearly used up (110 left), so new built-ins
+      go in a second range from 4096 up, leaving 256–4095 for painted blocks. Chunk storage, the
+      wire format and the client's render tables are tested with IDs past 4096
+- [x] Directed, delayed power: devices that face a way take input at the back (and sides) and give
+      power out the front. Each of them switches on the tick after its input changes, never inside
+      the same update, so a loop through an inverter becomes a clock instead of a hang. The server
+      keeps a queue of scheduled switches for loaded chunks; like timers' ticking index it is
+      rebuilt when a chunk loads, by rechecking every directed block in it, so nothing extra is
+      saved. Each tick judges every due switch by the power before any of them. The diode
+      (back to front only) is the first such device, placed facing where the player looks
+- [x] Wires go anywhere: wire climbs one-block steps up and down (unless a block sits over the
+      lower wire), runs up walls, and is drawn joined to its neighbours: arms on the floor, strips
+      up steps and walls, a post when hanging free. Cable blocks (stone, cobblestone, planks, brick,
+      dirt) conduct like wire and show a thin line of it, so circuits can hide in floors and walls
+- [x] Gate: one item; tapping cycles AND → OR → XOR → NAND → NOR → NOT, its sides show the mode
+      in letters and its front a light. Inputs at the back and the flat sides, output at the front;
+      only inputs with wire, a switch or a device facing in count, so a two-input AND works. XOR
+      means exactly one on. NOT reads only its back and is the inverter: looped into itself it ticks
+- [x] Relays: a delay passes power back to front like a diode, after 0.25–2 s set by tapping
+      (pips on its sides); once a change reaches it, it passes it on after its wait whatever
+      follows, so short pulses are stretched to its delay instead of lost. A controlled relay
+      passes power back to front only while a flat side is on. Wireless transmitters power every
+      loaded receiver on the same channel (16 colours, set by tapping) on the next tick; the world
+      keeps an index of loaded transmitters and rechecks receivers when one changes, loads or goes
+- [x] Memory: a toggle flips on or off each time power arrives (or when tapped), counting only
+      power from elsewhere so its own output looping back can't flip it; its rocker's top glows
+      while it gives power. A capacitor is directed: it switches on the tick after its back is
+      powered and keeps giving power for 1–10 s (blue pips, set by tapping) after its input last
+      stopped; each stop restarts the wait
+- [x] Sensors: a player detector and a creature detector give power while someone is within four
+      metres; a clock sensor gives power in its part of the day (day, night, dawn, dusk, noon or
+      midnight, set by tapping, shown as a window on the sky); a block detector faces a way and gives
+      power to every side while anything but air or water is in front of its eye. Sensors join the
+      ticking index and look around four times a second
+- [x] Weather: clear, rain, snow (high up and in cold places) and storms, the same for everyone and
+      changing every few minutes; darker skies, falling rain and snow drawn in every look, cheap
+      enough for the low preset. A weather sensor gives power while it rains or snows. Like the
+      day, the weather comes from the wall clock (server/internal/weather, mirrored by
+      render/weather.ts), in four-minute spells that fade over 20 s, so nothing is sent or saved.
+      Snow falls above 56 m, as there are no climates yet; storms add wind and shared lightning.
+      Drops are one line or point mesh around the camera, fewer on low, hidden under any roof
+- [x] New powered devices: a sticky piston that pulls its block back when power stops; trapdoors
+      and fence gates that open by hand or power and never close on anyone; a launch pad that
+      bounces players up, or along its facing, while powered; a number display showing the count
+      of the counter beside it, or counting its own pulses. Doors open as a column, trapdoors as
+      the floor of trapdoors beside them and fence gates with every gate joined to them, up to 256
+      blocks. Launch pads face the way the player looks, or up when placed looking down; the
+      client throws players standing on a powered one (about 6 m along or 2.8 m up, under the
+      fall-damage height and the server's speed limits) and carries that momentum until landing.
+      Number displays glow, count up when tapped, and wrap from 9 to 0
+- [x] More switches: a tripwire that gives power while crossed, and timers with settable speeds
+      (0.25–4 s, by tapping). Tapping a timer steps it 0.25 → 0.5 → 1 → 2 → 4 s and back, keeping
+      the first timer as the 1 s one; its face is red when fastest, through yellow, to blue. Timers
+      beat by the wall clock in quarter seconds, so all timers of a speed stay in step. A tripwire
+      is a thin string on the floor that players walk through; it gives power while any player's
+      or creature's body is inside it, checked every server tick like pressure plates
+- [x] Deterministic tests: the seeded random circuits gain every new device; they must still change
+      the same way every run, and feedback loops must tick as clocks without stalling the server.
+      Random circuits pick each kind of device evenly whatever its number of states, then run 40–80
+      ticks with timers beating, sensors looking and switches due, the same tick by tick each run;
+      a not-gate clock planted beside them keeps flipping every tick and no tick grows unbounded
+
 ## Open questions
 
 1. **Public access:** how will family outside the house reach the server: a port forward to

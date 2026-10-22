@@ -5,6 +5,7 @@ package logic
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"scabbage/internal/world"
 )
@@ -32,6 +33,18 @@ type World interface {
 	SetBlock(x, y, z int32, b world.Block) error
 	CanPush(piston, at Pos) bool // whether a piston may move the block at `at`, e.g. outside zones
 	Occupied(p Pos) bool         // whether someone stands in p, so a door there mustn't close
+	// Schedule asks for the block at p to be stepped after a wait, at least till the next tick,
+	// or flipped then if flip is set; a block already waiting keeps its wait, unless a longer
+	// judged one is asked.
+	Schedule(p Pos, after time.Duration, flip bool)
+	// Transmitters lists the loaded transmitters; whenever one changes, every receiver is stepped.
+	Transmitters() []Pos
+}
+
+// Due is a block whose wait is over; Flip means it switches whatever its input is by now.
+type Due struct {
+	Pos
+	Flip bool
 }
 
 // Change is a block a circuit update switched on or off.
@@ -47,19 +60,42 @@ var pushes = [6]Pos{{Z: -1}, {X: 1}, {Z: 1}, {X: -1}, {Y: 1}, {Y: -1}}
 
 func add(p, d Pos) Pos { return Pos{X: p.X + d.X, Y: p.Y + d.Y, Z: p.Z + d.Z} }
 
-func isWire(b world.Block) bool { return b.Item() == world.Wire }
-func isOn(b world.Block) bool   { return world.Info(b).Powered }
-func state(b world.Block) int   { return int(world.Info(b).Variant / 2) }
+func isWire(b world.Block) bool     { return world.Info(b).Conducts }
+func isDirected(b world.Block) bool { return world.Info(b).Directed }
+func isOn(b world.Block) bool       { return world.Info(b).Powered }
+func state(b world.Block) int       { return int(world.Info(b).Variant / 2) }
+func facing(b world.Block) int      { return state(b) % len(pushes) }
 
 // isSource reports whether b sends power into the wire and machines beside it.
 func isSource(b world.Block) bool {
 	switch b.Item() {
-	case world.Switch, world.Button, world.Plate, world.Timer:
+	case world.Switch, world.Button, world.Plate, world.Timer, world.Timers, world.Tripwire, world.Receiver,
+		world.PlayerDetector, world.CreatureDetector, world.Clock, world.BlockDetector,
+		world.WeatherSensor:
 		return isOn(b)
 	case world.Counter:
 		return countStep(b) >= lastCount
+	case world.Toggle:
+		return state(b) == 1
 	}
 	return false
+}
+
+// front is where the directed block b at p gives its power.
+func front(p Pos, b world.Block) Pos { return add(p, pushes[facing(b)]) }
+
+// back is where the directed block b at p takes its power from.
+func back(p Pos, b world.Block) Pos {
+	d := pushes[facing(b)]
+	return Pos{X: p.X - d.X, Y: p.Y - d.Y, Z: p.Z - d.Z}
+}
+
+// gives reports whether the block b at `at` sends power into `to` beside it.
+func gives(at Pos, b world.Block, to Pos) bool {
+	if isDirected(b) {
+		return isOn(b) && front(at, b) == to
+	}
+	return isSource(b)
 }
 
 // switched is a logic block in its on or off state.
@@ -75,10 +111,14 @@ func switched(b world.Block, on bool) world.Block {
 func Involves(b world.Block) bool {
 	switch b.Item() {
 	case world.Wire, world.Switch, world.Button, world.Plate, world.SignalLamp,
-		world.Door, world.Piston, world.Timer, world.Counter, world.NoteBlock, world.ScriptBlock:
+		world.Door, world.Piston, world.Timer, world.Counter, world.NoteBlock, world.ScriptBlock,
+		world.Transmitter, world.Receiver, world.Toggle,
+		world.PlayerDetector, world.CreatureDetector, world.Clock, world.BlockDetector,
+		world.WeatherSensor, world.StickyPiston, world.Trapdoor, world.FenceGate, world.LaunchPad,
+		world.NumberDisplay, world.Timers, world.Tripwire:
 		return true
 	}
-	return false
+	return isDirected(b) || isWire(b)
 }
 
 // Use presses the block at p by hand: switches flip, buttons press, doors swing,
@@ -99,8 +139,27 @@ func Use(w World, p Pos) ([]Change, bool, error) {
 		next = switched(world.Counter, isOn(b))
 	case world.NoteBlock:
 		next = switched(world.NoteBlock+world.Block(2*((state(b)+1)%notes)), isOn(b))
-	case world.Door:
-		return u.changes, true, u.setDoor(p, !isOn(b))
+	case world.Door, world.Trapdoor, world.FenceGate:
+		return u.changes, true, u.setPanel(p, !isOn(b))
+	case world.NumberDisplay:
+		next = tappedDisplay(b)
+	case world.Timer, world.Timers:
+		next = slowerTimer(b)
+	case world.Toggle:
+		next = toggled(!isSource(b), isOn(b))
+	case world.Gate, world.Delay, world.Capacitor:
+		next = nextSetting(b)
+		if err := u.set(p, b, next); err != nil {
+			return u.changes, true, err
+		}
+		return u.changes, true, u.schedule(p, next)
+	case world.Transmitter:
+		next = nextChannel(b)
+	case world.Clock:
+		next = nextClockMode(b)
+	case world.Receiver:
+		u.w.Schedule(p, 0, false)
+		next = nextChannel(b)
 	default:
 		return nil, false, nil
 	}
@@ -124,21 +183,55 @@ func Set(w World, p Pos, b world.Block) ([]Change, error) {
 	return u.changes, err
 }
 
-// Beat turns the timers at each of `timers` on or off.
-func Beat(w World, timers []Pos, on bool) ([]Change, error) {
+// Beat turns each timer among `timers` on or off for the given quarter second since the epoch.
+func Beat(w World, timers []Pos, quarter int64) ([]Change, error) {
 	var out []Change
 	for _, p := range timers {
 		b, err := w.Block(p.X, p.Y, p.Z)
-		if err != nil || b.Item() != world.Timer {
+		if err != nil {
 			continue
 		}
-		changes, err := Set(w, p, switched(b, on))
+		beats, ok := timerBeats(b)
+		if !ok {
+			continue
+		}
+		changes, err := Set(w, p, switched(b, (quarter/int64(beats))%2 == 0))
 		if err != nil {
 			return out, err
 		}
 		out = append(out, changes...)
 	}
 	return out, nil
+}
+
+// Step makes the switches due this tick, each judged by the power before any of them.
+func Step(w World, due []Due) ([]Change, error) {
+	u := updater{w: w}
+	var flips []Change
+	for _, d := range due {
+		b, err := u.block(d.Pos)
+		if err != nil {
+			return nil, err
+		}
+		flip, err := u.changed(d.Pos, b)
+		if err != nil {
+			return nil, err
+		}
+		if flip || (d.Flip && isDirected(b)) {
+			flips = append(flips, Change{d.Pos, b})
+		}
+	}
+	for _, f := range flips {
+		if err := u.set(f.Pos, f.Block, switched(f.Block, !isOn(f.Block))); err != nil {
+			return u.changes, err
+		}
+	}
+	for _, f := range flips {
+		if _, _, err := u.update(f.Pos); err != nil {
+			return u.changes, err
+		}
+	}
+	return u.changes, nil
 }
 
 // Update re-powers every circuit touching p after the block there changed.
@@ -195,7 +288,10 @@ func (u *updater) set(p Pos, was, now world.Block) error {
 		return nil
 	}
 	u.changes = append(u.changes, Change{p, now})
-	return u.w.SetBlock(p.X, p.Y, p.Z, now)
+	if err := u.w.SetBlock(p.X, p.Y, p.Z, now); err != nil || now.Item() != world.Counter {
+		return err
+	}
+	return u.showOnDisplays(p)
 }
 
 // update re-powers around p, then around each counter that changed, a bounded number of times.
@@ -240,13 +336,9 @@ func (u *updater) circuit(start Pos) ([]Pos, error) {
 	if err != nil || len(wires) == 0 {
 		return nil, err
 	}
-	powered := false
-	for _, at := range near {
-		b, err := u.block(at)
-		if err != nil {
-			return nil, err
-		}
-		powered = powered || isSource(b)
+	powered, err := u.feeds(wires, near, nil)
+	if err != nil {
+		return nil, err
 	}
 	for _, c := range wires {
 		if err := u.set(c.Pos, c.Block, switched(c.Block, powered)); err != nil {
@@ -254,6 +346,28 @@ func (u *updater) circuit(start Pos) ([]Pos, error) {
 		}
 	}
 	return near, nil
+}
+
+// feeds reports whether a block in near, other than skip, gives power into any of wires.
+func (u *updater) feeds(wires []Change, near []Pos, skip *Pos) (bool, error) {
+	for _, at := range near {
+		if skip != nil && at == *skip {
+			continue
+		}
+		b, err := u.block(at)
+		if err != nil {
+			return false, err
+		}
+		if isDirected(b) {
+			f := front(at, b)
+			if isOn(b) && slices.ContainsFunc(wires, func(c Change) bool { return c.Pos == f }) {
+				return true, nil
+			}
+		} else if isSource(b) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // wiresFrom walks the wire joined to start, returning it and the blocks next to it.
@@ -282,28 +396,80 @@ func (u *updater) wiresFrom(start Pos) ([]Change, []Pos, error) {
 		for _, d := range sides {
 			queue = append(queue, add(at, d))
 		}
+		steps, err := u.steps(at, b)
+		if err != nil {
+			return nil, nil, err
+		}
+		queue = append(queue, steps...)
 	}
 	return wires, near, nil
+}
+
+// steps are the wires joined to the wire b at p one block up or down a step.
+func (u *updater) steps(p Pos, b world.Block) ([]Pos, error) {
+	if b.Item() != world.Wire {
+		return nil, nil
+	}
+	var out []Pos
+	for _, d := range pushes[:4] {
+		for _, dy := range []int32{1, -1} {
+			to := add(add(p, d), Pos{Y: dy})
+			joined, err := u.stepJoins(p, to)
+			if err != nil {
+				return nil, err
+			}
+			if joined {
+				out = append(out, to)
+			}
+		}
+	}
+	return out, nil
+}
+
+// stepJoins reports whether wire at `to`, a step above or below the wire at p, joins it:
+// the block over the lower of the two must leave room for the wire to bend.
+func (u *updater) stepJoins(p, to Pos) (bool, error) {
+	b, err := u.block(to)
+	if err != nil || b.Item() != world.Wire {
+		return false, err
+	}
+	lower := p
+	if to.Y < p.Y {
+		lower = to
+	}
+	over, err := u.block(add(lower, Pos{Y: 1}))
+	return err == nil && !world.Info(over).Solid, err
 }
 
 // powered reports whether a source or powered wire is beside p.
 func (u *updater) powered(p Pos) (bool, error) {
 	for _, d := range sides {
-		n, err := u.block(add(p, d))
-		if err != nil {
-			return false, err
-		}
-		if isSource(n) || n == world.Wire+1 {
-			return true, nil
+		if on, err := u.givesInto(add(p, d), p); err != nil || on {
+			return on, err
 		}
 	}
 	return false, nil
 }
 
+// givesInto reports whether powered wire or a source at `from` sends power into `to` beside it.
+func (u *updater) givesInto(from, to Pos) (bool, error) {
+	b, err := u.block(from)
+	return err == nil && ((isWire(b) && isOn(b)) || gives(from, b, to)), err
+}
+
 // input reports whether the machine b at p has power coming in.
 func (u *updater) input(p Pos, b world.Block) (bool, error) {
-	if b.Item() == world.Counter {
+	switch {
+	case b.Item() == world.Counter || b.Item() == world.Toggle:
 		return u.fedFromElsewhere(p)
+	case b.Item() == world.Gate:
+		return u.gateInput(p, b)
+	case b.Item() == world.Relay:
+		return u.relayInput(p, b)
+	case b.Item() == world.Receiver:
+		return u.channelOn(state(b))
+	case isDirected(b):
+		return u.givesInto(back(p, b), p)
 	}
 	return u.powered(p)
 }
@@ -316,17 +482,15 @@ func (u *updater) fedFromElsewhere(p Pos) (bool, error) {
 	u.seen = map[Pos]bool{}
 	for _, d := range sides {
 		n, err := u.block(add(p, d))
-		if err != nil || isSource(n) {
+		if err != nil || gives(add(p, d), n, p) {
 			return err == nil, err
 		}
-		_, near, err := u.wiresFrom(add(p, d))
+		wires, near, err := u.wiresFrom(add(p, d))
 		if err != nil {
 			return false, err
 		}
-		for _, at := range near {
-			if b, err := u.block(at); err != nil || (at != p && isSource(b)) {
-				return err == nil, err
-			}
+		if fed, err := u.feeds(wires, near, &p); err != nil || fed {
+			return fed, err
 		}
 	}
 	return false, nil
@@ -338,14 +502,20 @@ func (u *updater) run(p Pos) error {
 	if err != nil {
 		return err
 	}
+	if isDirected(b) {
+		return u.schedule(p, b)
+	}
 	switch b.Item() {
-	case world.SignalLamp, world.NoteBlock, world.Piston, world.Counter, world.ScriptBlock:
-	case world.Door:
-		on, err := u.doorPowered(p)
+	case world.SignalLamp, world.NoteBlock, world.Piston, world.StickyPiston, world.Counter, world.ScriptBlock,
+		world.Transmitter, world.Toggle, world.LaunchPad:
+	case world.Door, world.Trapdoor, world.FenceGate:
+		on, err := u.panelPowered(p)
 		if err != nil {
 			return err
 		}
-		return u.setDoor(p, on)
+		return u.setPanel(p, on)
+	case world.NumberDisplay:
+		return u.showNumber(p, b)
 	default:
 		return nil
 	}
@@ -354,16 +524,43 @@ func (u *updater) run(p Pos) error {
 		return err
 	}
 	switch b.Item() {
-	case world.Piston:
-		if on {
-			if err := u.push(p, pushes[state(b)]); err != nil {
-				return err
-			}
+	case world.Piston, world.StickyPiston:
+		if err := u.pushOrPull(p, b, on); err != nil {
+			return err
 		}
 	case world.Counter:
 		return u.count(p, b, on)
+	case world.Toggle:
+		return u.flipToggle(p, b, on)
 	}
 	return u.set(p, b, switched(b, on))
+}
+
+// schedule asks for the directed block b at p to switch on the next tick if its input changed;
+// a delay switches after its wait whatever its input does meanwhile, and a capacitor whose
+// input stopped is rechecked after it has held its power long enough.
+func (u *updater) schedule(p Pos, b world.Block) error {
+	flip, err := u.changed(p, b)
+	switch {
+	case !flip:
+	case b.Item() == world.Delay:
+		u.w.Schedule(p, delayOf(b), true)
+	case b.Item() == world.Capacitor && isOn(b):
+		u.w.Schedule(p, holdOf(b), false)
+	default:
+		u.w.Schedule(p, 0, false)
+	}
+	return err
+}
+
+// changed reports whether b at p is a directed block or receiver whose input no longer matches
+// its output.
+func (u *updater) changed(p Pos, b world.Block) (bool, error) {
+	if !isDirected(b) && b.Item() != world.Receiver {
+		return false, nil
+	}
+	on, err := u.input(p, b)
+	return err == nil && on != isOn(b), err
 }
 
 // countStep is how far through its cycle a counter is: up from 0 to 9, then down past it.
@@ -395,33 +592,12 @@ func (u *updater) count(p Pos, b world.Block, on bool) error {
 	return u.set(p, b, next)
 }
 
-// door is the column of doors that p is part of, however tall; the world's height bounds it.
-func (u *updater) door(p Pos) ([]Pos, error) {
-	column := []Pos{p}
-	for _, dy := range []int32{1, -1} {
-		for at := (Pos{X: p.X, Y: p.Y + dy, Z: p.Z}); ; at.Y += dy {
-			b, err := u.block(at)
-			if errors.Is(err, world.ErrOutside) {
-				break
-			}
-			if err != nil {
-				return nil, err
-			}
-			if b.Item() != world.Door {
-				break
-			}
-			column = append(column, at)
-		}
-	}
-	return column, nil
-}
-
-func (u *updater) doorPowered(p Pos) (bool, error) {
-	column, err := u.door(p)
+func (u *updater) panelPowered(p Pos) (bool, error) {
+	panel, err := u.panel(p)
 	if err != nil {
 		return false, err
 	}
-	for _, at := range column {
+	for _, at := range panel {
 		if on, err := u.powered(at); err != nil || on {
 			return on, err
 		}
@@ -429,13 +605,14 @@ func (u *updater) doorPowered(p Pos) (bool, error) {
 	return false, nil
 }
 
-// setDoor opens or closes the whole door that p is part of; it won't close on anyone.
-func (u *updater) setDoor(p Pos, open bool) error {
-	column, err := u.door(p)
-	if err != nil || (!open && slices.ContainsFunc(column, u.w.Occupied)) {
+// setPanel opens or closes the whole door, trapdoor floor or gate that p is part of; it won't
+// close on anyone.
+func (u *updater) setPanel(p Pos, open bool) error {
+	panel, err := u.panel(p)
+	if err != nil || (!open && slices.ContainsFunc(panel, u.w.Occupied)) {
 		return err
 	}
-	for _, at := range column {
+	for _, at := range panel {
 		b, err := u.block(at)
 		if err != nil {
 			return err
@@ -443,6 +620,18 @@ func (u *updater) setDoor(p Pos, open bool) error {
 		if err := u.set(at, b, switched(b, open)); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// pushOrPull moves blocks for the piston b at p as its power starts, or as a sticky one's stops.
+func (u *updater) pushOrPull(p Pos, b world.Block, on bool) error {
+	d := pushes[facing(b)]
+	switch {
+	case on:
+		return u.push(p, d)
+	case b.Item() == world.StickyPiston:
+		return u.pull(p, d)
 	}
 	return nil
 }
