@@ -5,3 +5,5 @@ client/dist
 docs
 data
 server/internal/web/dist
+.env
+.env.example
