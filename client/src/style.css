@@ -434,6 +434,11 @@ dialog::backdrop {
   margin-top: 6px;
 }
 
+/* Menus open from slash commands and keys unless the player turns the buttons on. */
+body:not(.buttons) #hud-buttons {
+  display: none;
+}
+
 /* Standalone admin page scrolls like a normal page. */
 /* Plain scrolling pages undo the game's locks on both html and body; iOS checks every ancestor. */
 html.page,
@@ -590,6 +595,15 @@ body.page .requests {
   width: 100%;
   margin-top: 6px;
   font-size: 16px; /* 16px stops iOS zooming in */
+}
+
+#chat .hint {
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 60%);
+  color: #ffe58a;
+  font-family: monospace;
 }
 
 @keyframes fade-out {

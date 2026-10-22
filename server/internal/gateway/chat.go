@@ -57,7 +57,7 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 		return s.leaveRound(ctx)
 	}
 	if !s.player.Admin {
-		return s.notice(ctx, "Only admins can use commands.")
+		return s.notice(ctx, refusal(c.Name))
 	}
 	switch c.Name {
 	case "approve":
@@ -85,6 +85,20 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 	default:
 		return s.notice(ctx, commandHelp)
 	}
+}
+
+// adminCommands are the commands only admins may run.
+var adminCommands = map[string]bool{
+	"approve": true, "deny": true, "admin": true, "unadmin": true, "creative": true, "survival": true,
+	"zone": true, "arena": true, "tp": true, "map": true, "world": true,
+}
+
+// refusal tells a player who isn't an admin why their command didn't run.
+func refusal(name string) string {
+	if adminCommands[name] {
+		return "Only admins can use commands."
+	}
+	return fmt.Sprintf("No /%s command. Try /help.", name)
 }
 
 // decideByName answers the waiting join request with this name, ignoring case.

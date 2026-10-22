@@ -115,3 +115,10 @@ func TestUnknownCommandGetsHelp(t *testing.T) {
 	send(t, admin, sendChat("/fly"))
 	expectNotice(t, admin, "/approve")
 }
+
+func TestUnknownCommandsPointToHelp(t *testing.T) {
+	ts := startServer(t)
+	_, kid := ts.joinKid(t)
+	send(t, kid, sendChat("/setings"))
+	recvWhere(t, kid, noticeOf("No /setings command. Try /help."))
+}

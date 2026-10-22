@@ -27,6 +27,8 @@ export interface Settings {
   auto: boolean;
   /** Which look the world is drawn in, by its file name. */
   look: string;
+  /** Show the on-screen menu buttons; otherwise slash commands and keys open menus. */
+  buttons: boolean;
 }
 
 const KEY = "scabbage.settings";
@@ -43,6 +45,7 @@ export function defaultSettings(tier: Preset, touch: boolean): Settings {
     music: false,
     auto: true,
     look: DEFAULT_LOOK,
+    buttons: touch,
   };
 }
 
@@ -64,7 +67,7 @@ export function sanitize(raw: unknown, d: Settings): Settings {
   const pick = <K extends keyof Settings>(k: K) => (r as Partial<Settings>)[k];
   const vd = pick("viewDistance");
   const look = pick("look");
-  const flag = (k: "sound" | "music" | "auto") => {
+  const flag = (k: "sound" | "music" | "auto" | "buttons") => {
     const v = pick(k);
     return typeof v === "boolean" ? v : d[k];
   };
@@ -79,6 +82,7 @@ export function sanitize(raw: unknown, d: Settings): Settings {
     music: flag("music"),
     auto: flag("auto"),
     look: typeof look === "string" && LOOKS.has(look) ? look : d.look,
+    buttons: flag("buttons"),
   };
 }
 

@@ -1,5 +1,6 @@
 import { colorCss } from "../join/rules";
 import type { Chat } from "../pb/scabbage/v1/net_pb";
+import type { Commands } from "./commands";
 import { el } from "./dom";
 
 const MAX_LINES = 50;
@@ -18,12 +19,14 @@ export class ChatView {
     placeholder: "Say something…",
     "aria-label": "Chat message",
   });
-  private readonly form = el("form", { hidden: true }, this.input);
+  private readonly hint = el("div", { class: "hint", hidden: true });
+  private readonly form = el("form", { hidden: true }, this.hint, this.input);
 
   constructor(
     private readonly root: HTMLElement,
     private readonly send: (text: string) => void,
     private readonly onClose: (sent: boolean) => void,
+    private readonly commands?: Commands,
   ) {
     root.append(this.log, this.form);
     this.form.addEventListener("submit", (e) => {
@@ -32,8 +35,10 @@ export class ChatView {
     });
     this.input.addEventListener("keydown", (e) => {
       if (e.key === "Escape") this.close(false);
+      if (e.key === "Tab") this.finishCommand(e);
       e.stopPropagation(); // typing never reaches the game controls
     });
+    this.input.addEventListener("input", () => this.showMatches());
     document.addEventListener("keydown", (e) => this.openKey(e));
   }
 
@@ -48,6 +53,7 @@ export class ChatView {
     this.form.hidden = false;
     this.input.value = prefill;
     this.input.focus();
+    this.showMatches();
     this.log.scrollTop = this.log.scrollHeight;
   }
 
@@ -88,6 +94,20 @@ export class ChatView {
     this.form.hidden = true;
     this.input.blur();
     this.onClose(sent);
+  }
+
+  private finishCommand(e: KeyboardEvent): void {
+    if (!this.commands) return;
+    e.preventDefault(); // Tab completes instead of leaving the box
+    this.input.value = this.commands.finish(this.input.value);
+    this.showMatches();
+  }
+
+  /** Lists the commands that fit while a command name is being typed. */
+  private showMatches(): void {
+    const names = this.commands?.complete(this.input.value) ?? [];
+    this.hint.hidden = names.length === 0;
+    this.hint.textContent = names.map((n) => `/${n}`).join("  ");
   }
 
   private openKey(e: KeyboardEvent): void {

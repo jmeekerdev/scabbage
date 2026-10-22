@@ -95,6 +95,7 @@ import { scriptBlockNames } from "./ui/script-names";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
 import { BlockPicker } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
+import { Commands } from "./ui/commands";
 import { $, el } from "./ui/dom";
 import { EmoteWheel, popEmoji } from "./ui/emote-wheel";
 import { mountHotbar } from "./ui/hotbar-view";
@@ -121,8 +122,23 @@ import type { WorldBounds } from "./world/streamer";
 import { hideOverlay, showJoinForm, showMessage } from "./ui/screens";
 import { downloadMap, mapImportName, MAX_MAP_BYTES, pickMapFile } from "./ui/map-files";
 
+/** The server's admin commands, offered when an admin completes a command name. */
+const ADMIN_COMMANDS = [
+  "approve",
+  "deny",
+  "admin",
+  "unadmin",
+  "creative",
+  "survival",
+  "zone",
+  "arena",
+  "tp",
+  "map",
+  "world",
+];
 const overlay = $("#overlay");
 const statusEl = $("#status");
+const serverNameEl = $("#server-name");
 const pingEl = $("#ping");
 const coordsEl = $("#coords");
 const hintEl = $("#hint");
@@ -177,19 +193,18 @@ inventory.onChange = () => {
   backpack.draw();
 };
 let locked = false;
+const commands = new Commands();
+commands.also(["leave"]);
 const chat = new ChatView(
   $("#chat"),
   (text) => {
+    if (commands.run(text)) return;
     const importing = mapImportName(text);
     if (importing === undefined) conn?.send(encodeSendChat(text));
     else void importMap(importing);
   },
-  (sent) =>
-    sent &&
-    !touch &&
-    $("#game")
-      .requestPointerLock()
-      .catch(() => undefined),
+  (sent) => sent && !document.querySelector("dialog[open]") && lockPointer(),
+  commands,
 );
 const emotes = new EmoteWheel($("#emotes"), sendEmote);
 const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, emotes, (l) => {
@@ -269,16 +284,27 @@ gameScene.onDrawn((timeMs, steady, change) => {
   const lighter = moves && autoQuality.frame(timeMs, settings, steady);
   if (lighter) {
     changeSettings(lighter);
-    settingsView.show(lighter);
   }
 });
 const settingsView = settingsPanel(settings, changeSettings);
-addHudDialog("Settings", settingsView.node);
-addHudDialog("Blocks", el("div", {}, picker.node, backpack.node), "KeyB");
-addHudDialog("Quests", questLog.node, "KeyQ");
+document.body.classList.toggle("buttons", settings.buttons);
+addHudDialog("Settings", "change graphics, sound and the look", settingsView.node);
+addHudDialog(
+  "Blocks",
+  "choose blocks and craft (or B)",
+  el("div", {}, picker.node, backpack.node),
+  "KeyB",
+);
+addHudDialog("Quests", "see your quests (or Q)", questLog.node, "KeyQ");
 addHudButton("🎨", "Create", () => createDialog.showModal());
 addHudButton("💬", "Chat", () => chat.open());
 addHudButton("😀", "Emotes", () => emotes.open());
+commands.add("create", "make your own look or a new block", () => createDialog.showModal());
+commands.add("emotes", "wave, dance and more (or hold E)", () => emotes.open());
+commands.add("buttons", "show or hide the menu buttons", () =>
+  changeSettings({ ...settings, buttons: !settings.buttons }),
+);
+commands.add("help", "list commands", showHelp);
 if (touch && canGoFullscreen()) {
   addHudButton("⛶", "Fullscreen", () => void toggleLandscape().catch(() => undefined));
   unlockOnFullscreenExit();
@@ -292,6 +318,7 @@ const createDialog = el(
   el("button", { onclick: () => createDialog.close() }, "Close"),
 );
 document.body.append(createDialog);
+relockOnClose(createDialog);
 registerServiceWorker();
 connect();
 
@@ -412,7 +439,8 @@ function act(action?: Action): void {
 
 function enterGame(w: Welcome): void {
   hideOverlay(overlay);
-  statusEl.textContent = `${w.you?.name ?? "?"} on ${w.serverName}`;
+  statusEl.textContent = w.you?.name ?? "?";
+  serverNameEl.textContent = document.title = w.serverName || "Scabbage";
   me = w.you;
   if (!w.you?.admin && onAdminMessage) return location.reload(); // admin rights were removed
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
@@ -755,7 +783,8 @@ function mountAdminTools(): void {
   const pending = new PendingList(toastBox(), send);
   const art = new ArtList(toastBox(), send);
   const invite = new InvitePanel(send, location.origin);
-  addHudDialog("Invite", invite.node);
+  addHudDialog("Invite", "make a link to invite someone", invite.node);
+  commands.also(ADMIN_COMMANDS);
   createDialog.insertBefore(createButton("🖌️ Repaint a block", "texture"), createDialog.lastChild);
   onAdminMessage = adminRouter(pending, art, invite);
 }
@@ -770,8 +799,8 @@ function createButton(label: string, kind: EditorMode["kind"]): HTMLButtonElemen
   return el("button", { class: "primary", onclick: () => edit(kind) }, label);
 }
 
-/** Adds a HUD button, and optionally a key that toggles it, that opens `content` in a modal dialog. */
-function addHudDialog(label: string, content: Node, key?: string): void {
+/** Adds a modal dialog of `content`, opened by a HUD button, a slash command and maybe a key. */
+function addHudDialog(label: string, help: string, content: Node, key?: string): void {
   const dialog = el(
     "dialog",
     { class: "card" },
@@ -779,8 +808,31 @@ function addHudDialog(label: string, content: Node, key?: string): void {
     el("button", { onclick: () => dialog.close() }, "Close"),
   );
   document.body.append(dialog);
+  relockOnClose(dialog);
   $("#hud-buttons").append(el("button", { onclick: () => dialog.showModal() }, label));
+  commands.add(label.toLowerCase(), help, () => dialog.showModal());
   if (key) document.addEventListener("keydown", (e) => toggleByKey(e, key, dialog));
+}
+
+/** Returns to playing when `dialog` closes, so no click is needed to look around again. */
+function relockOnClose(dialog: HTMLDialogElement): void {
+  dialog.addEventListener("close", () => {
+    if (document.body.classList.contains("in-world") && !chat.isOpen) lockPointer();
+  });
+}
+
+function lockPointer(): void {
+  if (!touch)
+    void $("#game")
+      .requestPointerLock()
+      .catch(() => undefined);
+}
+
+/** Lists the commands this player can use; admins also get the server's list. */
+function showHelp(): void {
+  for (const line of commands.help()) chat.note(line);
+  chat.note("/leave: leave a minigame round");
+  if (me?.admin) conn?.send(encodeSendChat("/help"));
 }
 
 /** Opens or closes `dialog` on its key, unless another dialog or the join screen is up. */
@@ -800,6 +852,8 @@ function addHudButton(icon: string, label: string, onclick: () => void): void {
 
 function changeSettings(s: Settings): void {
   settings = s;
+  document.body.classList.toggle("buttons", s.buttons);
+  settingsView.show(s);
   saveSettings(store, s);
   gameScene.apply(s);
   precipitation.setPreset(s.preset);

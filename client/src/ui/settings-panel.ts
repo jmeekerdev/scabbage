@@ -53,6 +53,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
   const sound = el("input", { type: "checkbox", checked: initial.sound });
   const music = el("input", { type: "checkbox", checked: initial.music });
   const auto = el("input", { type: "checkbox", checked: initial.auto });
+  const buttons = el("input", { type: "checkbox", checked: initial.buttons });
   const graphics: EventTarget[] = [distance, preset, fps];
   const reloadHint = el("p", { class: "muted", hidden: true }, "Smoothing changes after a reload.");
 
@@ -67,6 +68,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
     el("label", { class: "check" }, auto, "Lower graphics when the game is slow"),
     el("label", { class: "check" }, sound, "Sound effects"),
     el("label", { class: "check" }, music, "Music"),
+    el("label", { class: "check" }, buttons, "Show menu buttons"),
     reloadHint,
   );
   form.addEventListener("input", (e) => {
@@ -79,6 +81,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
       music: music.checked,
       auto: auto.checked,
       look: look.value,
+      buttons: buttons.checked,
     };
     distanceOut.textContent = metres(next.viewDistance);
     reloadHint.hidden = qualityFor(next.preset).antialias === qualityFor(initial.preset).antialias;
@@ -91,6 +94,7 @@ export function settingsPanel(initial: Settings, onChange: (s: Settings) => void
     fps.value = String(s.fpsCap);
     auto.checked = s.auto;
     look.value = s.look;
+    buttons.checked = s.buttons;
   };
   return { node: form, show };
 }

@@ -38,6 +38,7 @@ describe("settings", () => {
       music: true,
       auto: false,
       look: "today",
+      buttons: true,
     } as const;
     saveSettings(store, s);
     expect(loadSettings(store, defaultSettings("high", false))).toEqual(s);
@@ -72,6 +73,14 @@ describe("settings", () => {
     expect(sanitize({ sound: "yes", music: 1 }, d)).toEqual(d);
     expect(sanitize({ sound: false, music: true }, d)).toEqual({ ...d, sound: false, music: true });
     expect(sanitize({ auto: false }, d)).toEqual({ ...d, auto: false });
+  });
+
+  it("shows on-screen buttons only on touch screens unless chosen", () => {
+    const d = defaultSettings("medium", false);
+    expect(d.buttons).toBe(false);
+    expect(defaultSettings("medium", true).buttons).toBe(true);
+    expect(sanitize({ buttons: "yes" }, d)).toEqual(d);
+    expect(sanitize({ buttons: true }, d)).toEqual({ ...d, buttons: true });
   });
 
   it("starts with the default look and forgets looks that no longer exist", () => {
