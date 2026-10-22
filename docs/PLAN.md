@@ -401,8 +401,10 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       and soft blur, Dusk Pastel's height gradient, and the vignettes on Dusk Pastel and Felt (dropped to
       keep them pass-free). A rebuild now starts nearest the player, and chunks keep the material they
       were meshed for until replaced, so a slow rebuild never shows them wrongly
-- [ ] Everything else follows the look: players, mobs, dropped items, the held item, the selection
-      outline (bent to soft corners) and the hand view take the look's light, palette tint and outlines
+- [x] Everything else follows the look: players, mobs and dropped items take the look's face light,
+      sun colours and bands, and hide behind the veil with the chunks; outlines reach them through the
+      afterwards pass. The selection outline bends to soft corners and takes the look's outline colour.
+      There is no held item or hand view drawn yet, so nothing there to follow
 - [ ] Tests and tuning: every look's config passes the schema and its shader compiles in a headless test,
       so a typo fails `make check`; a developer overlay with sliders for the live numbers and an
       "export config" button for making new looks

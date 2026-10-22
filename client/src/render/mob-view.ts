@@ -1,12 +1,11 @@
 import { BoxGeometry, Group, type Material, Mesh, type Scene } from "three";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
 import type { MobState } from "../player/mobs";
-import { daylit, shaded } from "./avatars";
+import { litMesh } from "./entity-material";
 import { METRE } from "../world/constants";
 
-const box = (w: number, h: number, d: number) => shaded(new BoxGeometry(w, h, d));
-const paint = (color: number, opacity = 1) =>
-  daylit({ color, vertexColors: true, transparent: opacity < 1, opacity });
+const box = (w: number, h: number, d: number) => new BoxGeometry(w, h, d);
+const paint = (color: number, opacity = 1) => litMesh({ color, transparent: opacity < 1, opacity });
 
 // Every mob shares these.
 const shapes = {

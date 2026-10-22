@@ -3,10 +3,11 @@ import {
   NearestFilter,
   type Scene,
   Sprite,
-  SpriteMaterial,
+  type SpriteMaterial,
   SRGBColorSpace,
 } from "three";
 import { METRE } from "../world/constants";
+import { litSprite } from "./entity-material";
 
 export interface DropInfo {
   id: bigint;
@@ -77,7 +78,7 @@ export class Drops {
       const map = new CanvasTexture(this.icon(block));
       map.magFilter = NearestFilter;
       map.colorSpace = SRGBColorSpace;
-      m = new SpriteMaterial({ map, transparent: true, alphaTest: 0.5 });
+      m = litSprite({ map, transparent: true, alphaTest: 0.5 });
       this.materials.set(block, m);
     }
     return m;

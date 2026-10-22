@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PADDED_VOLUME, paddedIndex } from "./mesher";
-import { Smooth, SoftCorners } from "./soft-corners";
+import { cornerShift, Smooth, SoftCorners } from "./soft-corners";
 
 const GROUND = 1;
 const BRICK = 2;
@@ -58,5 +58,18 @@ describe("SoftCorners", () => {
 
   it("moves at most the look's limit", () => {
     expect(corners([[5, 5, 5, GROUND]], 0.25).shift(6, 6, 6)).toEqual([-2, -2, -2]);
+  });
+});
+
+describe("cornerShift", () => {
+  const lone = (x: number, y: number, z: number) => (x === 5 && y === 5 && z === 5 ? 1 : 0);
+
+  it("moves a world corner as far as the mesher does, in blocks", () => {
+    expect(cornerShift(6, 6, 6, lone, 0.5)).toEqual([-3 / 8, -3 / 8, -3 / 8]);
+    expect(cornerShift(5, 5, 5, lone, 0.5)).toEqual([3 / 8, 3 / 8, 3 / 8]);
+  });
+
+  it("leaves corners next to built or unknown blocks in place", () => {
+    expect(cornerShift(6, 6, 6, (x, y, z) => (lone(x, y, z) ? 1 : 2), 0.5)).toEqual([0, 0, 0]);
   });
 });

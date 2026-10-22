@@ -5,7 +5,7 @@ import {
   Float32BufferAttribute,
   Group,
   Mesh,
-  MeshBasicMaterial,
+  type MeshBasicMaterial,
   NearestFilter,
   type Scene,
   Sprite,
@@ -13,7 +13,7 @@ import {
   SRGBColorSpace,
 } from "three";
 import type { RemoteState } from "../player/remote-players";
-import { daylight } from "./chunk-material";
+import { litMesh } from "./entity-material";
 import { Gait, type Stance } from "./gait";
 import { boxUVs, defaultSkin, PARTS, SKIN_H, SKIN_W, type Part } from "./skin";
 import { METRE } from "../world/constants";
@@ -23,25 +23,12 @@ const TAG_HEIGHT = 0.3; // metres
 const EMOTE_SIZE = 0.7; // metres
 const EMOTE_MS = 3000;
 
-/** A skinned box with fixed per-face shading like the chunks: bright top, darker sides and bottom. */
+/** A box for one body part, with its skin pixels mapped onto each face. */
 function partBox(part: Part): BoxGeometry {
   const { w, h, d } = PARTS[part];
   const g = new BoxGeometry(w * PX, h * PX, d * PX);
   const { position, normal } = g.attributes;
   g.setAttribute("uv", new Float32BufferAttribute(boxUVs(part, position.array, normal.array), 2));
-  return shaded(g);
-}
-
-/** Gives a box the chunks' fixed per-face light as vertex colors. */
-export function shaded(g: BoxGeometry): BoxGeometry {
-  const faceLight = [0.8, 0.8, 1, 0.5, 0.7, 0.7]; // +x -x +y -y +z -z, 4 vertices each
-  g.setAttribute(
-    "color",
-    new Float32BufferAttribute(
-      faceLight.flatMap((l) => Array<number>(12).fill(l)),
-      3,
-    ),
-  );
   return g;
 }
 
@@ -52,23 +39,6 @@ const shapes = {
   arm: partBox("arm"),
   leg: partBox("leg"),
 };
-/** A flat-colored material that dims with the time of day, like the terrain. */
-export function daylit(
-  params: ConstructorParameters<typeof MeshBasicMaterial>[0],
-): MeshBasicMaterial {
-  const m = new MeshBasicMaterial(params);
-  m.onBeforeCompile = (shader) => {
-    shader.uniforms.daylight = daylight;
-    shader.fragmentShader =
-      "uniform float daylight;\n" +
-      shader.fragmentShader.replace(
-        "#include <opaque_fragment>",
-        "outgoingLight *= daylight;\n#include <opaque_fragment>",
-      );
-  };
-  return m;
-}
-
 function skinTexture(pixels: Uint8Array): DataTexture {
   const tex = new DataTexture(pixels, SKIN_W, SKIN_H);
   tex.colorSpace = SRGBColorSpace;
@@ -103,7 +73,7 @@ export class Avatar {
 
   constructor(name: string | undefined, color: number, skin: Uint8Array) {
     this.root.scale.setScalar(METRE); // the figure is modelled in metres
-    this.material = daylit({ vertexColors: true, alphaTest: 0.5 });
+    this.material = litMesh({ alphaTest: 0.5 });
     this.setSkin(skin, color);
     const m = this.material;
     const leg = () => pivoted(new Mesh(shapes.leg, m), -6);

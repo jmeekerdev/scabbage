@@ -142,7 +142,8 @@ const world = createWorldRenderer(
   lookById(settings.look),
 );
 const player = new Player();
-const selection = new Selection(gameScene.scene);
+const selection = new Selection(gameScene.scene, (x, y, z) => world.softCorner(x, y, z));
+selection.setLook(lookById(settings.look));
 const hotbar = new Hotbar([]);
 const picker = new BlockPicker((block) => {
   hotbar.pick(block);
@@ -791,5 +792,6 @@ function changeSettings(s: Settings): void {
   saveSettings(store, s);
   gameScene.apply(s);
   world.setLook(lookById(s.look));
+  selection.setLook(lookById(s.look));
   audio.set(s.sound, s.music);
 }

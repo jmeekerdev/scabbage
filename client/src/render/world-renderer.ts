@@ -3,6 +3,7 @@ import type { ChunkBatch, FarLand as FarLandMessage, WorldInfo } from "../pb/sca
 import type { Look } from "../looks/look";
 import type { ChunkPos } from "../world/coords";
 import type { RenderTable } from "../world/mesher";
+import { cornerShift, Smooth } from "../world/soft-corners";
 import { WorldClient } from "../world/world-client";
 import { buildAtlas, type Atlas } from "./atlas";
 import { buildRenderTable, type BlockTypeInfo } from "./blocks";
@@ -10,6 +11,7 @@ import { blockTextures, opaqueMaterial, translucentMaterial } from "./chunk-mate
 import { applyLook, lookUniforms, meshOptions, setLookUniforms } from "./look-shader";
 import { layerColors, layerColorTexture, topColors } from "./palette";
 import { ChunkMeshes } from "./chunk-meshes";
+import { setEntityLook } from "./entity-material";
 import { FarLand } from "./far-land";
 import type { GameScene } from "./scene";
 import { Veil } from "./veil";
@@ -29,6 +31,8 @@ export interface WorldRenderer {
   refetch(chunks: readonly ChunkPos[]): void;
   /** The block at world position x,y,z, or undefined if it isn't loaded. */
   blockAt(x: number, y: number, z: number): number | undefined;
+  /** How far soft corners moved world corner x,y,z in the drawn look, in blocks. */
+  softCorner(x: number, y: number, z: number): number[];
   /** Changes a loaded block, e.g. from a server update or a predicted edit. */
   setBlock(x: number, y: number, z: number, block: number): void;
   /** Draws the world in another look. */
@@ -60,6 +64,7 @@ export function createWorldRenderer(
   initialLook: Look,
 ): WorldRenderer {
   setLookUniforms(initialLook);
+  setEntityLook(initialLook);
   let textures = blockTextures(buildAtlas([], []));
   let materials = lookMaterials(textures, initialLook);
   let retired: ShaderMaterial[] = []; // still drawing chunks not yet rebuilt for the current look
@@ -81,6 +86,7 @@ export function createWorldRenderer(
   function show(next: Look): void {
     look = next;
     setLookUniforms(look);
+    setEntityLook(look);
     for (const m of materials) applyLook(m, look);
     far.setLook(look);
     paint();
@@ -149,6 +155,14 @@ export function createWorldRenderer(
     receiveFar: (land) => far.receive(land.tiles),
     refetch: (chunks) => world.refetch(chunks),
     blockAt: (x, y, z) => world.blockAt(x, y, z),
+    softCorner(x, y, z) {
+      const { softCorners } = meshOptions(look);
+      const smooth = art?.table.smooth;
+      if (!softCorners || !smooth) return [0, 0, 0];
+      const kindAt = (bx: number, by: number, bz: number) =>
+        smooth[world.blockAt(bx, by, bz) ?? -1] ?? Smooth.BUILT;
+      return cornerShift(x, y, z, kindAt, softCorners);
+    },
     setBlock: (x, y, z, block) => world.setBlock(x, y, z, block),
     setLook(next) {
       if (next === (waiting ?? look)) return;

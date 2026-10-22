@@ -57,23 +57,51 @@ export class SoftCorners {
       const b = this.blocks[paddedIndex(x + dx - 0.5, y + dy - 0.5, z + dz - 0.5)];
       return this.kinds[b] ?? Smooth.BUILT;
     });
-    if (kinds.includes(Smooth.BUILT)) return;
-    const filled = kinds.map((k) => k === Smooth.NATURAL);
-    const shift = [0, 0, 0];
-    let crossings = 0;
-    for (const [a, b] of DUAL_EDGES) {
-      if (filled[a] === filled[b]) continue;
-      for (let c = 0; c < 3; c++) shift[c] += (AROUND[a][c] + AROUND[b][c]) / 2;
-      crossings++;
-    }
-    const g = [0, 0, 0];
-    filled.forEach((f, n) => f && AROUND[n].forEach((o, c) => (g[c] += o)));
-    const len = Math.hypot(...g);
-    for (let c = 0; c < 3; c++) {
-      const s = crossings ? shift[c] / crossings : 0;
-      this.shifts[at + c] =
-        Math.round(Math.max(-this.limit, Math.min(this.limit, s)) * POSITION_SCALE) || 0;
-      if (len >= 1) this.normals[at + c] = Math.round((-g[c] / len) * 127) || 0;
-    }
+    const move = cornerMove(kinds, this.limit);
+    if (!move) return;
+    this.shifts.set(move.shift, at);
+    this.normals.set(move.normal, at);
   }
+}
+
+/**
+ * Where a corner slides, in eighths of a block, and its slope normal scaled to ±127, from the kinds
+ * of the 8 blocks around it; undefined when a built block pins it.
+ */
+function cornerMove(
+  kinds: readonly number[],
+  limit: number,
+): { shift: number[]; normal: number[] } | undefined {
+  if (kinds.includes(Smooth.BUILT)) return undefined;
+  const filled = kinds.map((k) => k === Smooth.NATURAL);
+  const sum = [0, 0, 0];
+  let crossings = 0;
+  for (const [a, b] of DUAL_EDGES) {
+    if (filled[a] === filled[b]) continue;
+    for (let c = 0; c < 3; c++) sum[c] += (AROUND[a][c] + AROUND[b][c]) / 2;
+    crossings++;
+  }
+  const g = [0, 0, 0];
+  filled.forEach((f, n) => f && AROUND[n].forEach((o, c) => (g[c] += o)));
+  const len = Math.hypot(...g);
+  const shift = sum.map(
+    (v) =>
+      Math.round(
+        Math.max(-limit, Math.min(limit, crossings ? v / crossings : 0)) * POSITION_SCALE,
+      ) || 0,
+  );
+  const normal = g.map((v) => (len >= 1 ? Math.round((-v / len) * 127) || 0 : 0));
+  return { shift, normal };
+}
+
+/** How far world corner x,y,z slides in blocks, matching the mesh; kindAt gives each block's Smooth kind. */
+export function cornerShift(
+  x: number,
+  y: number,
+  z: number,
+  kindAt: (x: number, y: number, z: number) => number,
+  limit: number,
+): number[] {
+  const kinds = AROUND.map(([dx, dy, dz]) => kindAt(x + dx - 0.5, y + dy - 0.5, z + dz - 0.5));
+  return cornerMove(kinds, limit)?.shift.map((s) => s / POSITION_SCALE) ?? [0, 0, 0];
 }
