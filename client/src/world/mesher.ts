@@ -131,7 +131,7 @@ function meshShapes(vol: Volume, out: MeshBuilder): void {
         const block = blocks[paddedIndex(x, y, z)];
         const shape = table.shape[block] ?? Shape.CUBE;
         if (block === 0 || shape === Shape.CUBE) continue;
-        const l = lightAt(vol, x, y, z) * 0x1111; // the same level at all four corners
+        const l = lightAt(vol, x, y, z) * ALL_CORNERS; // the same level at all four corners
         for (const box of SHAPE_BOXES[shape] ?? []) {
           for (let face = 0; face < 6; face++) {
             if (hiddenByNeighbor(vol, box, face, x, y, z)) continue;
@@ -189,7 +189,7 @@ const STRIDE = [1, PADDED * PADDED, PADDED] as const;
 
 /**
  * Marks each visible cube face cell with its block and corner shading (block | ao << 16),
- * or 0, its four corner light levels packed 4 bits each, and its open sides (see openSides).
+ * or 0, its four corner light levels packed LIGHT_BITS each, and its open sides (see openSides).
  */
 function fillMask(
   mask: Int32Array,
@@ -263,6 +263,11 @@ function softens(soft: SoftCorners, corner: number[], face: number): boolean {
   return false;
 }
 
+// Bits per corner when four light levels share a number; levels run up to MAX_LIGHT, 30.
+const LIGHT_BITS = 5;
+const LIGHT_MASK = (1 << LIGHT_BITS) - 1;
+const ALL_CORNERS = 1 | (1 << LIGHT_BITS) | (1 << (2 * LIGHT_BITS)) | (1 << (3 * LIGHT_BITS));
+
 /** Smooth light per face corner: the average of the open cells around it in front of the face. */
 function cornerLights(
   vol: Volume,
@@ -288,7 +293,7 @@ function cornerLights(
         sum += l;
         count++;
       }
-    packed |= Math.round(sum / count) << (k * 4);
+    packed |= Math.round(sum / count) << (k * LIGHT_BITS);
   }
   return packed;
 }
@@ -424,7 +429,7 @@ class MeshBuilder {
       this.faces[k] = face;
       this.layers[k] = layer;
       this.ao[k] = (shades >> (c * 2)) & 3;
-      this.light[k] = (lights >> (c * 4)) & 15;
+      this.light[k] = (lights >> (c * LIGHT_BITS)) & LIGHT_MASK;
       if (this.withEdges)
         this.edgeDistances(k, open, c, (u1 - u0) / POSITION_SCALE, (v1 - v0) / POSITION_SCALE);
       if (this.withSoft)

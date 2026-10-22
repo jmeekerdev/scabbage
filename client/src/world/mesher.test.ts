@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CHUNK_SIZE as S } from "./constants";
+import { MAX_LIGHT } from "./light";
 import { Shape } from "./shapes";
 import { Smooth } from "./soft-corners";
 import {
@@ -166,6 +167,15 @@ describe("block light", () => {
     const near = topVertices(m, 5, 1, 5).concat(topVertices(m, 6, 1, 6));
     expect(near.some((i) => m.light[i] > 0)).toBe(true);
     expect(topVertices(m, 0, 1, 0).every((i) => m.light[i] === 0)).toBe(true);
+  });
+
+  it("keeps the brightest level a lamp gives, without spilling into other corners", () => {
+    const light = new Uint8Array(PADDED_VOLUME);
+    for (let x = -1; x <= S; x++)
+      for (let z = -1; z <= S; z++) light[paddedIndex(x, 1, z)] = MAX_LIGHT;
+    const m = meshChunk(volume(floor()), table(), light).opaque;
+    const tops = [...m.faces.keys()].filter((i) => m.faces[i] === 2);
+    expect(new Set(tops.map((i) => m.light[i]))).toEqual(new Set([MAX_LIGHT]));
   });
 
   it("is dark everywhere without a light volume", () => {
