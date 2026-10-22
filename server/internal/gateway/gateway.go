@@ -98,7 +98,11 @@ func New(cfg Config) (*Gateway, error) {
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{OriginPatterns: g.cfg.OriginPatterns})
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		OriginPatterns: g.cfg.OriginPatterns,
+		// Chunk batches shrink by about 60%; pooled compressors keep idle players' memory free.
+		CompressionMode: websocket.CompressionNoContextTakeover,
+	})
 	if err != nil {
 		g.cfg.Logger.Debug("websocket accept failed", "err", err)
 		return

@@ -2,6 +2,7 @@
 package web
 
 import (
+	"bytes"
 	"embed"
 	"io/fs"
 	"net/http"
@@ -37,11 +38,23 @@ func HasClient(files fs.FS) bool {
 	return err == nil
 }
 
-// Static serves files. Hashed build files under /assets/ are cached for good; everything else is revalidated.
+// Static serves files, gzipped where the browser allows. Hashed build files under /assets/ are
+// cached for good; everything else is revalidated.
 func Static(client fs.FS) http.Handler {
 	files := http.FileServer(http.FS(client))
+	zipped := newGzipCache(client)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		files.ServeHTTP(&cacheWriter{ResponseWriter: w, hashed: strings.HasPrefix(r.URL.Path, "/assets/")}, r)
+		cw := &cacheWriter{ResponseWriter: w, hashed: strings.HasPrefix(r.URL.Path, "/assets/")}
+		cw.Header().Set("Vary", "Accept-Encoding")
+		if acceptsGzip(r.Header.Get("Accept-Encoding")) && r.Header.Get("Range") == "" {
+			name := fileName(r.URL.Path)
+			if gz, mod, ok := zipped.get(name); ok {
+				cw.Header().Set("Content-Encoding", "gzip")
+				http.ServeContent(cw, r, name, mod, bytes.NewReader(gz))
+				return
+			}
+		}
+		files.ServeHTTP(cw, r)
 	})
 }
 
