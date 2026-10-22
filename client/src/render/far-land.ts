@@ -203,7 +203,7 @@ void main() {
   if (texelFetch(covered, column, 0).r > 0.5) discard;
   vec3 n = normalize(vNormal);
   vec3 shine = lookShine(n, normalize(cameraPosition - vWorld));
-  gl_FragColor = vec4((vColor * lookLight(n) + shine) * daylight, 1.0);
+  gl_FragColor = vec4((vColor * lookLight(n) * lookRise(vWorld.y) + shine) * daylight, 1.0);
   #include <colorspace_fragment>
   #include <fog_fragment>
   gl_FragColor = veiled(gl_FragColor);

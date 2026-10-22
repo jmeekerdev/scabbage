@@ -37,7 +37,8 @@ describe("lookCost", () => {
     expect(lookCost(shaped({ edges: true, softCorners: 0.5 }))).toBe("heavier");
   });
 
-  it("charges for an afterwards pass", () => {
-    expect(lookCost({ ...today, after: { vignette: 0.2 } })).toBe("light");
+  it("charges for an afterwards pass, but not a vignette laid over the frame", () => {
+    expect(lookCost({ ...today, after: { paper: 0.2 } })).toBe("light");
+    expect(lookCost({ ...today, after: { vignette: 0.2 } })).toBe("fastest");
   });
 });

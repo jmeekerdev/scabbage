@@ -13,12 +13,16 @@ export const LOOK_RANGES: [path: string, min: number, max: number][] = [
   ["light.lampFade", 0, 1],
   ["light.sun.wrap", 0, 1],
   ["light.sun.shine", 0, 4],
+  ["light.height.low", 0, 120],
+  ["light.height.high", 0, 120],
+  ["light.height.lift", 0, 0.5],
   ["shape.softCorners", 0, 0.5],
   ["shape.pool", 0, 1],
   ["fog.start", 0, 1],
   ["water.opacity", 0, 1],
   ["after.outline.width", 0.1, 8],
   ["after.outline.strength", 0, 1],
+  ["after.soften", 0, 4],
   ["after.paper", 0, 1],
   ["after.tiltShift", 0, 1],
   ["after.vignette", 0, 1],
@@ -69,6 +73,11 @@ function sunProblems(look: Look): string[] {
   ];
 }
 
+function heightProblems(look: Look): string[] {
+  const h = look.light.height;
+  return h && h.high <= h.low ? ["light.height.high must be above light.height.low"] : [];
+}
+
 function textureProblems(look: Look): string[] {
   const known = new Set(TEXTURE_NAMES);
   const missing = (field: string, names: string[]) =>
@@ -97,6 +106,7 @@ export function checkLook(look: Look): string[] {
     ...LIGHT_COLOURS.flatMap((path) => colour(path, at(look, path) as Rgb | undefined, 4)),
     ...srgbColours(look).flatMap(([path, c]) => colour(path, c, 1)),
     ...sunProblems(look),
+    ...heightProblems(look),
     ...textureProblems(look),
     ...edgeProblems(look),
   ];

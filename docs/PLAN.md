@@ -410,8 +410,9 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       (blocks, far land, afterwards, figures, drops) compile through glslang in the client tests, so a
       typo fails `make check`. `?tune` opens a developer panel, loaded only then, with sliders and
       colour pickers over the live numbers and an export to a new `*.look.ts` file
-- [ ] Tuning: Watercolour's line wobble and soft blur, Dusk Pastel's height gradient, and whether
-      Dusk Pastel and Felt get their vignettes back at the cost of a pass
+- [x] Tuning: Watercolour gets a light blur (a line wobble was tried and dropped: it warped the
+      frame like old glass); Dusk Pastel lightens from the sea to the high hills; Dusk Pastel and Felt have their vignettes back, at no pass's cost, since
+      a lone vignette is multiplied over the finished frame instead of copying it
 
 ## Open questions
 

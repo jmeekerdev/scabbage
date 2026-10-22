@@ -217,7 +217,7 @@ void main() {
   #endif
   color.rgb = styled(color.rgb);
   vec3 n = rounded(normalize(vNormal));
-  vec3 shade = lookLight(n) * mix(ao, vec3(1.0), vAo) * blockTint(vInside);
+  vec3 shade = lookLight(n) * lookRise(vWorld.y) * mix(ao, vec3(1.0), vAo) * blockTint(vInside);
   vec3 lit = max(vec3(daylight), lamp * vGlow);
   vec3 toEye = normalize(cameraPosition - vWorld);
   gl_FragColor = vec4(color.rgb * shade * lit + lookShine(n, toEye) * daylight, color.a);

@@ -70,6 +70,13 @@ describe("checkLook", () => {
     ]);
   });
 
+  it("wants a height gradient to rise", () => {
+    const height = { low: 50, high: 40, lift: 0.1 };
+    expect(checkLook({ ...today, light: { ...today.light, height } })).toEqual([
+      "light.height.high must be above light.height.low",
+    ]);
+  });
+
   it("names palette and solid textures that don't exist", () => {
     const surface = {
       ...today.surface,

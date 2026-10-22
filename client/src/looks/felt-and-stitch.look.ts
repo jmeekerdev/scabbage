@@ -51,4 +51,5 @@ export default {
   },
   fog: { start: 0.5 },
   water: { opacity: 0.85 },
+  after: { vignette: 0.3 },
 } satisfies Look;

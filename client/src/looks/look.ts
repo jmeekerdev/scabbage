@@ -42,6 +42,8 @@ export interface LookAfter {
     color?: Rgb;
     creases?: boolean;
   };
+  /** A light blur over the whole frame, its radius in pixels at 700 tall. */
+  soften?: number;
   /** Paper grain, blots and fibres, 0–1. */
   paper?: number;
   /** Blur away from the middle band, only in the overhead map view. */
@@ -82,6 +84,8 @@ export interface Look {
     lampFade: number;
     /** Light from one fixed direction, on top of the face brightness. */
     sun?: LookSun;
+    /** Light from 1 − lift at the low height to 1 + lift at the high one, heights in metres. */
+    height?: { low: number; high: number; lift: number };
   };
   shape: {
     /** Rounds block edges that face open air. */
@@ -109,9 +113,10 @@ export type LookCost = "fastest" | "light" | "heavier";
 
 /** A rough cost for the picker: each feature beyond plain textured blocks adds to it. */
 export function lookCost(look: Look): LookCost {
+  const after = afterFeatures(look, true);
   const points =
     (look.shape.edges ? 1 : 0) +
     (look.shape.softCorners > 0 ? 1 : 0) +
-    (afterFeatures(look, true) ? 1 : 0);
+    (after && !("OVERLAY" in after) ? 1 : 0);
   return points === 0 ? "fastest" : points === 1 ? "light" : "heavier";
 }

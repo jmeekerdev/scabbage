@@ -2,6 +2,7 @@ import { ShaderMaterial } from "three";
 import { describe, expect, it } from "vitest";
 import type { Look, LookSun } from "../looks/look";
 import { lookById } from "../looks/registry";
+import { METRE } from "../world/constants";
 import { applyLook, lookFeatures, lookUniforms, meshOptions, setLookUniforms } from "./look-shader";
 
 const today = lookById("today");
@@ -84,6 +85,15 @@ describe("setLookUniforms", () => {
     expect(lookUniforms.fibre.value).toBe(0.4);
     expect(lookUniforms.pool.value).toBe(0.2);
     expect(lookUniforms.stitch.value.toArray()).toEqual([1, 0, 0]);
+  });
+
+  it("lifts light with height between two heights, given in metres", () => {
+    const height = { low: 30, high: 70, lift: 0.1 };
+    const risen = { ...today, light: { ...today.light, height } };
+    expect(lookFeatures(risen)).toEqual({ HEIGHT: "" });
+    setLookUniforms(risen);
+    expect(lookUniforms.heightRange.value.toArray()).toEqual([30 * METRE, 70 * METRE]);
+    expect(lookUniforms.heightLift.value).toBe(0.1);
   });
 
   it("points the sun along its direction, normalised", () => {

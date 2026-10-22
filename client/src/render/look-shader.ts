@@ -1,5 +1,14 @@
-import { Color, SRGBColorSpace, Vector3, Vector4, type ShaderMaterial, type Texture } from "three";
+import {
+  Color,
+  SRGBColorSpace,
+  Vector2,
+  Vector3,
+  Vector4,
+  type ShaderMaterial,
+  type Texture,
+} from "three";
 import type { Look, Rgb } from "../looks/look";
+import { METRE } from "../world/constants";
 import type { MeshOptions } from "../world/mesher";
 
 const rgb = (c: Rgb) => new Vector3(c.r, c.g, c.b);
@@ -24,6 +33,8 @@ export const lookUniforms = {
   fibre: { value: 0 },
   pool: { value: 0 },
   stitch: { value: new Vector3() },
+  heightRange: { value: new Vector2() }, // in blocks
+  heightLift: { value: 0 },
 };
 
 export function setLookUniforms(look: Look): void {
@@ -41,6 +52,9 @@ export function setLookUniforms(look: Look): void {
   const st = look.shape.stitch ?? { r: 1, g: 1, b: 1 };
   const linear = new Color().setRGB(st.r, st.g, st.b, SRGBColorSpace);
   u.stitch.value.set(linear.r, linear.g, linear.b);
+  const height = look.light.height;
+  if (height) u.heightRange.value.set(height.low * METRE, height.high * METRE);
+  u.heightLift.value = height?.lift ?? 0;
   if (!sun) return;
   u.sunDir.value.set(sun.dir.x, sun.dir.y, sun.dir.z).normalize();
   u.sunLit.value.copy(rgb(sun.lit));
@@ -58,6 +72,7 @@ export function lookFeatures(look: Look): Record<string, string> {
     SUN: !!sun,
     BANDS: !!sun && sun.bands >= 2,
     SHINE: !!sun && sun.shine > 0,
+    HEIGHT: (look.light.height?.lift ?? 0) > 0,
     EDGES: look.shape.edges,
     SOFT: look.shape.softCorners > 0,
     WASH: (look.surface.wash ?? 0) > 0,
@@ -73,6 +88,7 @@ const FEATURES = [
   "SUN",
   "BANDS",
   "SHINE",
+  "HEIGHT",
   "EDGES",
   "SOFT",
   "WASH",
@@ -103,7 +119,8 @@ vec4 veiled(vec4 c) {
   return vec4(mix(c.rgb, fogColor, veil), c.a);
 }`;
 
-/** lookLight(n): the light on a surface facing n; lookShine(n, toEye): the sun's highlight to add. */
+/** lookLight(n): the light on a surface facing n; lookShine(n, toEye): the sun's highlight to add;
+ * lookRise(y): the light's change with height. */
 export const LOOK_LIGHT_GLSL = /* glsl */ `
 uniform vec4 faces;
 #ifdef SUN
@@ -113,6 +130,10 @@ uniform vec3 sunShade;
 uniform float sunWrap;
 uniform float sunBands;
 uniform float shine;
+#endif
+#ifdef HEIGHT
+uniform vec2 heightRange;
+uniform float heightLift;
 #endif
 
 vec3 lookLight(vec3 n) {
@@ -126,6 +147,15 @@ vec3 lookLight(vec3 n) {
   light *= mix(sunShade, sunLit, t);
   #endif
   return light;
+}
+
+float lookRise(float y) {
+  #ifdef HEIGHT
+  float t = clamp((y - heightRange.x) / (heightRange.y - heightRange.x), 0.0, 1.0);
+  return 1.0 + heightLift * (2.0 * t - 1.0);
+  #else
+  return 1.0;
+  #endif
 }
 
 vec3 lookShine(vec3 n, vec3 toEye) {

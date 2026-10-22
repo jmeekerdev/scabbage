@@ -1,17 +1,21 @@
 import {
   BufferGeometry,
   Color,
+  CustomBlending,
   DepthTexture,
   Float32BufferAttribute,
   Fog,
   Mesh,
+  NormalBlending,
   OrthographicCamera,
   PerspectiveCamera,
   Scene,
   ShaderMaterial,
+  SrcColorFactor,
   SRGBColorSpace,
   Vector2,
   WebGLRenderTarget,
+  ZeroFactor,
   type WebGLRenderer,
 } from "three";
 import type { Look } from "../looks/look";
@@ -23,6 +27,7 @@ export function afterFeatures(look: Look, overhead: boolean): Record<string, str
     OUTLINE: !!a.outline && a.outline.strength > 0,
     CREASES: !!a.outline?.creases,
     DARKEN: !!a.outline && !a.outline.color,
+    SOFTEN: (a.soften ?? 0) > 0,
     PAPER: (a.paper ?? 0) > 0,
     TILT: overhead && (a.tiltShift ?? 0) > 0,
     VIGNETTE: (a.vignette ?? 0) > 0,
@@ -30,7 +35,10 @@ export function afterFeatures(look: Look, overhead: boolean): Record<string, str
   };
   if (!on.OUTLINE) on.CREASES = on.DARKEN = false;
   const defines = Object.entries(on).flatMap(([k, v]) => (v ? [[k, ""]] : []));
-  return defines.length ? Object.fromEntries(defines) : undefined;
+  if (!defines.length) return undefined;
+  // A vignette alone needs no copy of the frame: it is laid over it, darkening what is there.
+  if (defines.length === 1 && on.VIGNETTE) defines.push(["OVERLAY", ""]);
+  return Object.fromEntries(defines);
 }
 
 const vertexShader = /* glsl */ `
@@ -51,6 +59,7 @@ uniform float fogFar;
 uniform vec3 lineColor;
 uniform float lineStrength;
 uniform float lineWidth;
+uniform float soften;
 uniform float paper;
 uniform float tilt;
 uniform float vignette;
@@ -96,11 +105,24 @@ vec3 blurred(vec2 uv, float r) {
   return sum / 16.0;
 }
 
+float vignetted() {
+  vec2 q = vUv - 0.5;
+  return 1.0 - vignette * dot(q, q) * 1.6;
+}
+
 void main() {
+  #ifdef OVERLAY
+  gl_FragColor = vec4(vec3(vignetted()), 1.0);
+  #include <colorspace_fragment>
+  return;
+  #endif
   vec3 col = texture2D(tColor, vUv).rgb;
   #ifdef TILT
   float r = tilt * smoothstep(0.1, 0.5, abs(vUv.y - 0.52)) * res.y / 110.0;
   if (r > 0.3) col = blurred(vUv, r);
+  #endif
+  #ifdef SOFTEN
+  col = mix(col, blurred(vUv, soften * res.y / 700.0), 0.5);
   #endif
   #ifdef OUTLINE
   #ifdef DARKEN
@@ -119,8 +141,7 @@ void main() {
   col *= 1.0 - paper * (0.05 * grain + 0.08 * blot + 0.04 * fibre);
   #endif
   #ifdef VIGNETTE
-  vec2 q = vUv - 0.5;
-  col *= 1.0 - vignette * dot(q, q) * 1.6;
+  col *= vignetted();
   #endif
   gl_FragColor = vec4(col, 1.0);
   #include <colorspace_fragment>
@@ -135,11 +156,13 @@ function screenTriangle(): BufferGeometry {
 
 /**
  * Draws the scene into a picture with depth, then onto the screen through the look's afterwards
- * effects. Holds no picture while the look has none, so plain looks cost nothing.
+ * effects. Holds no picture while the look has none, so plain looks cost nothing, and a lone
+ * vignette is laid over the frame instead.
  */
 export class AfterPass {
   private target?: WebGLRenderTarget;
   private on = false;
+  private overlay = false;
   private readonly size = new Vector2();
   private readonly flat = new OrthographicCamera();
   private readonly screen = new Scene();
@@ -148,6 +171,8 @@ export class AfterPass {
     fragmentShader,
     depthTest: false,
     depthWrite: false,
+    blendSrc: ZeroFactor, // used while overlaid: the frame times the shader's output
+    blendDst: SrcColorFactor,
     uniforms: Object.fromEntries(
       [
         ["tColor", null],
@@ -160,6 +185,7 @@ export class AfterPass {
         ["lineColor", new Color()],
         ["lineStrength", 0],
         ["lineWidth", 1],
+        ["soften", 0],
         ["paper", 0],
         ["tilt", 0],
         ["vignette", 0],
@@ -185,11 +211,13 @@ export class AfterPass {
     const defines = afterFeatures(look, overhead);
     const m = this.material;
     this.on = !!defines;
-    if (!defines) {
+    this.overlay = !!defines && "OVERLAY" in defines;
+    m.blending = this.overlay ? CustomBlending : NormalBlending;
+    if (!defines || this.overlay) {
       this.target?.dispose();
       this.target = undefined;
-      return;
     }
+    if (!defines) return;
     if (JSON.stringify(defines) !== JSON.stringify(m.defines)) {
       m.defines = defines;
       m.needsUpdate = true;
@@ -200,6 +228,7 @@ export class AfterPass {
     if (c) (u.lineColor.value as Color).setRGB(c.r, c.g, c.b, SRGBColorSpace);
     u.lineStrength.value = a.outline?.strength ?? 0;
     u.lineWidth.value = a.outline?.width ?? 1;
+    u.soften.value = a.soften ?? 0;
     u.paper.value = a.paper ?? 0;
     u.tilt.value = a.tiltShift ?? 0;
     u.vignette.value = a.vignette ?? 0;
@@ -208,6 +237,7 @@ export class AfterPass {
 
   /** Draws scene through the pass onto the screen. */
   render(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera): void {
+    if (this.overlay) return this.overlaid(renderer, scene, camera);
     const target = this.fit(renderer);
     const u = this.material.uniforms;
     const fog = scene.fog as Fog | null;
@@ -222,6 +252,15 @@ export class AfterPass {
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
     renderer.render(this.screen, this.flat);
+  }
+
+  /** Draws scene straight to the screen, then multiplies the pass's output over it. */
+  private overlaid(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera): void {
+    renderer.render(scene, camera);
+    const autoClear = renderer.autoClear;
+    renderer.autoClear = false;
+    renderer.render(this.screen, this.flat);
+    renderer.autoClear = autoClear;
   }
 
   /** The scene picture, remade whenever the drawing size changes. */

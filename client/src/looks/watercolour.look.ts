@@ -4,7 +4,7 @@ import type { Look } from "./look";
 // Light numbers are the look book's sRGB ones raised to 2.2, to match in linear light.
 export default {
   name: "Watercolour",
-  about: "Drifting washes on paper with loose pencil lines",
+  about: "Drifting washes on paper with pencil lines",
   surface: {
     textured: false,
     tint: 0.02,
@@ -53,6 +53,7 @@ export default {
   water: { opacity: 0.8 },
   after: {
     outline: { width: 1, strength: 0.55, color: hex("5a4d44"), creases: true },
+    soften: 1.4,
     paper: 1,
     saturation: 0.9,
   },

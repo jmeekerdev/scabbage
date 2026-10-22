@@ -39,6 +39,7 @@ export default {
       bands: 0,
       shine: 0,
     },
+    height: { low: 30, high: 80, lift: 0.1 }, // from the sea up to the high hills
   },
   shape: { edges: false, softCorners: 0 },
   sky: {
@@ -50,4 +51,5 @@ export default {
   },
   fog: { start: 0.3 },
   water: { opacity: 0.8 },
+  after: { vignette: 0.15 },
 } satisfies Look;
