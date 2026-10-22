@@ -13,21 +13,22 @@ const LAYER_BYTES = TEXTURE_SIZE * TEXTURE_SIZE * 4;
 
 /**
  * RGBA per atlas layer: its flat sRGB colour, from the palette or the picture's average, and how to
- * draw it. Pictures named in solid lose their see-through holes.
+ * draw it. Pictures named in solid lose their see-through holes. A second row holds each average,
+ * its alpha 0 where the look wants no detail.
  */
 export function layerColors(
   atlas: Atlas,
   palette: Record<string, Rgb> = {},
   solid: readonly string[] = [],
 ): Uint8Array {
-  const out = new Uint8Array(atlas.depth * 4);
+  const out = new Uint8Array(atlas.depth * 8);
   atlas.names.forEach((name, layer) => {
     const pixels = atlas.pixels.subarray(layer * LAYER_BYTES, (layer + 1) * LAYER_BYTES);
     const chosen = palette[name];
-    const rgb = chosen
-      ? [chosen.r, chosen.g, chosen.b].map((v) => Math.round(v * 255))
-      : averageColor(pixels);
+    const average = averageColor(pixels);
+    const rgb = chosen ? [chosen.r, chosen.g, chosen.b].map((v) => Math.round(v * 255)) : average;
     out.set(rgb, layer * 4);
+    out.set([...average, solid.includes(name) ? 0 : 255], (atlas.depth + layer) * 4);
     out[layer * 4 + 3] = isCustomLayer(name)
       ? STICKER
       : hasHoles(pixels) && !solid.includes(name)
@@ -39,7 +40,7 @@ export function layerColors(
 
 /** layerColors as a one-row texture the block shader looks layers up in. */
 export function layerColorTexture(colors: Uint8Array): DataTexture {
-  const tex = new DataTexture(colors, colors.length / 4, 1, RGBAFormat);
+  const tex = new DataTexture(colors, colors.length / 8, 2, RGBAFormat);
   tex.colorSpace = SRGBColorSpace;
   tex.magFilter = tex.minFilter = NearestFilter;
   tex.needsUpdate = true;

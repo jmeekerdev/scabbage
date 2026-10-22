@@ -7,6 +7,7 @@ export default {
   about: "Drifting washes on paper with pencil lines",
   surface: {
     textured: false,
+    detail: 0.45,
     tint: 0.02,
     wash: 1,
     solid: ["leaves", "pine_leaves"],

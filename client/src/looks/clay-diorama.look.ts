@@ -7,6 +7,7 @@ export default {
   about: "Soft moulded colours with rounded edges",
   surface: {
     textured: false,
+    detail: 0.5,
     tint: 0.03,
     solid: ["leaves", "pine_leaves"],
     palette: blockPalette({

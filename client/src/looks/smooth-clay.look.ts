@@ -7,6 +7,7 @@ export default {
   about: "Rolling hills with crisp built blocks",
   surface: {
     textured: false,
+    detail: 0.4,
     tint: 0.03,
     solid: ["leaves", "pine_leaves"],
     palette: blockPalette({

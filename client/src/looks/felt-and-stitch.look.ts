@@ -7,6 +7,7 @@ export default {
   about: "Fuzzy fabric with stitched edges",
   surface: {
     textured: false,
+    detail: 0.45,
     tint: 0.03,
     fibre: 1,
     solid: ["leaves", "pine_leaves"],

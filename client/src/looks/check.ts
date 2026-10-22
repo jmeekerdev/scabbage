@@ -5,6 +5,7 @@ import type { Look, Rgb } from "./look";
 export const LOOK_RANGES: [path: string, min: number, max: number][] = [
   ["surface.tint", 0, 1],
   ["surface.wash", 0, 1],
+  ["surface.detail", 0, 1],
   ["surface.fibre", 0, 1],
   ["light.faces.top", 0, 4],
   ["light.faces.bottom", 0, 4],

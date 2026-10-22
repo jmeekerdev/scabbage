@@ -29,6 +29,7 @@ export const lookUniforms = {
   waterOpacity: { value: 1 },
   layerColors: { value: null as Texture | null },
   veil: { value: 0 },
+  detail: { value: 0 },
   wash: { value: 0 },
   fibre: { value: 0 },
   pool: { value: 0 },
@@ -46,6 +47,7 @@ export function setLookUniforms(look: Look): void {
   u.lamp.value.copy(rgb(look.light.lamp));
   u.lampFade.value = look.light.lampFade;
   u.waterOpacity.value = look.water.opacity;
+  u.detail.value = look.surface.detail ?? 0;
   u.wash.value = look.surface.wash ?? 0;
   u.fibre.value = look.surface.fibre ?? 0;
   u.pool.value = look.shape.pool ?? 0;
@@ -69,6 +71,7 @@ export function lookFeatures(look: Look): Record<string, string> {
   const sun = look.light.sun;
   const on = {
     FLAT: !look.surface.textured,
+    DETAIL: !look.surface.textured && (look.surface.detail ?? 0) > 0,
     SUN: !!sun,
     BANDS: !!sun && sun.bands >= 2,
     SHINE: !!sun && sun.shine > 0,
@@ -85,6 +88,7 @@ export function lookFeatures(look: Look): Record<string, string> {
 
 const FEATURES = [
   "FLAT",
+  "DETAIL",
   "SUN",
   "BANDS",
   "SHINE",

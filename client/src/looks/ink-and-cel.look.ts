@@ -7,6 +7,7 @@ export default {
   about: "Bright cartoon colours with ink lines",
   surface: {
     textured: false,
+    detail: 0.6,
     tint: 0,
     solid: ["leaves", "pine_leaves"],
     palette: blockPalette({

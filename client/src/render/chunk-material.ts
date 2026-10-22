@@ -96,6 +96,7 @@ uniform float tint;
 uniform vec3 ao;
 uniform vec3 lamp;
 uniform float waterOpacity;
+uniform float detail;
 uniform float wash;
 uniform float fibre;
 uniform float pool;
@@ -197,12 +198,26 @@ vec4 picture() {
   return texture(blocks, vec3(vUv, vLayer));
 }
 
+// The flat colour lightened and darkened where the picture is lighter or darker than its average.
+vec3 detailed(vec3 flatRgb, vec4 pic, int layer) {
+  #ifdef DETAIL
+  vec4 average = texelFetch(layerColors, ivec2(layer, 1), 0);
+  const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
+  float ratio = clamp(dot(pic.rgb, LUMA) / max(dot(average.rgb, LUMA), 0.01), 0.0, 2.5);
+  return flatRgb * mix(1.0, ratio, pic.a < 0.5 ? 0.0 : detail * average.a);
+  #else
+  return flatRgb;
+  #endif
+}
+
 // The block's picture, or in untextured looks its flat colour; stickers keep their picture.
 vec4 surface() {
   #ifdef FLAT
-  vec4 flatColor = texelFetch(layerColors, ivec2(int(vLayer + 0.5), 0), 0);
-  if (flatColor.a > 0.75) return picture();
-  return vec4(flatColor.rgb, flatColor.a > 0.25 ? picture().a : 1.0);
+  int layer = int(vLayer + 0.5);
+  vec4 flatColor = texelFetch(layerColors, ivec2(layer, 0), 0);
+  vec4 pic = picture();
+  if (flatColor.a > 0.75) return pic;
+  return vec4(detailed(flatColor.rgb, pic, layer), flatColor.a > 0.25 ? pic.a : 1.0);
   #else
   return picture();
   #endif

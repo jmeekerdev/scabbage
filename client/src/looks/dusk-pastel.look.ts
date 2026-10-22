@@ -7,6 +7,7 @@ export default {
   about: "Flat pastel faces, warm sun and lilac shade",
   surface: {
     textured: false,
+    detail: 0.5,
     tint: 0.03,
     solid: ["leaves", "pine_leaves"],
     palette: blockPalette({

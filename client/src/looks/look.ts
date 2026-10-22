@@ -66,6 +66,8 @@ export interface Look {
     palette?: Record<string, Rgb>;
     /** Textures drawn without their see-through holes when untextured, like leaves as solid crowns. */
     solid?: string[];
+    /** 0–1, how much of each block's picture shows as light and dark over its flat colour. */
+    detail?: number;
     /** How much each block's brightness varies, so same-kind neighbors don't form a grid. */
     tint: number;
     /** 0–1, colour that drifts across the land in soft washes, fixed to the world. */

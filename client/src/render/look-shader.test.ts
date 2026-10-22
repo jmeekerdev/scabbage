@@ -54,6 +54,14 @@ describe("lookFeatures shape", () => {
     expect(lookFeatures(fabric)).toEqual({ EDGES: "", WASH: "", FIBRE: "", POOL: "", STITCH: "" });
   });
 
+  it("shows block pictures as light and dark over flat colours, only in untextured looks", () => {
+    const flat = { ...today.surface, textured: false, detail: 0.5 };
+    expect(lookFeatures({ ...today, surface: flat })).toEqual({ FLAT: "", DETAIL: "" });
+    expect(lookFeatures({ ...today, surface: { ...flat, textured: true } })).toEqual({});
+    setLookUniforms({ ...today, surface: flat });
+    expect(lookUniforms.detail.value).toBe(0.5);
+  });
+
   it("drops pooled edges and stitches without the edges they follow", () => {
     const shape = { edges: false, softCorners: 0, pool: 0.2, stitch: { r: 1, g: 1, b: 1 } };
     expect(lookFeatures({ ...today, shape })).toEqual({});
