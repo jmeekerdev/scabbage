@@ -1,10 +1,10 @@
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
 export type Velocity = { x: number; y: number; z: number };
 
-const ALONG = 9 * METRE; // with UP_ALONG, about six metres forward
-const UP_ALONG = 9 * METRE;
-const UP = 12.5 * METRE; // about 2.8 metres high, just under the height that hurts on landing
+const ALONG = 9 * METER; // with UP_ALONG, about six meters forward
+const UP_ALONG = 9 * METER;
+const UP = 12.5 * METER; // about 2.8 meters high, just under the height that hurts on landing
 
 // Each facing's name suffix and the way it throws; mirrors world.LaunchPad.
 const THROWS: Record<string, Velocity> = {

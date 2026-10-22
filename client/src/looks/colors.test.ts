@@ -3,7 +3,7 @@ import { TEXTURE_NAMES } from "../render/textures";
 import { blockPalette, hex } from "./colors";
 
 describe("hex", () => {
-  it("reads a six-digit sRGB colour as 0–1 channels", () => {
+  it("reads a six-digit sRGB color as 0–1 channels", () => {
     expect(hex("ff8000")).toEqual({ r: 1, g: 128 / 255, b: 0 });
   });
 });
@@ -11,7 +11,7 @@ describe("hex", () => {
 describe("blockPalette", () => {
   const pal = blockPalette({ grass: "00ff00", dirt: "ff0000", log: "0000ff" });
 
-  it("colours every texture a block shows", () => {
+  it("colors every texture a block shows", () => {
     expect(pal.grass_top).toEqual(hex("00ff00"));
     expect(pal.log_top).toEqual(hex("0000ff"));
     expect(pal.log_side).toEqual(hex("0000ff"));

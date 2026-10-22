@@ -1,4 +1,4 @@
-import { at, LIGHT_COLOURS, LOOK_RANGES } from "./check";
+import { at, LIGHT_COLORS, LOOK_RANGES } from "./check";
 import type { Look, Rgb } from "./look";
 
 export interface NumberControl {
@@ -9,7 +9,7 @@ export interface NumberControl {
   value: number;
 }
 
-export interface ColourControl {
+export interface ColorControl {
   path: string;
   value: Rgb;
 }
@@ -25,7 +25,7 @@ const EXTRA: [path: string, min: number, max: number, step?: number][] = [
   ["light.sun.dir.y", -1, 1],
   ["light.sun.dir.z", -1, 1],
   ["light.sun.bands", 0, 8, 1],
-  ...LIGHT_COLOURS.flatMap((p) =>
+  ...LIGHT_COLORS.flatMap((p) =>
     ["r", "g", "b"].map((k): [string, number, number] => [`${p}.${k}`, 0, 2]),
   ),
 ];
@@ -51,8 +51,8 @@ export function numberControls(look: Look): NumberControl[] {
     }));
 }
 
-/** The look's sRGB colours that can be picked: sky stops, and stitches and lines when it has them. */
-export function colourControls(look: Look): ColourControl[] {
+/** The look's sRGB colors that can be picked: sky stops, and stitches and lines when it has them. */
+export function colorControls(look: Look): ColorControl[] {
   const paths = [
     ...Object.keys(look.sky).map((k) => `sky.${k}`),
     "shape.stitch",
@@ -77,7 +77,7 @@ export function setAt(look: Look, path: string, value: unknown): Look {
 
 const byte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
 
-/** An sRGB colour as a colour input's "#rrggbb". */
+/** An sRGB color as a color input's "#rrggbb". */
 export function toHex(c: Rgb): string {
   return `#${[c.r, c.g, c.b].map((v) => byte(v).toString(16).padStart(2, "0")).join("")}`;
 }

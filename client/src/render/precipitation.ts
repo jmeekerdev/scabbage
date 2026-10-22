@@ -9,15 +9,15 @@ import {
   type Scene,
 } from "three";
 import type { Preset } from "../settings/settings";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import { snowsAt, type WeatherState } from "./weather";
 
 /** How many drops each preset can show at most, in a storm. */
 export const DROPS: Record<Preset, number> = { low: 500, medium: 1200, high: 2000 };
 
-const BOX = new Vector3(16 * METRE, 12 * METRE, 16 * METRE); // the space drops fall through
-const RAIN = { fall: 8 * METRE, length: 0.4 * METRE, slant: 1.5 * METRE }; // per second; length
-const SNOW = { fall: 1 * METRE, size: 60 }; // per second; flake size in pixels one block away
+const BOX = new Vector3(16 * METER, 12 * METER, 16 * METER); // the space drops fall through
+const RAIN = { fall: 8 * METER, length: 0.4 * METER, slant: 1.5 * METER }; // per second; length
+const SNOW = { fall: 1 * METER, size: 60 }; // per second; flake size in pixels one block away
 
 const vertexShader = /* glsl */ `
 uniform vec3 center;

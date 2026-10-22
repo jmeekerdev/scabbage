@@ -33,7 +33,7 @@ describe("checkLook", () => {
     ]);
   });
 
-  it("keeps sRGB colours within 0–1 but lets light colours go brighter", () => {
+  it("keeps sRGB colors within 0–1 but lets light colors go brighter", () => {
     const sky = { ...today.sky, day: { r: 1.2, g: 0, b: 0 } };
     expect(checkLook({ ...today, sky })).toEqual(["sky.day.r must be 0–1, is 1.2"]);
     expect(checkLook(withSun({ lit: { r: 1.3, g: 1, b: 1 } }))).toEqual([]);

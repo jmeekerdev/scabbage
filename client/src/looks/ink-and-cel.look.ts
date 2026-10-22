@@ -4,7 +4,7 @@ import type { Look } from "./look";
 // Light numbers are the look book's sRGB ones raised to 2.2, to match in linear light.
 export default {
   name: "Ink & Cel",
-  about: "Bright cartoon colours with ink lines",
+  about: "Bright cartoon colors with ink lines",
   surface: {
     textured: false,
     detail: 0.6,

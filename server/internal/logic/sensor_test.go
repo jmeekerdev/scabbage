@@ -33,11 +33,11 @@ func partOfDay(f float64) time.Time {
 
 func TestAPlayerDetectorGivesPowerWhileSomeoneIsNear(t *testing.T) {
 	g := line(world.PlayerDetector, wire, lamp)
-	sense(t, g, Senses{Players: []Spot{{X: 0.5, Y: 0, Z: 3*world.Metre + 0.5}}})
+	sense(t, g, Senses{Players: []Spot{{X: 0.5, Y: 0, Z: 3*world.Meter + 0.5}}})
 	if g[Pos{2, 0, 0}] != lit {
 		t.Fatalf("not lit: %v", g)
 	}
-	sense(t, g, Senses{Players: []Spot{{X: 0.5, Y: 0, Z: 5*world.Metre + 0.5}}})
+	sense(t, g, Senses{Players: []Spot{{X: 0.5, Y: 0, Z: 5*world.Meter + 0.5}}})
 	if g[Pos{2, 0, 0}] != lamp || g[Pos{}] != world.PlayerDetector {
 		t.Fatalf("still lit: %v", g)
 	}

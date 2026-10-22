@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	maxZoneSize = 256 * world.Metre
+	maxZoneSize = 256 * world.Meter
 	zoneHelp    = "Zones: /zone add NAME SIZE, /zone remove NAME, /zone allow NAME PLAYER, " +
 		"/zone disallow NAME PLAYER, /zone mode NAME creative|survival|any, /zone list"
 )
@@ -138,7 +138,7 @@ type badZoneArg string
 
 func (e badZoneArg) Error() string { return string(e) }
 
-// addZone makes a square zone of the given size centred on the admin.
+// addZone makes a square zone of the given size centered on the admin.
 func (s *session) addZone(name, size string) error {
 	n, err := strconv.Atoi(size)
 	if err != nil || n < 1 || n > maxZoneSize {

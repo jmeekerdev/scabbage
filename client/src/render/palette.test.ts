@@ -49,7 +49,7 @@ describe("layerColors", () => {
     expect(colorOf(topRed(), { brick: { r: 1, g: 0.5, b: 0 } })).toEqual([255, 128, 0, SOLID]);
   });
 
-  it("keeps each picture's own average in a second row, beside a palette's colour", () => {
+  it("keeps each picture's own average in a second row, beside a palette's color", () => {
     const atlas = buildAtlas([], [{ name: "brick", pixels: topRed() }]);
     const layer = atlas.layerOf("brick");
     const colors = layerColors(atlas, { brick: { r: 1, g: 0.5, b: 0 } });
@@ -57,7 +57,7 @@ describe("layerColors", () => {
     expect([...colors.subarray(row2, row2 + 4)]).toEqual([16, 0, 239, 255]);
   });
 
-  it("marks pictures a look fills as solid to keep their flat colour, without detail", () => {
+  it("marks pictures a look fills as solid to keep their flat color, without detail", () => {
     const atlas = buildAtlas([], [{ name: "brick", pixels: topRed() }]);
     const row2 = (atlas.depth + atlas.layerOf("brick")) * 4;
     expect(layerColors(atlas, {}, ["brick"])[row2 + 3]).toBe(0);
@@ -71,7 +71,7 @@ describe("layerColors", () => {
 });
 
 describe("topColors", () => {
-  it("gives each block its top layer's colour", () => {
+  it("gives each block its top layer's color", () => {
     const atlas = buildAtlas([custom], []);
     const table = buildRenderTable([air, custom], atlas.layerOf);
     const colors = topColors(layerColors(atlas), table);

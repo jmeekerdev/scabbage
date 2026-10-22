@@ -1,11 +1,11 @@
 import { lookDirection, raycast, type RayHit, type Vec3 } from "../world/raycast";
 import { isStairs, padFacing, pistonFacing, Shape, stairsFacing } from "../world/shapes";
 import { HALF_WIDTH, HEIGHT, type Body } from "./physics";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import { brushCube, cubeCells, type Cell, type Cube } from "./brush";
 
 /** How far the eye reaches; server/internal/edit allows a little more. */
-export const REACH = 5 * METRE;
+export const REACH = 5 * METER;
 const AIR = 0;
 // Blocks placed facing any of six ways, like pistons.
 const SIX_WAY = [

@@ -162,8 +162,8 @@ func TestMiningTakesLongerForHarderBlocks(t *testing.T) {
 	}
 }
 
-func TestSmallBlocksDigInAThirdOfAMetreBlocksTime(t *testing.T) {
-	if Info(Stone).MineMs*Metre != 1500 || Info(Dirt).MineMs*Metre < 498 {
+func TestSmallBlocksDigInAThirdOfAMeterBlocksTime(t *testing.T) {
+	if Info(Stone).MineMs*Meter != 1500 || Info(Dirt).MineMs*Meter < 498 {
 		t.Fatalf("stone %d dirt %d per small block", Info(Stone).MineMs, Info(Dirt).MineMs)
 	}
 }
@@ -280,9 +280,9 @@ func TestForgetCustomBlocks(t *testing.T) {
 	}
 }
 
-func TestLampsLightTenMetresAround(t *testing.T) {
-	if reach := int(Info(Lamp).Light) - 1; reach < 9*Metre || reach > 10*Metre {
-		t.Fatalf("a lamp lights %d blocks around, want about ten metres", reach)
+func TestLampsLightTenMetersAround(t *testing.T) {
+	if reach := int(Info(Lamp).Light) - 1; reach < 9*Meter || reach > 10*Meter {
+		t.Fatalf("a lamp lights %d blocks around, want about ten meters", reach)
 	}
 }
 

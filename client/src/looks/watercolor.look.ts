@@ -3,7 +3,7 @@ import type { Look } from "./look";
 
 // Light numbers are the look book's sRGB ones raised to 2.2, to match in linear light.
 export default {
-  name: "Watercolour",
+  name: "Watercolor",
   about: "Drifting washes on paper with pencil lines",
   surface: {
     textured: false,

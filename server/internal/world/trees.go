@@ -16,18 +16,18 @@ func (f feature) tree() tree {
 	t := tree{kind: f.kind, x: f.x, z: f.z, ground: f.ground, r: f.r >> 8}
 	switch f.kind {
 	case oakTree:
-		t.width, t.top = Metre, f.ground+(4+int32(f.r%3))*Metre
+		t.width, t.top = Meter, f.ground+(4+int32(f.r%3))*Meter
 	case pineTree:
-		t.width, t.top = 2, f.ground+(7+int32(f.r%3))*Metre
+		t.width, t.top = 2, f.ground+(7+int32(f.r%3))*Meter
 	default:
-		t.width, t.top = 2, f.ground+(5+int32(f.r%3))*Metre
+		t.width, t.top = 2, f.ground+(5+int32(f.r%3))*Meter
 	}
 	return t
 }
 
-// trunk is logs from a metre underground, so slopes don't leave it floating, up to the top.
+// trunk is logs from a meter underground, so slopes don't leave it floating, up to the top.
 func (t tree) trunk(put putFunc) {
-	fillBox(t.x, t.ground-Metre+1, t.z, t.x+t.width-1, t.top, t.z+t.width-1, func(x, y, z int32) { put(x, y, z, Log, false) })
+	fillBox(t.x, t.ground-Meter+1, t.z, t.x+t.width-1, t.top, t.z+t.width-1, func(x, y, z int32) { put(x, y, z, Log, false) })
 }
 
 // crown draws the leaves into air and plants.
@@ -47,10 +47,10 @@ func (t tree) crown(cv canvas) {
 	}
 }
 
-// cone draws a pine's tiers of branches, widest at the bottom, from two metres up to a point
+// cone draws a pine's tiers of branches, widest at the bottom, from two meters up to a point
 // above the top log.
 func (t tree) cone(cv canvas, cx, cz float64, put func(x, y, z int32)) {
-	base, apex := cv.clamp(1, t.ground+2*Metre, t.top+3)
+	base, apex := cv.clamp(1, t.ground+2*Meter, t.top+3)
 	for y := base; y <= apex; y++ {
 		r := float64(t.top+3-y)*0.32 + 1.6 - float64((t.top+3-y)%5)*0.25
 		reach := int32(math.Ceil(r))

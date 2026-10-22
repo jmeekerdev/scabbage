@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lookCost, type Look } from "./look";
-import { DEFAULT_LOOK, LOOKS, lookById } from "./registry";
+import { currentLookId, DEFAULT_LOOK, LOOKS, lookById } from "./registry";
 
 describe("look registry", () => {
   it("finds every look file, named by its file", () => {
@@ -11,6 +11,17 @@ describe("look registry", () => {
 
   it("falls back to the default look for unknown names", () => {
     expect(lookById("no-such-look")).toBe(LOOKS.get(DEFAULT_LOOK));
+  });
+
+  it("follows a renamed look from its old name", () => {
+    expect(currentLookId("watercolour")).toBe("watercolor");
+    expect(currentLookId("today")).toBe("today");
+    expect(lookById("watercolour")).toBe(LOOKS.get("watercolor"));
+  });
+
+  it("spells look ids, names and descriptions in US English", () => {
+    const british = /colour|mould|grey|centre|fibre|metre/i;
+    for (const [id, look] of LOOKS) expect(`${id} ${look.name} ${look.about}`).not.toMatch(british);
   });
 
   it("gives every look a name and a description", () => {

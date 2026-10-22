@@ -39,7 +39,7 @@ func (ts *testServer) survivalAdmin(t *testing.T) *websocket.Conn {
 // dropTen jumps the player up ten blocks above spawn and lands back on it.
 func (ts *testServer) dropTen(t *testing.T, c *websocket.Conn) {
 	x, y, z := ts.spawn()
-	send(t, c, move(x, y+10*world.Metre, z, 0))
+	send(t, c, move(x, y+10*world.Meter, z, 0))
 	send(t, c, move(x, y, z, 0))
 }
 
@@ -78,7 +78,7 @@ func TestFaintingSendsThePlayerBackToSpawnHealed(t *testing.T) {
 	ts := startServer(t)
 	c := ts.survivalAdmin(t)
 	x, y, z := ts.spawn()
-	shaft := int32(25 * world.Metre)
+	shaft := int32(25 * world.Meter)
 	for d := int32(1); d <= shaft; d++ {
 		for _, at := range [][2]int32{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 0}, {0, 1}, {1, -1}, {1, 0}, {1, 1}} {
 			if err := ts.world.SetBlock(at[0], int32(y)-d, at[1], world.Air); err != nil {
@@ -136,7 +136,7 @@ func TestOnlyAdminsSetModes(t *testing.T) {
 func TestWaterAtChestHeightHoldsYouUp(t *testing.T) {
 	ts := startServer(t)
 	feet := motion.Vec{X: 5.5, Y: 300, Z: 5.5}
-	setBlock(t, ts, 5, 300+world.Metre, 5, world.Water) // a metre up, about chest high
+	setBlock(t, ts, 5, 300+world.Meter, 5, world.Water) // a meter up, about chest high
 	if got := ts.gw.footing(feet); got != vitals.Water {
 		t.Fatalf("footing %v, want water", got)
 	}

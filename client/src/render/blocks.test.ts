@@ -152,7 +152,7 @@ describe("buildRenderTable", () => {
     expect(BLOCK_STYLES["number_display"]?.side).toBe("display_0");
   });
 
-  it("colours each timer speed's face and strings tripwires", () => {
+  it("colors each timer speed's face and strings tripwires", () => {
     for (const b of ["timer_1", "timer_2_on", "timer_8", "timer_16_on", "tripwire", "tripwire_on"])
       expect(BLOCK_STYLES[b]?.side, b).toBe(b);
   });

@@ -203,7 +203,7 @@ func TestMapSamplePlacesAStarterAdventure(t *testing.T) {
 
 	// The hidden switch behind the house opens its gate.
 	g := int32(239)
-	m, mid := int32(world.Metre), int32(world.Metre/2)
+	m, mid := int32(world.Meter), int32(world.Meter/2)
 	sw := world.Pos{X: z.X0 + 20*m + mid, Y: g + 1, Z: z.Z0 + 13*m + mid}
 	gate := world.Pos{X: z.X0 + 16*m, Y: g + 1, Z: z.Z0 + 7*m}
 	blockIs(t, ts, gate.X, gate.Y, gate.Z, world.Cobblestone)
@@ -211,7 +211,7 @@ func TestMapSamplePlacesAStarterAdventure(t *testing.T) {
 	send(t, c, useBlock(sw.X, sw.Y, sw.Z))
 	recvWhere(t, c, func(m *pb.ServerMessage) bool { return strings.Contains(m.GetChat().GetText(), "opens") })
 	blockIs(t, ts, gate.X, gate.Y, gate.Z, world.Air)
-	blockIs(t, ts, gate.X+m-1, gate.Y+2*m-1, gate.Z+m-1, world.Air) // a doorway a metre wide and two tall
+	blockIs(t, ts, gate.X+m-1, gate.Y+2*m-1, gate.Z+m-1, world.Air) // a doorway a meter wide and two tall
 }
 
 func (ts *testServer) saveScript(t *testing.T, at world.Pos, src string) {

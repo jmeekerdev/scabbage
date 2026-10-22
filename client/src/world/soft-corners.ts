@@ -6,7 +6,7 @@ export const Smooth = { EMPTY: 0, NATURAL: 1, BUILT: 2 } as const;
 
 const GRID = S + 1; // block corners along each side of a chunk
 
-// The 8 blocks around a corner, as offsets from it to their centres, and the 12 edges joining them.
+// The 8 blocks around a corner, as offsets from it to their centers, and the 12 edges joining them.
 const AROUND = Array.from({ length: 8 }, (_, i) => [
   (i & 1) - 0.5,
   ((i >> 1) & 1) - 0.5,

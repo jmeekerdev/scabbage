@@ -70,7 +70,7 @@ const wire =
   (x, y, n) =>
     Math.abs(x - 7.5) < 2 || Math.abs(y - 7.5) < 2 ? shade(rgb, 0.9 + n() * 0.2) : [0, 0, 0, 0];
 
-/** A stone block with a coloured square in the middle: red when off, green when on. */
+/** A stone block with a colored square in the middle: red when off, green when on. */
 const knob =
   (rgb: [number, number, number], size: number): Painter =>
   (x, y, n) =>
@@ -83,7 +83,7 @@ const plate =
   (x, y, n) =>
     shade([160, 160, 150], (edge(x, y) ? 0.75 : 1) * k * (0.95 + n() * 0.1));
 
-/** Flower petal colours; each paints the server's "<color>_flower" block. */
+/** Flower petal colors; each paints the server's "<color>_flower" block. */
 const FLOWERS: [string, RGB][] = [
   ["red", [205, 40, 45]],
   ["yellow", [245, 205, 50]],
@@ -123,7 +123,7 @@ const PAINTERS: Record<string, Painter> = {
       ? shade([102, 81, 51], 0.9)
       : shade([176, 144, 92], (Math.floor(r) % 2 ? 0.85 : 1) * (0.95 + n() * 0.1));
   },
-  // Few holes: at a third of a metre per block, more read as static.
+  // Few holes: at a third of a meter per block, more read as static.
   leaves: (_x, _y, n) => (n(2) < 0.08 ? [0, 0, 0, 0] : shade([58, 128, 38], 0.85 + n() * 0.3)),
   planks: (x, y, n) => {
     const seam = y % 4 === 3 || x === ((y >> 2) % 2) * 8;

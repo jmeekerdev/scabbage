@@ -12,7 +12,7 @@ import (
 const Max = 20
 
 const (
-	safeFall  = 3.0 * world.Metre // how far anyone can drop unhurt
+	safeFall  = 3.0 * world.Meter // how far anyone can drop unhurt
 	healDelay = 5 * time.Second
 	healEvery = 3 * time.Second
 	noFallYet = -math.MaxFloat64
@@ -50,7 +50,7 @@ func (s *State) Fall(y float64, f Footing) int {
 	if f == Water || drop <= safeFall {
 		return 0
 	}
-	return int((drop - safeFall) / world.Metre) // a heart's half per metre
+	return int((drop - safeFall) / world.Meter) // a heart's half per meter
 }
 
 // Settle forgets the current fall, e.g. after a teleport.

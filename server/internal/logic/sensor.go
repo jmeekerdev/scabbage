@@ -9,7 +9,7 @@ import (
 )
 
 // senseRange is how near, in blocks, someone must be for a detector to notice them.
-const senseRange = 4 * world.Metre
+const senseRange = 4 * world.Meter
 
 // Spot is a point in the world, such as a player's feet.
 type Spot struct{ X, Y, Z float64 }

@@ -1,4 +1,4 @@
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import { MIN_LIGHT, type SkyState } from "./sky";
 
 /** What the sky is doing; numbered as in the server's weather package. */
@@ -13,7 +13,7 @@ export const SPELL_MS = 4 * 60_000;
 /** How long one weather takes to give way to the next. */
 export const FADE_MS = 20_000;
 /** Above this height rain falls as snow. */
-export const SNOW_LINE = 56 * METRE;
+export const SNOW_LINE = 56 * METER;
 
 const FLASH_SLOT_MS = 5000;
 const FLASH_MS = 200;
@@ -53,15 +53,15 @@ export function flashAt(nowMs: number): number {
   return since >= 0 && since < FLASH_MS ? (1 - since / FLASH_MS) * storm : 0;
 }
 
-/** The sky darkened and greyed by rain, and lit up by a lightning flash from 0 to 1. */
+/** The sky darkened and grayed by rain, and lit up by a lightning flash from 0 to 1. */
 export function weatherSky(sky: SkyState, w: WeatherState, flash: number): SkyState {
   if (w.wet === 0 && flash === 0) return sky;
   const dim = 1 - 0.3 * w.wet - 0.25 * w.storm;
   const lit = MIN_LIGHT + (sky.daylight - MIN_LIGHT) * dim;
   const { r, g, b } = sky.color;
-  const grey = (0.3 * r + 0.55 * g + 0.15 * b) * dim;
+  const gray = (0.3 * r + 0.55 * g + 0.15 * b) * dim;
   const cloud = 0.7 * w.wet;
-  const tone = (c: number) => c + (grey - c) * cloud + (1 - c) * 0.6 * flash;
+  const tone = (c: number) => c + (gray - c) * cloud + (1 - c) * 0.6 * flash;
   return {
     ...sky,
     daylight: lit + (1 - lit) * flash,

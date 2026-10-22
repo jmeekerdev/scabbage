@@ -11,7 +11,7 @@ home server with 2 GB RAM and 2 cores, and does almost nothing while nobody is p
 
 ## Features
 
-- **Building:** a seeded, bounded world with metre-sized blocks, brush sizes, glass, lights,
+- **Building:** a seeded, bounded world with meter-sized blocks, brush sizes, glass, lights,
   stairs, slabs, wool and family-painted custom blocks.
 - **Survival:** health, mining time per block, inventory, crafting, animals and night monsters.
   Protected zones (such as spawn) stop griefing, and each zone or player can be creative or
@@ -23,14 +23,14 @@ home server with 2 GB RAM and 2 cores, and does almost nothing while nobody is p
 - **Scripting:** Blockly for kids and text Lua for older players, run in a sandbox on the server.
 - **Adventure:** quests, NPCs, dungeons, loot, bosses and family-made adventure maps.
 - **Looks:** each player picks how the world is drawn, from the default to pastel, clay,
-  ink & cel, watercolour and more. Weather and a day–night cycle are the same for everyone.
+  ink & cel, watercolor and more. Weather and a day–night cycle are the same for everyone.
 - **Social:** text chat, emotes and blocky avatars with skins you paint yourself.
 
 The same shore in six of the looks:
 
-| Today                                                   | Watercolour                                           | Ink & Cel                                                   |
+| Today                                                   | Watercolor                                            | Ink & Cel                                                   |
 | ------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
-| ![Today](docs/screenshots/look-today.jpg)               | ![Watercolour](docs/screenshots/look-watercolour.jpg) | ![Ink & Cel](docs/screenshots/look-ink-and-cel.jpg)         |
+| ![Today](docs/screenshots/look-today.jpg)               | ![Watercolor](docs/screenshots/look-watercolor.jpg)   | ![Ink & Cel](docs/screenshots/look-ink-and-cel.jpg)         |
 | **Clay Diorama**                                        | **Dusk Pastel**                                       | **Felt & Stitch**                                           |
 | ![Clay Diorama](docs/screenshots/look-clay-diorama.jpg) | ![Dusk Pastel](docs/screenshots/look-dusk-pastel.jpg) | ![Felt & Stitch](docs/screenshots/look-felt-and-stitch.jpg) |
 

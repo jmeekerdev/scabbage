@@ -24,7 +24,7 @@ const (
 const (
 	Every    = 100 * time.Millisecond // how often the herd steps
 	Regrow   = 3 * time.Minute        // a sheared sheep's wool
-	reach    = 5.5 * metre            // from the hitter's eye to the mob's middle, with lag
+	reach    = 5.5 * meter            // from the hitter's eye to the mob's middle, with lag
 	firstID  = 1 << 31                // above player entity ids, so the two never meet
 	maxDelta = 0.5                    // seconds simulated in one step at most
 )
@@ -167,13 +167,13 @@ func (h *Herd) Hit(id uint32, from motion.Vec, now time.Time) (Hit, bool) {
 	var out Hit
 	switch m.Kind {
 	case Sheep:
-		m.flee(from, now, 3*metre, 2*time.Second)
+		m.flee(from, now, 3*meter, 2*time.Second)
 		if !m.Sheared {
 			m.Sheared, m.regrow, out.Drop = true, now.Add(Regrow), world.WhiteWool
 		}
 	default:
 		if !kinds[m.Kind].steady {
-			m.flee(from, now, 5*metre, 300*time.Millisecond)
+			m.flee(from, now, 5*meter, 300*time.Millisecond)
 		}
 		if m.health--; m.health <= 0 {
 			h.mobs = slices.Delete(h.mobs, i, i+1)

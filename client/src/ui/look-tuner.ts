@@ -1,13 +1,13 @@
 import { checkLook } from "../looks/check";
 import type { Look } from "../looks/look";
 import {
-  colourControls,
+  colorControls,
   fromHex,
   lookFile,
   numberControls,
   setAt,
   toHex,
-  type ColourControl,
+  type ColorControl,
   type NumberControl,
 } from "../looks/tuning";
 import { el } from "./dom";
@@ -49,7 +49,7 @@ export class LookTuner {
 
   private render(): void {
     this.rows.replaceChildren(
-      ...colourControls(this.look).map((c) => this.colourRow(c)),
+      ...colorControls(this.look).map((c) => this.colorRow(c)),
       ...numberControls(this.look).map((c) => this.numberRow(c)),
     );
     this.check();
@@ -66,7 +66,7 @@ export class LookTuner {
     return el("label", {}, el("span", {}, c.path), input, shown);
   }
 
-  private colourRow(c: ColourControl): HTMLElement {
+  private colorRow(c: ColorControl): HTMLElement {
     const input = el("input", { type: "color", value: toHex(c.value), "aria-label": c.path });
     input.addEventListener("input", () => this.change(c.path, fromHex(input.value)));
     return el("label", {}, el("span", {}, c.path), input);

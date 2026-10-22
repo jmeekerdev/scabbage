@@ -27,7 +27,7 @@ func TestCannotBreakAirWaterOrBedrock(t *testing.T) {
 }
 
 func TestReachIsLimited(t *testing.T) {
-	if InReach(feet, 7*world.Metre, 15, 0) || !InReach(feet, 5*world.Metre, 15, 0) {
+	if InReach(feet, 7*world.Meter, 15, 0) || !InReach(feet, 5*world.Meter, 15, 0) {
 		t.Fatal("blocks 5 m away are in reach and 7 m away out of it")
 	}
 }

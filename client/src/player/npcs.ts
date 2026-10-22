@@ -1,9 +1,9 @@
 import { AVATAR_COLORS } from "../join/rules";
 import type { Vec3 } from "../world/raycast";
 import { pickPlayer, type RemoteState } from "./remote-players";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
-const NOTICE = 8 * METRE; // blocks: closer than this, characters turn to face you
+const NOTICE = 8 * METER; // blocks: closer than this, characters turn to face you
 const NO_SKIN = new Uint8Array(0);
 
 type Spot = { name: string; x: number; y: number; z: number; color: number };

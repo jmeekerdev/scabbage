@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkLook } from "./check";
 import { lookById } from "./registry";
-import { colourControls, lookFile, numberControls, setAt, toHex, fromHex } from "./tuning";
+import { colorControls, lookFile, numberControls, setAt, toHex, fromHex } from "./tuning";
 
 const today = lookById("today");
 const ink = lookById("ink-and-cel");
@@ -33,11 +33,11 @@ describe("numberControls", () => {
   });
 });
 
-describe("colourControls", () => {
-  it("offers the sky and present outline colours as sRGB", () => {
-    const paths = colourControls(ink).map((c) => c.path);
+describe("colorControls", () => {
+  it("offers the sky and present outline colors as sRGB", () => {
+    const paths = colorControls(ink).map((c) => c.path);
     expect(paths).toEqual(expect.arrayContaining(["sky.day", "after.outline.color"]));
-    expect(colourControls(today).map((c) => c.path)).not.toContain("after.outline.color");
+    expect(colorControls(today).map((c) => c.path)).not.toContain("after.outline.color");
   });
 });
 
@@ -54,8 +54,8 @@ describe("setAt", () => {
   });
 });
 
-describe("hex colours", () => {
-  it("round-trips an sRGB colour through a colour input's value", () => {
+describe("hex colors", () => {
+  it("round-trips an sRGB color through a color input's value", () => {
     expect(toHex({ r: 1, g: 0.5, b: 0 })).toBe("#ff8000");
     expect(fromHex("#ff8000")).toEqual({ r: 1, g: 128 / 255, b: 0 });
   });

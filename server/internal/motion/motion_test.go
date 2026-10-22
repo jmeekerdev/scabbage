@@ -59,12 +59,12 @@ func TestRejectsMovingTooFast(t *testing.T) {
 	tr := newTracker()
 	accepted := 0
 	for i := 1; i <= 40; i++ {
-		if tr.Move(Vec{0.5 + float64(accepted+1)*2*world.Metre, 10, 0.5}, at(i*50), floor) { // 40 m/s
+		if tr.Move(Vec{0.5 + float64(accepted+1)*2*world.Meter, 10, 0.5}, at(i*50), floor) { // 40 m/s
 			accepted++
 		}
 	}
 	// Two seconds at the limit plus one second of burst.
-	if maxSteps := int(DefaultLimits.Horizontal * 3 / 2 / world.Metre); accepted == 0 || accepted > maxSteps {
+	if maxSteps := int(DefaultLimits.Horizontal * 3 / 2 / world.Meter); accepted == 0 || accepted > maxSteps {
 		t.Fatalf("accepted %d of 40 fast steps; want at most %d", accepted, maxSteps)
 	}
 }
@@ -84,7 +84,7 @@ func TestBudgetRefillsWithTime(t *testing.T) {
 }
 
 func TestAllowsLongFallsButNotFastRises(t *testing.T) {
-	m := float64(world.Metre)
+	m := float64(world.Meter)
 	tr := NewTracker(DefaultLimits, Vec{0.5, 80 * m, 0.5}, t0)
 	if !tr.Move(Vec{0.5, 30 * m, 0.5}, at(1000), floor) {
 		t.Fatal("falling 50 m in a second should be allowed")

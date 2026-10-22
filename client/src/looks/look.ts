@@ -16,9 +16,9 @@ export interface LookSky {
   moon: Rgb;
 }
 
-/** A light from one direction, shading faces between two colours by how much they face it. */
+/** A light from one direction, shading faces between two colors by how much they face it. */
 export interface LookSun {
-  /** Toward the light; it needn't be normalised. */
+  /** Toward the light; it needn't be normalized. */
   dir: { x: number; y: number; z: number };
   lit: Rgb;
   shade: Rgb;
@@ -38,19 +38,19 @@ export interface LookAfter {
     width: number;
     /** 0–1, how much the line covers what is under it. */
     strength: number;
-    /** The line colour; without one, lines darken what is under them. */
+    /** The line color; without one, lines darken what is under them. */
     color?: Rgb;
     creases?: boolean;
   };
   /** A light blur over the whole frame, its radius in pixels at 700 tall. */
   soften?: number;
-  /** Paper grain, blots and fibres, 0–1. */
+  /** Paper grain, blots and fibers, 0–1. */
   paper?: number;
   /** Blur away from the middle band, only in the overhead map view. */
   tiltShift?: number;
   /** Darkening toward the corners, 0–1. */
   vignette?: number;
-  /** 1 leaves colours as they are, lower greys them, higher strengthens them. */
+  /** 1 leaves colors as they are, lower grays them, higher strengthens them. */
   saturation?: number;
 }
 
@@ -60,33 +60,33 @@ export interface Look {
   /** One line for the picker. */
   about: string;
   surface: {
-    /** Draws block pictures; without them each block is one flat colour, and custom blocks keep theirs. */
+    /** Draws block pictures; without them each block is one flat color, and custom blocks keep theirs. */
     textured: boolean;
-    /** Flat colours by texture name, for pictures whose average colour isn't wanted. */
+    /** Flat colors by texture name, for pictures whose average color isn't wanted. */
     palette?: Record<string, Rgb>;
     /** Textures drawn without their see-through holes when untextured, like leaves as solid crowns. */
     solid?: string[];
-    /** 0–1, how much of each block's picture shows as light and dark over its flat colour. */
+    /** 0–1, how much of each block's picture shows as light and dark over its flat color. */
     detail?: number;
     /** How much each block's brightness varies, so same-kind neighbors don't form a grid. */
     tint: number;
-    /** 0–1, colour that drifts across the land in soft washes, fixed to the world. */
+    /** 0–1, color that drifts across the land in soft washes, fixed to the world. */
     wash?: number;
     /** 0–1, fine fabric fuzz, fixed to the world. */
-    fibre?: number;
+    fiber?: number;
   };
-  /** Light colours multiply the surface as they are; only sky, fog and palette colours are sRGB. */
+  /** Light colors multiply the surface as they are; only sky, fog and palette colors are sRGB. */
   light: {
     /** Fixed brightness per face direction. */
     faces: { top: number; bottom: number; x: number; z: number };
-    /** Light left in the most tucked-in corners: grey darkens, a colour tints. */
+    /** Light left in the most tucked-in corners: gray darkens, a color tints. */
     ao: Rgb;
     lamp: Rgb;
-    /** Lamp light kept per metre away from it. */
+    /** Lamp light kept per meter away from it. */
     lampFade: number;
     /** Light from one fixed direction, on top of the face brightness. */
     sun?: LookSun;
-    /** Light from 1 − lift at the low height to 1 + lift at the high one, heights in metres. */
+    /** Light from 1 − lift at the low height to 1 + lift at the high one, heights in meters. */
     height?: { low: number; high: number; lift: number };
   };
   shape: {
@@ -94,9 +94,9 @@ export interface Look {
     edges: boolean;
     /** How far smoothed corners may move, in blocks (at most 0.5). */
     softCorners: number;
-    /** 0–1, how much colour darkens toward open edges, like pooled paint; needs edges. */
+    /** 0–1, how much color darkens toward open edges, like pooled paint; needs edges. */
     pool?: number;
-    /** sRGB colour of running stitches along open edges; needs edges. */
+    /** sRGB color of running stitches along open edges; needs edges. */
     stitch?: Rgb;
   };
   sky: LookSky;

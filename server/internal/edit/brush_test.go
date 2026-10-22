@@ -29,11 +29,11 @@ func TestBrushSizeIsKeptBetweenOneAndAnOldBlock(t *testing.T) {
 }
 
 func TestBrushReachIsMeasuredToItsMiddle(t *testing.T) {
-	far := Brush{X: 5*world.Metre + 1, Y: 15, Z: 0, Size: MaxBrush}
+	far := Brush{X: 5*world.Meter + 1, Y: 15, Z: 0, Size: MaxBrush}
 	if !far.InReach(feet) {
 		t.Fatal("a whole brush just past 5 m should be in reach")
 	}
-	if (Brush{X: 7 * world.Metre, Y: 15, Z: 0, Size: MaxBrush}).InReach(feet) {
+	if (Brush{X: 7 * world.Meter, Y: 15, Z: 0, Size: MaxBrush}).InReach(feet) {
 		t.Fatal("a brush 7 m away is out of reach")
 	}
 }

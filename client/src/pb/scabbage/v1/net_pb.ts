@@ -2539,7 +2539,7 @@ export const QuestLogSchema: GenMessage<QuestLog> = /*@__PURE__*/
   messageDesc(file_scabbage_v1_net, 75);
 
 /**
- * An admin's .scabmap file, to place as a new zone centred on them.
+ * An admin's .scabmap file, to place as a new zone centered on them.
  *
  * @generated from message scabbage.v1.ImportMap
  */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { launchPads } from "./launch-pads";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 
 const blocks = [
   { id: 1, name: "launch_pad" },
@@ -28,8 +28,8 @@ describe("launchPads", () => {
 
   it("stays within the speeds the server accepts", () => {
     for (const v of pads.values()) {
-      expect(Math.hypot(v.x, v.z)).toBeLessThan(10 * METRE); // walking adds 4.5 m/s; limit is 14
-      expect(v.y).toBeLessThan(14 * METRE);
+      expect(Math.hypot(v.x, v.z)).toBeLessThan(10 * METER); // walking adds 4.5 m/s; limit is 14
+      expect(v.y).toBeLessThan(14 * METER);
     }
   });
 });

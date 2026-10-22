@@ -3,15 +3,15 @@ package world
 // Dungeons are cobblestone rooms deep underground, each in its own region and reached by stairs
 // from an arch on the surface. A region holds all of its dungeon, so chunks never need neighbors.
 const (
-	regionSize  = 64 * Metre
+	regionSize  = 64 * Meter
 	dungeonOdds = 3          // one region in this many holds a dungeon
-	roomOuter   = 11 * Metre // walls included, along x and z
-	roomHeight  = 5 * Metre  // inside, floor to ceiling
-	roomDepth   = 8 * Metre  // ground at least this thick over the ceiling
-	wall        = Metre      // thickness of walls, floor and ceiling
-	maxStairs   = 40 * Metre // steps, each one block up
-	headroom    = 3 * Metre  // clear air over every step and through the door
-	archHeight  = 5 * Metre  // from the top step to the arch's torch
+	roomOuter   = 11 * Meter // walls included, along x and z
+	roomHeight  = 5 * Meter  // inside, floor to ceiling
+	roomDepth   = 8 * Meter  // ground at least this thick over the ceiling
+	wall        = Meter      // thickness of walls, floor and ceiling
+	maxStairs   = 40 * Meter // steps, each one block up
+	headroom    = 3 * Meter  // clear air over every step and through the door
+	archHeight  = 5 * Meter  // from the top step to the arch's torch
 )
 
 // dungeon is a room whose outer walls start at x0,z0 and whose lowest air is at y floor.
@@ -28,7 +28,7 @@ func (g *GenV3) dungeonIn(rx, rz int32) (dungeon, bool) {
 	if r%dungeonOdds != 0 || (rx >= -1 && rx <= 0 && rz >= -1 && rz <= 0) {
 		return dungeon{}, false
 	}
-	d := dungeon{x0: rx*regionSize + (44+int32(r>>8%8))*Metre, z0: rz*regionSize + (8+int32(r>>16%40))*Metre}
+	d := dungeon{x0: rx*regionSize + (44+int32(r>>8%8))*Meter, z0: rz*regionSize + (8+int32(r>>16%40))*Meter}
 	low := int32(MaxY)
 	for i := int32(0); i <= 2; i++ {
 		for j := int32(0); j <= 2; j++ {
@@ -36,7 +36,7 @@ func (g *GenV3) dungeonIn(rx, rz int32) (dungeon, bool) {
 		}
 	}
 	d.floor = low - roomDepth - roomHeight - wall + 1
-	if d.floor-wall < 2*Metre {
+	if d.floor-wall < 2*Meter {
 		return dungeon{}, false
 	}
 	z := d.door()
@@ -61,13 +61,13 @@ func (d dungeon) build(put func(x, y, z int32, b Block)) {
 	d.room(put)
 	z := d.door()
 	air := func(x, y, z int32) { put(x, y, z, Air) }
-	fillBox(d.x0, d.floor, z-Metre/2, d.x0+wall-1, d.floor+headroom-1, z+Metre/2, air)
+	fillBox(d.x0, d.floor, z-Meter/2, d.x0+wall-1, d.floor+headroom-1, z+Meter/2, air)
 	for i := range d.steps {
 		x, y := d.x0-1-i, d.floor+i
-		for side := z - Metre/2; side <= z+Metre/2; side++ {
+		for side := z - Meter/2; side <= z+Meter/2; side++ {
 			put(x, y, side, StoneStairs+3) // rising to the west
 		}
-		fillBox(x, y+1, z-Metre/2, x, y+headroom, z+Metre/2, air)
+		fillBox(x, y+1, z-Meter/2, x, y+headroom, z+Meter/2, air)
 	}
 	d.arch(d.x0-d.steps, d.floor+d.steps-1, z, put)
 }
@@ -78,7 +78,7 @@ func (d dungeon) room(put func(x, y, z int32, b Block)) {
 	fillBox(d.x0, d.floor-wall, d.z0, x1, d.top(), z1, func(x, y, z int32) { put(x, y, z, Cobblestone) })
 	fillBox(d.x0+wall, d.floor, d.z0+wall, x1-wall, d.floor+roomHeight-1, z1-wall, func(x, y, z int32) { put(x, y, z, Air) })
 	for _, at := range [][2]int32{{3, 3}, {3, 7}, {7, 3}, {7, 7}} {
-		put(d.x0+at[0]*Metre+Metre/2, d.floor+roomHeight, d.z0+at[1]*Metre+Metre/2, Lamp)
+		put(d.x0+at[0]*Meter+Meter/2, d.floor+roomHeight, d.z0+at[1]*Meter+Meter/2, Lamp)
 	}
 	back := x1 - wall
 	put(back, d.floor, d.z0+wall, Chest)
@@ -89,10 +89,10 @@ func (d dungeon) room(put func(x, y, z int32, b Block)) {
 // arch stands two pillars and a lintel with a torch around the top step at x,y,z.
 func (d dungeon) arch(x, y, z int32, put func(x, y, z int32, b Block)) {
 	stone := func(x, y, z int32) { put(x, y, z, Cobblestone) }
-	x0, x1 := x-Metre/2, x+Metre/2
-	inner, outer := int32(Metre/2+1), int32(Metre/2+Metre)
+	x0, x1 := x-Meter/2, x+Meter/2
+	inner, outer := int32(Meter/2+1), int32(Meter/2+Meter)
 	fillBox(x0, y+1, z-outer, x1, y+headroom, z-inner, stone)
 	fillBox(x0, y+1, z+inner, x1, y+headroom, z+outer, stone)
-	fillBox(x0, y+headroom+1, z-outer, x1, y+headroom+Metre, z+outer, stone)
-	put(x, y+headroom+Metre+1, z, Torch)
+	fillBox(x0, y+headroom+1, z-outer, x1, y+headroom+Meter, z+outer, stone)
+	put(x, y+headroom+Meter+1, z, Torch)
 }

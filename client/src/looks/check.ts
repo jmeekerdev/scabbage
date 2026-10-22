@@ -6,7 +6,7 @@ export const LOOK_RANGES: [path: string, min: number, max: number][] = [
   ["surface.tint", 0, 1],
   ["surface.wash", 0, 1],
   ["surface.detail", 0, 1],
-  ["surface.fibre", 0, 1],
+  ["surface.fiber", 0, 1],
   ["light.faces.top", 0, 4],
   ["light.faces.bottom", 0, 4],
   ["light.faces.x", 0, 4],
@@ -30,8 +30,8 @@ export const LOOK_RANGES: [path: string, min: number, max: number][] = [
   ["after.saturation", 0, 2],
 ];
 
-// Light colours multiply the surface, so they may go past white; the rest are sRGB.
-export const LIGHT_COLOURS = ["light.ao", "light.lamp", "light.sun.lit", "light.sun.shade"];
+// Light colors multiply the surface, so they may go past white; the rest are sRGB.
+export const LIGHT_COLORS = ["light.ao", "light.lamp", "light.sun.lit", "light.sun.shade"];
 
 /** The value at a dotted path in a look, or undefined where any part is missing. */
 export function at(look: Look, path: string): unknown {
@@ -45,12 +45,12 @@ function range(path: string, v: unknown, min: number, max: number): string[] {
     : [`${path} must be ${min}–${max}, is ${String(v)}`];
 }
 
-function colour(path: string, c: Rgb | undefined, max: number): string[] {
+function color(path: string, c: Rgb | undefined, max: number): string[] {
   if (!c) return [];
   return (["r", "g", "b"] as const).flatMap((k) => range(`${path}.${k}`, c[k], 0, max));
 }
 
-function srgbColours(look: Look): [string, Rgb | undefined][] {
+function srgbColors(look: Look): [string, Rgb | undefined][] {
   return [
     ...Object.entries(look.sky).map(([k, c]): [string, Rgb] => [`sky.${k}`, c]),
     ...Object.entries(look.surface.palette ?? {}).map(([k, c]): [string, Rgb] => [
@@ -104,8 +104,8 @@ export function checkLook(look: Look): string[] {
     ...(look.name.trim() ? [] : ["name is empty"]),
     ...(look.about.trim() ? [] : ["about is empty"]),
     ...LOOK_RANGES.flatMap(([path, min, max]) => range(path, at(look, path), min, max)),
-    ...LIGHT_COLOURS.flatMap((path) => colour(path, at(look, path) as Rgb | undefined, 4)),
-    ...srgbColours(look).flatMap(([path, c]) => colour(path, c, 1)),
+    ...LIGHT_COLORS.flatMap((path) => color(path, at(look, path) as Rgb | undefined, 4)),
+    ...srgbColors(look).flatMap(([path, c]) => color(path, c, 1)),
     ...sunProblems(look),
     ...heightProblems(look),
     ...textureProblems(look),

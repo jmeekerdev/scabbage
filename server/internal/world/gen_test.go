@@ -39,14 +39,14 @@ func TestGenerateIsDeterministic(t *testing.T) {
 func TestGenV3Layers(t *testing.T) {
 	g := NewGenV3(42)
 	bottom := g.Generate(ChunkPos{0, 0, 0})
-	if bottom.Get(5, 0, 5) != Bedrock || bottom.Get(5, Metre-1, 5) != Bedrock {
-		t.Error("the bottom metre should be bedrock")
+	if bottom.Get(5, 0, 5) != Bedrock || bottom.Get(5, Meter-1, 5) != Bedrock {
+		t.Error("the bottom meter should be bedrock")
 	}
 	if top := g.Generate(ChunkPos{0, MaxY/Size - 1, 0}); !top.Uniform() || top.Get(0, 0, 0) != Air {
 		t.Error("the top chunk should be empty air")
 	}
 	h := g.SurfaceY(5, 5)
-	if h < Metre || h >= MaxY-Size {
+	if h < Meter || h >= MaxY-Size {
 		t.Fatalf("surface %d out of range", h)
 	}
 	surface := blockAt(g, 5, h, 5)
@@ -115,7 +115,7 @@ func TestTreesHaveLeavesBesideTheirTop(t *testing.T) {
 				t.Errorf("%v has no leaves beside its top log at %v", k, d)
 			}
 		}
-		if tr.top < f.ground+3*Metre {
+		if tr.top < f.ground+3*Meter {
 			t.Errorf("%v is only %d blocks tall", k, tr.top-f.ground)
 		}
 	}

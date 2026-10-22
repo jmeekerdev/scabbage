@@ -8,7 +8,7 @@ import {
   type Texture,
 } from "three";
 import type { Look, Rgb } from "../looks/look";
-import { METRE } from "../world/constants";
+import { METER } from "../world/constants";
 import type { MeshOptions } from "../world/mesher";
 
 const rgb = (c: Rgb) => new Vector3(c.r, c.g, c.b);
@@ -31,7 +31,7 @@ export const lookUniforms = {
   veil: { value: 0 },
   detail: { value: 0 },
   wash: { value: 0 },
-  fibre: { value: 0 },
+  fiber: { value: 0 },
   pool: { value: 0 },
   stitch: { value: new Vector3() },
   heightRange: { value: new Vector2() }, // in blocks
@@ -49,13 +49,13 @@ export function setLookUniforms(look: Look): void {
   u.waterOpacity.value = look.water.opacity;
   u.detail.value = look.surface.detail ?? 0;
   u.wash.value = look.surface.wash ?? 0;
-  u.fibre.value = look.surface.fibre ?? 0;
+  u.fiber.value = look.surface.fiber ?? 0;
   u.pool.value = look.shape.pool ?? 0;
   const st = look.shape.stitch ?? { r: 1, g: 1, b: 1 };
   const linear = new Color().setRGB(st.r, st.g, st.b, SRGBColorSpace);
   u.stitch.value.set(linear.r, linear.g, linear.b);
   const height = look.light.height;
-  if (height) u.heightRange.value.set(height.low * METRE, height.high * METRE);
+  if (height) u.heightRange.value.set(height.low * METER, height.high * METER);
   u.heightLift.value = height?.lift ?? 0;
   if (!sun) return;
   u.sunDir.value.set(sun.dir.x, sun.dir.y, sun.dir.z).normalize();
@@ -79,7 +79,7 @@ export function lookFeatures(look: Look): Record<string, string> {
     EDGES: look.shape.edges,
     SOFT: look.shape.softCorners > 0,
     WASH: (look.surface.wash ?? 0) > 0,
-    FIBRE: (look.surface.fibre ?? 0) > 0,
+    FIBER: (look.surface.fiber ?? 0) > 0,
     POOL: look.shape.edges && (look.shape.pool ?? 0) > 0,
     STITCH: look.shape.edges && !!look.shape.stitch,
   };
@@ -96,7 +96,7 @@ const FEATURES = [
   "EDGES",
   "SOFT",
   "WASH",
-  "FIBRE",
+  "FIBER",
   "POOL",
   "STITCH",
 ];
@@ -116,7 +116,7 @@ export function applyLook(material: ShaderMaterial, look: Look): void {
   material.needsUpdate = true;
 }
 
-/** veiled(c): the colour hidden in fog by the veil, while chunks rebuild for a new look. Needs the fog uniforms. */
+/** veiled(c): the color hidden in fog by the veil, while chunks rebuild for a new look. Needs the fog uniforms. */
 export const LOOK_VEIL_GLSL = /* glsl */ `
 uniform float veil;
 vec4 veiled(vec4 c) {

@@ -10,15 +10,15 @@ import (
 var t0 = time.Unix(1000, 0)
 
 // fall drops from y=20 by blocks through the air and lands with the given footing.
-const m = world.Metre
+const m = world.Meter
 
-// fall drops a player the given metres from y = 20 m onto land.
-func fall(s *State, metres float64, land Footing) int {
+// fall drops a player the given meters from y = 20 m onto land.
+func fall(s *State, meters float64, land Footing) int {
 	s.Fall(20*m, Ground)
-	for y := 20.0; y > 20-metres; y-- {
+	for y := 20.0; y > 20-meters; y-- {
 		s.Fall(y*m, Air)
 	}
-	return s.Fall((20-metres)*m, land)
+	return s.Fall((20-meters)*m, land)
 }
 
 func TestShortFallsAreSafe(t *testing.T) {

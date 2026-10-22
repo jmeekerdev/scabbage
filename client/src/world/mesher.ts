@@ -145,7 +145,7 @@ function meshShapes(vol: Volume, out: MeshBuilder): void {
   }
 }
 
-/** The boxes a block is drawn as: wire is joined to its neighbours, the rest by shape. */
+/** The boxes a block is drawn as: wire is joined to its neighbors, the rest by shape. */
 function boxesAt(vol: Volume, block: number, shape: number, x: number, y: number, z: number) {
   const wiring = vol.table.wiring;
   if (!wiring || !(wiring[block] & Wiring.WIRE)) return SHAPE_BOXES[shape] ?? [];

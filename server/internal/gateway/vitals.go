@@ -61,7 +61,7 @@ func vitalsMessage(a *avatar, hurt pb.Harm) *pb.ServerMessage {
 func (g *Gateway) footing(p motion.Vec) vitals.Footing {
 	w := g.cfg.World
 	x, z := int32(math.Floor(p.X)), int32(math.Floor(p.Z))
-	for _, y := range []float64{p.Y, p.Y + world.Metre} {
+	for _, y := range []float64{p.Y, p.Y + world.Meter} {
 		if b, err := w.Block(x, int32(math.Floor(y)), z); err == nil && b == world.Water {
 			return vitals.Water
 		}

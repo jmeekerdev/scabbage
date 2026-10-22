@@ -10,7 +10,7 @@ const (
 // Vertical limits in blocks (MaxY exclusive).
 const (
 	MinY = 0
-	MaxY = 128 * Metre
+	MaxY = 128 * Meter
 )
 
 // ChunkPos is a chunk coordinate (block coordinate divided by Size).

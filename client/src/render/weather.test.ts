@@ -49,7 +49,7 @@ describe("weatherSky", () => {
     expect(weatherSky(noon, { kind: CLEAR, wet: 0, storm: 0 }, 0)).toEqual(noon);
   });
 
-  it("darkens and greys the sky while it rains, more in storms, never below night", () => {
+  it("darkens and grays the sky while it rains, more in storms, never below night", () => {
     const rain = weatherSky(noon, { kind: RAIN, wet: 1, storm: 0 }, 0);
     const storm = weatherSky(noon, { kind: STORM, wet: 1, storm: 1 }, 0);
     expect(rain.daylight).toBeLessThan(noon.daylight);

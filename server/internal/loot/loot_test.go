@@ -16,12 +16,12 @@ func TestChestsHoldGoldAndTwoOtherThings(t *testing.T) {
 		for _, it := range items {
 			most := 8
 			if building(it.Block) {
-				most = 8 * world.Metre * world.Metre * world.Metre // a metre cube's worth of small blocks each
+				most = 8 * world.Meter * world.Meter * world.Meter // a meter cube's worth of small blocks each
 			}
 			if seen[it.Block] || it.Count < 1 || it.Count > most || !world.Placeable(it.Block) {
 				t.Fatalf("bad loot %v", items)
 			}
-			if building(it.Block) && it.Count < 4*world.Metre*world.Metre*world.Metre {
+			if building(it.Block) && it.Count < 4*world.Meter*world.Meter*world.Meter {
 				t.Fatalf("only %d %v", it.Count, it.Block)
 			}
 			seen[it.Block] = true

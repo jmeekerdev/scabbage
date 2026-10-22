@@ -4,15 +4,15 @@ import type { RenderTable } from "../world/mesher";
 import { isCustomLayer, type Atlas } from "./atlas";
 import { TEXTURE_SIZE } from "./textures";
 
-/** How an untextured look draws a layer, kept in the alpha of its colour. */
+/** How an untextured look draws a layer, kept in the alpha of its color. */
 export const SOLID = 0;
-export const CUT_OUT = 128; // flat colour, but the picture's see-through pixels still cut it
+export const CUT_OUT = 128; // flat color, but the picture's see-through pixels still cut it
 export const STICKER = 255; // the picture itself, as custom blocks are drawn
 
 const LAYER_BYTES = TEXTURE_SIZE * TEXTURE_SIZE * 4;
 
 /**
- * RGBA per atlas layer: its flat sRGB colour, from the palette or the picture's average, and how to
+ * RGBA per atlas layer: its flat sRGB color, from the palette or the picture's average, and how to
  * draw it. Pictures named in solid lose their see-through holes. A second row holds each average,
  * its alpha 0 where the look wants no detail.
  */
@@ -47,7 +47,7 @@ export function layerColorTexture(colors: Uint8Array): DataTexture {
   return tex;
 }
 
-/** Each block's top face as one sRGB colour, RGB per block ID, from layerColors. */
+/** Each block's top face as one sRGB color, RGB per block ID, from layerColors. */
 export function topColors(colors: Uint8Array, table: RenderTable): Uint8Array {
   const n = table.shape.length;
   const out = new Uint8Array(n * 3);

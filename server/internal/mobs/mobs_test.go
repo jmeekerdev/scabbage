@@ -92,13 +92,13 @@ func TestMobsStandOnTheHighestGroundUnderTheirBody(t *testing.T) {
 	}
 }
 
-func TestMobsClimbOneMetreButNotTwo(t *testing.T) {
+func TestMobsClimbOneMeterButNotTwo(t *testing.T) {
 	g := field{}
 	for x := int32(-8); x <= 8; x++ {
 		for z := int32(4); z <= 12; z++ {
-			top := int32(9 + metre) // a one-metre step...
+			top := int32(9 + meter) // a one-meter step...
 			if z == 12 {
-				top += 2 * metre // ...then a wall two metres above it
+				top += 2 * meter // ...then a wall two meters above it
 			}
 			for y := int32(10); y <= top; y++ {
 				g[[3]int32{x, y, z}] = world.Stone
@@ -107,14 +107,14 @@ func TestMobsClimbOneMetreButNotTwo(t *testing.T) {
 	}
 	h := New(1, true)
 	h.Add(Slime, at(0.5, 10, 0.5), midnight)
-	prey := []Player{{Pos: at(0.5, 10+3*metre, 20.5), Prey: true}}
+	prey := []Player{{Pos: at(0.5, 10+3*meter, 20.5), Prey: true}}
 	_, c := steps(h, midnight, 100, prey, g)
 	climbed := false
 	for _, m := range c.Moved {
-		climbed = climbed || m.Pos.Y == 10+metre
+		climbed = climbed || m.Pos.Y == 10+meter
 	}
 	m := h.All()[0]
-	if !climbed || m.Pos.Y != 10+metre || m.Pos.Z < 4 || m.Pos.Z > 12 {
+	if !climbed || m.Pos.Y != 10+meter || m.Pos.Z < 4 || m.Pos.Z > 12 {
 		t.Fatalf("climbed=%v, slime at %+v, want over the step and stopped by the wall", climbed, m.Pos)
 	}
 }
@@ -196,7 +196,7 @@ func TestSlimesPopAfterThreeHits(t *testing.T) {
 func TestHitsNeedReach(t *testing.T) {
 	h := New(1, true)
 	m := h.Add(Sheep, at(0.5, 10, 0.5), noon)
-	if _, ok := h.Hit(m.ID, at(10*metre, 11.6, 0.5), noon); ok {
+	if _, ok := h.Hit(m.ID, at(10*meter, 11.6, 0.5), noon); ok {
 		t.Fatal("hit from 10 m away")
 	}
 	if _, ok := h.Hit(m.ID+1, at(1, 11.6, 0.5), noon); ok {

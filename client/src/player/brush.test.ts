@@ -18,7 +18,7 @@ describe("brushCube", () => {
     expect(brushCube({ ...onTop, ny: -1 }, 3, true)).toMatchObject({ y: 6 });
   });
 
-  it("snaps across the face to the brush's grid in x and z, and centres on the hit in y", () => {
+  it("snaps across the face to the brush's grid in x and z, and centers on the hit in y", () => {
     expect(brushCube(onTop, 3, false)).toMatchObject({ x: 3, z: -3 });
     expect(brushCube(onEastSide, 3, true)).toMatchObject({ y: 8, z: -3 });
   });
