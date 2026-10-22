@@ -95,17 +95,35 @@ func (w *World) Spawn() (x, y, z float64) {
 	return 0.5, float64(top), 0.5
 }
 
-// Top is the y just above column x,z's highest block, where someone could stand.
+// Top is the y just above column x,z's highest block, where someone could stand: also above
+// the solid blocks in the columns on each side, which a body is wide enough to reach into.
 func (w *World) Top(x, z int32) (int32, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	top, err := w.columnTop(x, z, func(b Block) bool { return b != Air })
+	if err != nil {
+		return 0, err
+	}
+	solid := func(b Block) bool { return Info(b).Solid }
+	for dx := int32(-1); dx <= 1; dx++ {
+		for dz := int32(-1); dz <= 1; dz++ {
+			if t, err := w.columnTop(x+dx, z+dz, solid); err == nil {
+				top = max(top, t)
+			}
+		}
+	}
+	return top, nil
+}
+
+// columnTop is the y just above column x,z's highest block that counts.
+func (w *World) columnTop(x, z int32, counts func(Block) bool) (int32, error) {
 	top := int32(MaxY - 1)
 	for ; top > MinY; top-- {
 		b, err := w.block(x, top, z)
 		if err != nil {
 			return 0, err
 		}
-		if b != Air {
+		if counts(b) {
 			break
 		}
 	}

@@ -282,6 +282,29 @@ func TestTopIsJustAboveAColumnsHighestBlock(t *testing.T) {
 	}
 }
 
+func TestTopClearsTheColumnsABodyStandsAcross(t *testing.T) {
+	w := openWorld(t, openDB(t))
+	y, _ := w.Top(5, 5)
+	if err := w.SetBlock(7, y+5, 5, Stone); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := w.Top(5, 5); again != y {
+		t.Fatalf("a block two columns away moved top to %d, want %d", again, y)
+	}
+	if err := w.SetBlock(4, y+2, 4, TallGrass); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := w.Top(5, 5); again != y {
+		t.Fatalf("a plant beside, which bodies pass through, moved top to %d, want %d", again, y)
+	}
+	if err := w.SetBlock(6, y+3, 6, Stone); err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := w.Top(5, 5); again != y+4 {
+		t.Fatalf("top beside a higher column = %d, want %d", again, y+4)
+	}
+}
+
 func TestWipeForgetsEditsAndCanChangeTheSeed(t *testing.T) {
 	db := openDB(t)
 	w := openWorld(t, db)

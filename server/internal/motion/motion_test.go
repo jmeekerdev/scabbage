@@ -114,6 +114,27 @@ func TestRejectsPassingThroughAWall(t *testing.T) {
 	}
 }
 
+// pillar is a two-block-tall column at x=4,z=4; gapX is a tall wall at x=5 with a one-block gap at z=0.
+var (
+	pillar = cubes(func(x, y, z int32) bool { return y < 10 || (x == 4 && z == 4 && y < 12) })
+	gapX   = cubes(func(x, y, z int32) bool { return y < 10 || (x == 5 && z != 0) })
+)
+
+func TestAllowsSlidingRoundACorner(t *testing.T) {
+	// Pressed against the pillar's +z face, then past its corner: the client slides round it.
+	tr := NewTracker(DefaultLimits, Vec{4.9 + HalfWidth, 10, 5 + HalfWidth}, t0)
+	if !tr.Move(Vec{5.1 + HalfWidth, 10, 4.1 + HalfWidth}, at(50), pillar) {
+		t.Fatal("rounding a corner should be allowed")
+	}
+}
+
+func TestRejectsSqueezingThroughANarrowGap(t *testing.T) {
+	tr := NewTracker(DefaultLimits, Vec{3.5, 10, 0.5}, t0)
+	if tr.Move(Vec{7.5, 10, 0.5}, at(1000), gapX) {
+		t.Fatal("a body wider than the gap should not pass through it")
+	}
+}
+
 func TestRejectedMoveKeepsPositionAndBudget(t *testing.T) {
 	tr := newTracker()
 	tr.Move(Vec{0.5, 9, 0.5}, at(50), floor)

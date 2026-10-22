@@ -24,6 +24,10 @@ const slack = 0.01
 // pathStep is the longest gap between positions checked along a move.
 const pathStep = 0.25
 
+// cornerSlack narrows the body between a move's ends, where the client's sliding path rounds
+// corners that a straight line cuts; the narrowed body is still too wide for a one-block gap.
+const cornerSlack = 0.3
+
 // StepHeight is how far the client lifts a walking body onto blocks, slabs and stairs.
 const StepHeight = 0.5 * world.Metre
 
@@ -92,24 +96,27 @@ func (t *Tracker) refilled(now time.Time) (h, up, down float64) {
 }
 
 // pathBlocked checks the body at evenly spaced points from just past `from` up to `to`.
-// Points before `to` may clip a step's corner, since the client lifts bodies onto steps.
+// Points before `to` may clip a step's or a corner's edge, as the client lifts and slides bodies.
 func pathBlocked(from, to Vec, solid BoxesFunc) bool {
 	dist := math.Sqrt((to.X-from.X)*(to.X-from.X) + (to.Y-from.Y)*(to.Y-from.Y) + (to.Z-from.Z)*(to.Z-from.Z))
 	steps := int(math.Ceil(dist / pathStep))
-	for i := 1; i <= steps; i++ {
+	for i := 1; i < steps; i++ {
 		f := float64(i) / float64(steps)
 		p := Vec{from.X + (to.X-from.X)*f, from.Y + (to.Y-from.Y)*f, from.Z + (to.Z-from.Z)*f}
-		if Blocked(p, solid) && (i == steps || Blocked(Vec{p.X, p.Y + StepHeight, p.Z}, solid)) {
+		if blocked(p, cornerSlack, solid) && blocked(Vec{p.X, p.Y + StepHeight, p.Z}, cornerSlack, solid) {
 			return true
 		}
 	}
-	return steps == 0 && Blocked(to, solid)
+	return Blocked(to, solid)
 }
 
 // Blocked reports whether a body with its feet centered at p overlaps any collision box.
-func Blocked(p Vec, solid BoxesFunc) bool {
-	lo := [3]float64{p.X - HalfWidth + slack, p.Y + slack, p.Z - HalfWidth + slack}
-	hi := [3]float64{p.X + HalfWidth - slack, p.Y + Height - slack, p.Z + HalfWidth - slack}
+func Blocked(p Vec, solid BoxesFunc) bool { return blocked(p, slack, solid) }
+
+// blocked is Blocked for a body narrowed by side on each side.
+func blocked(p Vec, side float64, solid BoxesFunc) bool {
+	lo := [3]float64{p.X - HalfWidth + side, p.Y + slack, p.Z - HalfWidth + side}
+	hi := [3]float64{p.X + HalfWidth - side, p.Y + Height - slack, p.Z + HalfWidth - side}
 	for y := cell(lo[1]); y <= cell(hi[1]); y++ {
 		for z := cell(lo[2]); z <= cell(hi[2]); z++ {
 			for x := cell(lo[0]); x <= cell(hi[0]); x++ {
