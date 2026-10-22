@@ -2,18 +2,44 @@
 package web
 
 import (
+	"embed"
+	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 )
+
+// The build copies client/dist here, so the binary carries the game client.
+//
+//go:embed all:dist
+var embedded embed.FS
 
 const (
 	forever    = "public, max-age=31536000, immutable"
 	revalidate = "no-cache"
 )
 
-// Static serves dir. Hashed build files under /assets/ are cached for good; everything else is revalidated.
-func Static(dir string) http.Handler {
-	files := http.FileServer(http.Dir(dir))
+// Client is the built client in dir, or the copy built into the binary when dir is empty.
+func Client(dir string) fs.FS {
+	if dir != "" {
+		return os.DirFS(dir)
+	}
+	files, err := fs.Sub(embedded, "dist")
+	if err != nil {
+		panic(err) // "dist" is a fixed, valid path
+	}
+	return files
+}
+
+// HasClient reports whether files hold a built client's page.
+func HasClient(files fs.FS) bool {
+	_, err := fs.Stat(files, "index.html")
+	return err == nil
+}
+
+// Static serves files. Hashed build files under /assets/ are cached for good; everything else is revalidated.
+func Static(client fs.FS) http.Handler {
+	files := http.FileServer(http.FS(client))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		files.ServeHTTP(&cacheWriter{ResponseWriter: w, hashed: strings.HasPrefix(r.URL.Path, "/assets/")}, r)
 	})

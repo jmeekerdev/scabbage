@@ -23,13 +23,16 @@ lint: client/node_modules
 
 check: lint test
 
+# One static binary with the client built in; copy it anywhere and run it.
 build: client/node_modules
 	cd client && npm run build
+	find server/internal/web/dist -mindepth 1 ! -name .gitkeep -delete
+	cp -r client/dist/. server/internal/web/dist/
 	cd server && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ../bin/scabbage-server ./cmd/scabbage-server
 
-# Serve the built client from the Go server on :8080.
+# Serve the built-in client from the Go server on :8080.
 run: build
-	./bin/scabbage-server -web-dir client/dist
+	./bin/scabbage-server
 
 # Hot-reloading client on :5173 proxying to the Go server on :8080.
 dev: client/node_modules
@@ -38,3 +41,4 @@ dev: client/node_modules
 
 clean:
 	rm -rf bin client/dist
+	find server/internal/web/dist -mindepth 1 ! -name .gitkeep -delete

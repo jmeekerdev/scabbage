@@ -115,7 +115,11 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	mux := http.NewServeMux()
 	mux.Handle("/ws", gw)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok\n")) })
-	mux.Handle("/", web.Static(cfg.WebDir))
+	client := web.Client(cfg.WebDir)
+	if !web.HasClient(client) {
+		logger.Warn("no game client to serve: build with `make build`, or pass -web-dir client/dist")
+	}
+	mux.Handle("/", web.Static(client))
 
 	srv := &http.Server{Addr: cfg.Addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 

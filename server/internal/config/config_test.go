@@ -14,7 +14,7 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Config{Addr: ":8080", WebDir: "web", DataDir: "data", ServerName: "Scabbage", TickRate: 20,
+	want := Config{Addr: ":8080", DataDir: "data", ServerName: "Scabbage", TickRate: 20,
 		Backups: 7, BackupHour: 4, Mode: "creative", SpawnZone: 48}
 	if !reflect.DeepEqual(c, want) {
 		t.Fatalf("got %+v, want %+v", c, want)

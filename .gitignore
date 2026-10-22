@@ -4,3 +4,5 @@ client/dist/
 *.db
 *.db-*
 data/
+server/internal/web/dist/*
+!server/internal/web/dist/.gitkeep

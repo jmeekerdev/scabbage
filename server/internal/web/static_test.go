@@ -1,27 +1,43 @@
 package web
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 )
 
 func serve(t *testing.T, path string) *httptest.ResponseRecorder {
 	t.Helper()
-	dir := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(dir, "assets"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	for _, f := range []string{"index.html", "assets/main-abc.js"} {
-		if err := os.WriteFile(filepath.Join(dir, f), []byte("x"), 0o644); err != nil {
-			t.Fatal(err)
-		}
+	files := fstest.MapFS{
+		"index.html":         {Data: []byte("x")},
+		"assets/main-abc.js": {Data: []byte("x")},
 	}
 	rec := httptest.NewRecorder()
-	Static(dir).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	Static(files).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 	return rec
+}
+
+func TestClientComesFromTheGivenDirectory(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !HasClient(Client(dir)) {
+		t.Fatal("no index.html found in the given directory")
+	}
+	if HasClient(Client(t.TempDir())) {
+		t.Fatal("an empty directory counted as a client")
+	}
+}
+
+func TestClientIsBuiltInWithoutADirectory(t *testing.T) {
+	if _, err := fs.Stat(Client(""), ".gitkeep"); err != nil {
+		t.Fatalf("embedded client files missing: %v", err)
+	}
 }
 
 func TestHashedAssetsAreCachedForGood(t *testing.T) {
