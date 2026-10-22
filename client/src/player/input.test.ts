@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isActive,
   combineIntents,
   DoubleTap,
   HoldRepeat,
@@ -137,5 +138,14 @@ describe("combineIntents", () => {
 
   it("is still with no sources", () => {
     expect(combineIntents([])).toEqual(still);
+  });
+});
+
+describe("isActive", () => {
+  it("is true while moving or building, but not while idle", () => {
+    expect(isActive({ move: NO_INPUT, build: NO_BUILD })).toBe(false);
+    expect(isActive({ move: { ...NO_INPUT, right: -1 }, build: NO_BUILD })).toBe(true);
+    expect(isActive({ move: { ...NO_INPUT, jump: true }, build: NO_BUILD })).toBe(true);
+    expect(isActive({ move: NO_INPUT, build: { ...NO_BUILD, placing: true } })).toBe(true);
   });
 });

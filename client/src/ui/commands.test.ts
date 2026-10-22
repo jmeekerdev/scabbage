@@ -34,8 +34,8 @@ describe("client commands", () => {
   it("complete names from what is typed, with server ones too", () => {
     const { commands } = setup();
     commands.also(["tp", "leave"]);
-    expect(commands.complete("/s")).toEqual(["say", "settings"]);
-    expect(commands.complete("/")).toEqual(["blocks", "leave", "say", "settings", "tp"]);
+    expect(commands.complete("/s")).toEqual(["/say", "/settings"]);
+    expect(commands.complete("/")).toEqual(["/blocks", "/leave", "/say", "/settings", "/tp"]);
     expect(commands.complete("/settings x")).toEqual([]);
     expect(commands.complete("hi")).toEqual([]);
   });
@@ -45,6 +45,21 @@ describe("client commands", () => {
     expect(commands.finish("/se")).toBe("/settings ");
     expect(commands.finish("/s")).toBe("/s");
     expect(commands.finish("/x")).toBe("/x");
+  });
+
+  it("complete a command's last argument from its own choices", () => {
+    const { commands } = setup();
+    commands.add(
+      "fill",
+      "fill a box",
+      () => undefined,
+      () => ["stone", "stone_stairs", "planks"],
+    );
+    expect(commands.complete("/fill 1 2 3 4 5 6 st")).toEqual(["stone", "stone_stairs"]);
+    expect(commands.complete("/fill 1 2 3 4 5 6 ")).toEqual([]);
+    expect(commands.complete("/say st")).toEqual([]);
+    expect(commands.finish("/fill 1 2 3 4 5 6 pl")).toBe("/fill 1 2 3 4 5 6 planks ");
+    expect(commands.finish("/fill 1 2 3 4 5 6 st")).toBe("/fill 1 2 3 4 5 6 st");
   });
 
   it("list themselves for help", () => {

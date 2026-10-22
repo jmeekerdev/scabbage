@@ -99,11 +99,29 @@ export function breakEdit(hit: RayHit, w: BuildWorld, size = 1): Edit | undefine
   const cube = brushCube(hit, size, false);
   // Liquid only breaks when aimed at, so digging a lake bed doesn't leave air pockets.
   const drains = isLiquid(w, w.blockAt(hit.x, hit.y, hit.z));
-  const cells = cubeCells(cube).filter(({ x, y, z }) => {
-    const b = w.blockAt(x, y, z);
-    return (isTargetable(w, b) || (drains && isLiquid(w, b))) && !w.unbreakable.has(b!);
-  });
+  const cells = cubeCells(cube).filter((c) => breakable(w, c, drains));
   return cells.length ? { ...cube, block: AIR, cells } : undefined;
+}
+
+/** Breaks or fills a whole cube as it stands, without aiming: AIR clears it, water included. */
+export function cubeEdit(cube: Cube, block: number, w: BuildWorld, body: Body): Edit | undefined {
+  if (block !== AIR && w.unbreakable.has(block)) return undefined;
+  const cells = cubeCells(cube).filter((c) =>
+    block === AIR ? breakable(w, c, true) : fillable(w, c, block, body),
+  );
+  return cells.length ? { ...cube, block, cells } : undefined;
+}
+
+function breakable(w: BuildWorld, { x, y, z }: Cell, drains: boolean): boolean {
+  const b = w.blockAt(x, y, z);
+  return (isTargetable(w, b) || (drains && isLiquid(w, b))) && !w.unbreakable.has(b!);
+}
+
+/** Whether `block` may go into an empty, loaded spot, not inside the body if it is solid. */
+function fillable(w: BuildWorld, { x, y, z }: Cell, block: number, body: Body): boolean {
+  const current = w.blockAt(x, y, z);
+  if (!w.inside(x, y, z) || current === undefined || isTargetable(w, current)) return false;
+  return !(w.solid[block] && overlaps(body, x, y, z));
 }
 
 /** How long survival players dig an edit: the slowest block's time for each block of its width. */
@@ -134,11 +152,7 @@ export function placeEdit(
 ): Edit | undefined {
   if (block === AIR || w.unbreakable.has(block)) return undefined;
   const cube = brushCube(hit, size, true);
-  const cells = cubeCells(cube).filter(({ x, y, z }) => {
-    const current = w.blockAt(x, y, z);
-    if (!w.inside(x, y, z) || current === undefined || isTargetable(w, current)) return false;
-    return !(w.solid[block] && overlaps(body, x, y, z));
-  });
+  const cells = cubeCells(cube).filter((c) => fillable(w, c, block, body));
   return cells.length ? { ...cube, block: turned(block, look, w), cells } : undefined;
 }
 

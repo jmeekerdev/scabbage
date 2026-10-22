@@ -3,6 +3,7 @@ import {
   aim,
   breakEdit,
   buildWorldFor,
+  cubeEdit,
   digMs,
   placeEdit,
   PressFilter,
@@ -266,5 +267,30 @@ describe("UseHold", () => {
     hold.used(0);
     expect([250, 500, 750].map((t) => hold.blocks(t))).toEqual([true, true, true]);
     expect(hold.blocks(1500)).toBe(false);
+  });
+});
+
+describe("cubeEdit", () => {
+  const body = newBody(0.5, 20, 0.5);
+
+  it("clears every breakable block of a cube, water too, but not bedrock", () => {
+    const edit = cubeEdit({ x: 2, y: 9, z: 2, size: 2 }, AIR, world(), body)!;
+    expect(edit).toMatchObject({ x: 2, y: 9, z: 2, size: 2, block: AIR });
+    expect(edit.cells).toHaveLength(5); // four stone below, the water at 3,10,3
+    expect(cubeEdit({ x: 9, y: 10, z: 0, size: 1 }, AIR, world(), body)).toBeUndefined();
+  });
+
+  it("fills only a cube's empty spots, clear of the body, with the block as given", () => {
+    const edit = cubeEdit({ x: 2, y: 9, z: 2, size: 2 }, STAIRS + 2, world(), body)!;
+    expect(edit.block).toBe(STAIRS + 2);
+    expect(edit.cells).toHaveLength(4); // the top layer, water included
+    expect(cubeEdit({ x: 0, y: 20, z: 0, size: 1 }, STONE, world(), body)).toBeUndefined();
+    expect(cubeEdit({ x: 0, y: 0, z: 0, size: 1 }, STONE, world(), body)).toBeUndefined();
+    expect(cubeEdit({ x: 0, y: 30, z: 0, size: 1 }, BEDROCK, world(), body)).toBeUndefined();
+  });
+
+  it("skips unloaded blocks", () => {
+    expect(cubeEdit({ x: 21, y: 9, z: 0, size: 1 }, AIR, world(), body)).toBeUndefined();
+    expect(cubeEdit({ x: 21, y: 20, z: 0, size: 1 }, STONE, world(), body)).toBeUndefined();
   });
 });

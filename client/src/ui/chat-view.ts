@@ -6,6 +6,7 @@ import { el } from "./dom";
 const MAX_LINES = 50;
 const MAX_CHARS = 200; // matches the server's chat.MaxRunes
 const OPEN_KEYS = new Set(["Enter", "t", "T", "/"]);
+const MAX_HINTS = 12; // completions shown at once
 
 /** The chat log, whose lines fade after a while, and the box to type in (Enter, T or /). */
 export class ChatView {
@@ -103,11 +104,12 @@ export class ChatView {
     this.showMatches();
   }
 
-  /** Lists the commands that fit while a command name is being typed. */
+  /** Lists the command names or arguments that fit what is typed. */
   private showMatches(): void {
-    const names = this.commands?.complete(this.input.value) ?? [];
-    this.hint.hidden = names.length === 0;
-    this.hint.textContent = names.map((n) => `/${n}`).join("  ");
+    const fits = this.commands?.complete(this.input.value) ?? [];
+    this.hint.hidden = fits.length === 0;
+    this.hint.textContent =
+      fits.slice(0, MAX_HINTS).join("  ") + (fits.length > MAX_HINTS ? "  …" : "");
   }
 
   private openKey(e: KeyboardEvent): void {

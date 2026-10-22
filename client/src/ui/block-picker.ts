@@ -9,6 +9,11 @@ export interface PickableBlock {
 // Breaking-only or invisible blocks never go in the hotbar.
 const UNPLACEABLE = new Set(["air", "bedrock"]);
 
+/** Blocks players may hold; turned stairs and powered logic blocks are held as another block. */
+export function placeable<T extends PickableBlock>(blocks: readonly T[]): T[] {
+  return blocks.filter((b) => !UNPLACEABLE.has(b.name) && !b.item);
+}
+
 /** Every block that can be placed, newest custom blocks last; picking one puts it in the hotbar. */
 export class BlockPicker {
   readonly node = el("div", { class: "picker" });
@@ -16,8 +21,7 @@ export class BlockPicker {
   constructor(private readonly pick: (block: number) => void) {}
 
   set(blocks: readonly PickableBlock[], icon: (block: number) => HTMLCanvasElement): void {
-    // Turned stairs and powered logic blocks are held as another block, so aren't offered.
-    const choices = blocks.filter((b) => !UNPLACEABLE.has(b.name) && !b.item);
+    const choices = placeable(blocks);
     this.node.replaceChildren(
       el("h1", {}, "Blocks"),
       el(
