@@ -3,7 +3,8 @@
 # Every setting below can be changed in a .env file next to this one; see .env.example.
 services:
   scabbage:
-    build:
+    image: ghcr.io/jmeekerdev/scabbage:${SCABBAGE_VERSION:-latest} # `docker compose pull` updates it
+    build: # `docker compose build` builds it from this checkout instead
       context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped

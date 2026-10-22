@@ -28,7 +28,7 @@ home server with 2 GB RAM and 2 cores, and does almost nothing while nobody is p
 
 ```sh
 git clone https://github.com/jmeekerdev/scabbage.git && cd scabbage
-docker compose up -d
+docker compose up -d            # pulls the latest released image
 docker compose logs scabbage   # shows the one-time admin code
 ```
 
@@ -49,6 +49,14 @@ Caddy then fetches a certificate.
 **Settings:** to change the world name, game mode, backups, ports, limits or the data folder, copy
 [`.env.example`](.env.example) to `.env`, edit it, and run `docker compose up -d` again. Every
 setting is also a flag on the binary (`scabbage-server -help`).
+
+**Updating:** run `docker compose pull && docker compose up -d`. To stay on one release, set
+`SCABBAGE_VERSION` (such as `v0.1.3`) in `.env`. To run your own changes, use
+`docker compose up -d --build`.
+
+**Without Docker:** download the `scabbage-server` binary for Linux, macOS or Windows from
+[Releases](https://github.com/jmeekerdev/scabbage/releases) and run it. It keeps the world in
+`./data` and serves the game on port 8080.
 
 **Backups:** the world lives in the `scabbage-data` volume. A nightly copy goes into its
 `backups/` folder, and the last 7 are kept by default.
@@ -100,8 +108,16 @@ make build    # one static binary with the client inside: bin/scabbage-server
 make gen      # regenerate Go/TS code after editing proto/
 ```
 
-Development is test-first: every change ships with tests, and `make check` must pass. CI runs it on
-each push.
+Development is test-first: every change ships with tests, and `make check` must pass. Changes go
+through pull requests, and CI runs `make check` on each one.
+
+Every merge to `main` is released automatically as the next patch version:
+
+- the release has binaries for six platforms;
+- the image `ghcr.io/jmeekerdev/scabbage` gets that version's tag and `latest`.
+
+The major and minor numbers come from [`VERSION`](VERSION). Change it, say to `0.2`, to start the
+next series at `v0.2.0`.
 
 ```
 proto/     Protobuf schema for the WebSocket protocol (source of truth)

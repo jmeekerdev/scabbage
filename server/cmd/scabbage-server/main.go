@@ -29,6 +29,9 @@ import (
 	"scabbage/internal/zones"
 )
 
+// version is set at release build time with -ldflags "-X main.version=v1.2.3".
+var version = "dev"
+
 // autosaveEvery bounds how much building a crash can lose, and how long far chunks stay loaded.
 const autosaveEvery = time.Minute
 
@@ -125,7 +128,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
-	logger.Info("listening", "addr", cfg.Addr, "web_dir", cfg.WebDir)
+	logger.Info("listening", "version", version, "addr", cfg.Addr, "web_dir", cfg.WebDir)
 
 	select {
 	case err := <-errc:

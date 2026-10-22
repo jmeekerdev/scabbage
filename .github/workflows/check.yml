@@ -1,8 +1,7 @@
 name: check
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call: # release.yml runs these before releasing a push to main
 
 jobs:
   check:

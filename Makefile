@@ -1,5 +1,5 @@
 # Run targets inside `nix-shell` (or with Go, Node 22, buf, protoc-gen-go and golangci-lint installed).
-.PHONY: all gen check test lint build run dev clean
+.PHONY: all gen check test lint build web release run dev clean
 
 all: check build
 
@@ -12,6 +12,7 @@ gen: client/node_modules
 	buf generate
 
 test: client/node_modules
+	bash scripts/next-version_test.sh
 	cd server && go test -race ./...
 	cd client && npm test
 
@@ -23,12 +24,29 @@ lint: client/node_modules
 
 check: lint test
 
-# One static binary with the client built in; copy it anywhere and run it.
-build: client/node_modules
+VERSION ?= dev
+LDFLAGS = -s -w -X main.version=$(VERSION)
+PLATFORMS = linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64
+
+# Builds the client and copies it into the server, which embeds it.
+web: client/node_modules
 	cd client && npm run build
 	find server/internal/web/dist -mindepth 1 ! -name .gitkeep -delete
 	cp -r client/dist/. server/internal/web/dist/
-	cd server && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ../bin/scabbage-server ./cmd/scabbage-server
+
+# One static binary with the client built in; copy it anywhere and run it.
+build: web
+	cd server && CGO_ENABLED=0 go build -trimpath -ldflags="$(LDFLAGS)" -o ../bin/scabbage-server ./cmd/scabbage-server
+
+# Release binaries for every platform plus SHA256SUMS: make release VERSION=v0.1.0
+release: web
+	rm -rf bin/release
+	for p in $(PLATFORMS); do \
+	  os=$${p%/*}; arch=$${p#*/}; ext=; [ $$os = windows ] && ext=.exe; \
+	  (cd server && CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags="$(LDFLAGS)" \
+	    -o ../bin/release/scabbage-server-$(VERSION)-$$os-$$arch$$ext ./cmd/scabbage-server) || exit 1; \
+	done
+	cd bin/release && sha256sum scabbage-server-* > SHA256SUMS
 
 # Serve the built-in client from the Go server on :8080.
 run: build
