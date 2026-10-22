@@ -1,5 +1,6 @@
 import {
   DataArrayTexture,
+  DoubleSide,
   FrontSide,
   LinearMipmapNearestFilter,
   NearestFilter,
@@ -236,7 +237,8 @@ export function opaqueMaterial(blocks: Texture, look: Look): ShaderMaterial {
 
 /** Blended blocks such as water, drawn after everything opaque. */
 export function translucentMaterial(blocks: Texture, look: Look): ShaderMaterial {
-  return chunkMaterial(blocks, look, { transparent: true, depthWrite: false });
+  // Water only has faces toward the air, so from underwater it is seen from behind.
+  return chunkMaterial(blocks, look, { transparent: true, depthWrite: false, side: DoubleSide });
 }
 
 function chunkMaterial(
