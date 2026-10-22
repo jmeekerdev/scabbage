@@ -18,8 +18,14 @@ func TestBreaksSolidBlocksInReach(t *testing.T) {
 	}
 }
 
-func TestCannotBreakAirWaterOrBedrock(t *testing.T) {
-	for _, b := range []world.Block{world.Air, world.Water, world.Bedrock} {
+func TestBreaksWater(t *testing.T) {
+	if !Allowed(place(2, 10, 0, world.Air), world.Water, nil) {
+		t.Fatal("breaking water should be allowed")
+	}
+}
+
+func TestCannotBreakAirOrBedrock(t *testing.T) {
+	for _, b := range []world.Block{world.Air, world.Bedrock} {
 		if Allowed(place(2, 9, 0, world.Air), b, nil) {
 			t.Errorf("breaking %v allowed", b)
 		}

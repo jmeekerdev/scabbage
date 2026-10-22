@@ -203,14 +203,21 @@ const chat = new ChatView(
     if (importing === undefined) conn?.send(encodeSendChat(text));
     else void importMap(importing);
   },
-  (sent) => sent && !document.querySelector("dialog[open]") && lockPointer(),
+  () => !document.querySelector("dialog[open]") && lockPointer(),
   commands,
 );
 const emotes = new EmoteWheel($("#emotes"), sendEmote);
-const keyboardMouse = new KeyboardMouse($("#game"), player, hotbar, emotes, (l) => {
-  locked = l;
-  hintEl.hidden = l;
-});
+const keyboardMouse = new KeyboardMouse(
+  $("#game"),
+  player,
+  hotbar,
+  emotes,
+  (l) => {
+    locked = l;
+    hintEl.hidden = l;
+  },
+  () => mayPlay(),
+);
 const gamepad = new GamepadControls(player, hotbar, () => navigator.getGamepads(), sendEmote);
 const touchControls = touch ? new TouchControls($("#game"), $("#touch"), player) : undefined;
 const avatars = new Avatars(gameScene.scene);
@@ -819,6 +826,16 @@ function relockOnClose(dialog: HTMLDialogElement): void {
   dialog.addEventListener("close", () => {
     if (document.body.classList.contains("in-world") && !chat.isOpen) lockPointer();
   });
+}
+
+/** Whether the game, not a menu or chat, has the player's attention. */
+function mayPlay(): boolean {
+  return (
+    !touch &&
+    document.body.classList.contains("in-world") &&
+    !chat.isOpen &&
+    !document.querySelector("dialog[open]")
+  );
 }
 
 function lockPointer(): void {

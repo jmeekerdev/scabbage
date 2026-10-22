@@ -25,7 +25,7 @@ export class ChatView {
   constructor(
     private readonly root: HTMLElement,
     private readonly send: (text: string) => void,
-    private readonly onClose: (sent: boolean) => void,
+    private readonly onClose: () => void,
     private readonly commands?: Commands,
   ) {
     root.append(this.log, this.form);
@@ -34,7 +34,7 @@ export class ChatView {
       this.submit();
     });
     this.input.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") this.close(false);
+      if (e.key === "Escape") this.close();
       if (e.key === "Tab") this.finishCommand(e);
       e.stopPropagation(); // typing never reaches the game controls
     });
@@ -86,14 +86,14 @@ export class ChatView {
     const text = this.input.value.trim();
     if (text) this.send(text);
     this.input.value = "";
-    this.close(text !== "");
+    this.close();
   }
 
-  private close(sent: boolean): void {
+  private close(): void {
     this.root.classList.remove("open");
     this.form.hidden = true;
     this.input.blur();
-    this.onClose(sent);
+    this.onClose();
   }
 
   private finishCommand(e: KeyboardEvent): void {

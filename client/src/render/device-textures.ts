@@ -60,6 +60,15 @@ const pad =
       ? shade(on ? [255, 220, 60] : [150, 130, 60], 0.95 + n() * 0.1)
       : shade(SLATE, edge(x, y) ? 0.7 : 0.9 + n() * 0.2);
 
+/** Slate with a logic block's arrow the way power flows out, lit while it gives power. */
+const logicArrow = (dx: number, dy: number, on: boolean): Painter => {
+  const light: RGB = on ? [255, 70, 50] : [200, 190, 170];
+  return (x, y, n) =>
+    arrowPixel(dx, dy, x, y)
+      ? shade(light, 0.95 + n() * 0.1)
+      : shade(SLATE, edge(x, y) ? 0.7 : 0.9 + n() * 0.2);
+};
+
 /** Yellow and black stripes round a pad's thin edge. */
 const padSide: Painter = (x, y, n) =>
   (x + y) % 4 < 2 ? shade([230, 200, 50], 0.95 + n() * 0.1) : [30, 30, 30, 255];
@@ -105,6 +114,12 @@ export const DEVICE_PAINTERS: Record<string, Painter> = {
     PAD_ARROWS.flatMap(([way, dx, dy]) => [
       [`launch_pad_${way}`, pad((x, y) => arrowPixel(dx, dy, x, y), false)],
       [`launch_pad_${way}_on`, pad((x, y) => arrowPixel(dx, dy, x, y), true)],
+    ]),
+  ),
+  ...Object.fromEntries(
+    PAD_ARROWS.flatMap(([way, dx, dy]) => [
+      [`logic_arrow_${way}`, logicArrow(dx, dy, false)],
+      [`logic_arrow_${way}_on`, logicArrow(dx, dy, true)],
     ]),
   ),
   launch_pad_up: pad(ringPixel, false),

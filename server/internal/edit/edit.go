@@ -20,7 +20,7 @@ type Request struct {
 // separately. Solid placements must not overlap any body in `bodies`.
 func Allowed(r Request, current world.Block, bodies []motion.Vec) bool {
 	if r.Block == world.Air {
-		return world.Info(current).Targetable() && current != world.Bedrock
+		return (world.Info(current).Targetable() || current == world.Water) && current != world.Bedrock
 	}
 	if !r.Block.Valid() || r.Block == world.Bedrock || !world.Placeable(r.Block) || world.Info(current).Targetable() {
 		return false

@@ -78,7 +78,7 @@ describe("buildRenderTable", () => {
     expect([...t.layers.slice(14 * 6, 15 * 6)]).toEqual([
       side,
       layer("diode_front_on"),
-      side,
+      layer("logic_arrow_west_on"),
       side,
       side,
       side,
@@ -86,12 +86,24 @@ describe("buildRenderTable", () => {
   });
 
   it("shows a gate's mode on its sides and its light on its front", () => {
-    expect(BLOCK_STYLES["gate_xor_east"]).toMatchObject({ top: "gate_xor", side: "gate_xor" });
+    expect(BLOCK_STYLES["gate_xor_east"]).toMatchObject({ side: "gate_xor", bottom: "gate_xor" });
     expect(BLOCK_STYLES["gate_not_down_on"]).toMatchObject({
       side: "gate_not_on",
       front: "diode_front_on",
     });
     expect(BLOCK_STYLES["gate_and"]?.front).toBe("diode_front");
+  });
+
+  it("points an arrow on top the way power flows out", () => {
+    expect(BLOCK_STYLES["gate_and"]?.top).toBe("logic_arrow_north");
+    expect(BLOCK_STYLES["gate_xor_east"]?.top).toBe("logic_arrow_east");
+    expect(BLOCK_STYLES["diode_south_on"]?.top).toBe("logic_arrow_south_on");
+    expect(BLOCK_STYLES["delay_3_west"]?.top).toBe("logic_arrow_west");
+    expect(BLOCK_STYLES["relay_east_on"]?.top).toBe("logic_arrow_east_on");
+    expect(BLOCK_STYLES["capacitor_10_south"]?.top).toBe("logic_arrow_south");
+    expect(BLOCK_STYLES["gate_not_down_on"]?.top).toBe("gate_not_on"); // its top is its back
+    for (const way of ["north", "east", "south", "west"])
+      expect(TEXTURE_NAMES).toContain(`logic_arrow_${way}_on`);
   });
 
   it("shows a delay's setting on its sides and a relay's cross", () => {

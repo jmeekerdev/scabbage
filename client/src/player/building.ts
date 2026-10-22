@@ -26,6 +26,7 @@ export interface BuildWorld {
   targetable: readonly boolean[]; // solid, flat and usable blocks and torches
   shape: readonly number[];
   usable: ReadonlySet<number>; // pressed by hand, like switches, instead of built against
+  liquid: ReadonlySet<number>; // aimed at and broken from outside, built into from anywhere
   sixWay: ReadonlySet<number>; // placed facing any of six ways, like pistons
   padWay: ReadonlySet<number>; // placed facing along the ground or up, like launch pads
   item: readonly number[]; // the block players hold for each one
@@ -75,6 +76,7 @@ export function buildWorldFor(
     mineMs,
     item,
     usable: new Set(info.blocks.filter((b) => b.usable).map((b) => b.id)),
+    liquid: new Set(info.blocks.filter((b) => b.name === "water").map((b) => b.id)),
     sixWay: new Set(info.blocks.filter((b) => SIX_WAY.includes(b.name)).map((b) => b.id)),
     padWay: new Set(info.blocks.filter((b) => b.name === "launch_pad").map((b) => b.id)),
     unbreakable: new Set(info.blocks.filter((b) => b.name === "bedrock").map((b) => b.id)),
@@ -84,17 +86,22 @@ export function buildWorldFor(
 
 /** The loaded block under the crosshair that can be broken, if one is within reach. */
 export function aim(eye: Vec3, yaw: number, pitch: number, w: BuildWorld): RayHit | undefined {
-  return raycast(eye, lookDirection(yaw, pitch), REACH, (x, y, z) =>
-    isTargetable(w, w.blockAt(x, y, z)),
-  );
+  const [ex, ey, ez] = eye.map(Math.floor) as Vec3;
+  const underwater = isLiquid(w, w.blockAt(ex, ey, ez));
+  return raycast(eye, lookDirection(yaw, pitch), REACH, (x, y, z) => {
+    const b = w.blockAt(x, y, z);
+    return isTargetable(w, b) || (!underwater && isLiquid(w, b));
+  });
 }
 
 /** Breaks a brush of `size` into the face that was hit, leaving unbreakable blocks. */
 export function breakEdit(hit: RayHit, w: BuildWorld, size = 1): Edit | undefined {
   const cube = brushCube(hit, size, false);
+  // Liquid only breaks when aimed at, so digging a lake bed doesn't leave air pockets.
+  const drains = isLiquid(w, w.blockAt(hit.x, hit.y, hit.z));
   const cells = cubeCells(cube).filter(({ x, y, z }) => {
     const b = w.blockAt(x, y, z);
-    return isTargetable(w, b) && !w.unbreakable.has(b!);
+    return (isTargetable(w, b) || (drains && isLiquid(w, b))) && !w.unbreakable.has(b!);
   });
   return cells.length ? { ...cube, block: AIR, cells } : undefined;
 }
@@ -143,6 +150,8 @@ function turned(block: number, look: { yaw: number; pitch: number }, w: BuildWor
 
 const isTargetable = (w: BuildWorld, b: number | undefined) =>
   b !== undefined && (w.targetable[b] ?? false);
+
+const isLiquid = (w: BuildWorld, b: number | undefined) => b !== undefined && w.liquid.has(b);
 
 function overlaps(b: Body, x: number, y: number, z: number): boolean {
   return (

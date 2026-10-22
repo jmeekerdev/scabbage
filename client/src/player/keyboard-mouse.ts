@@ -16,6 +16,11 @@ export interface AimedMenu {
   release(): void;
 }
 
+/** Whether a key pressed while the mouse is free should take it back; Esc can't regain it. */
+export function relocksOn(e: { key: string; repeat: boolean }, typing: boolean): boolean {
+  return !typing && !e.repeat && e.key !== "Escape";
+}
+
 /** Pointer-lock mouse look, building and keyboard movement; inactive until the canvas is clicked. */
 export class KeyboardMouse {
   private readonly keys = new Set<string>();
@@ -28,11 +33,12 @@ export class KeyboardMouse {
   private locked = false;
 
   constructor(
-    canvas: HTMLCanvasElement,
+    private readonly canvas: HTMLCanvasElement,
     private readonly player: Player,
     private readonly hotbar: Hotbar,
     private readonly wheel: AimedMenu,
     onLockChange: (locked: boolean) => void,
+    private readonly mayRelock: () => boolean,
   ) {
     canvas.addEventListener("click", (e) => {
       if ((e as PointerEvent).pointerType !== "touch") void canvas.requestPointerLock();
@@ -91,7 +97,7 @@ export class KeyboardMouse {
   }
 
   private keyDown(e: KeyboardEvent): void {
-    if (!this.locked) return;
+    if (!this.locked) return this.relockAfter(e);
     if (CAPTURED.has(e.code)) e.preventDefault();
     this.keys.add(e.code);
     if (e.repeat) return;
@@ -101,6 +107,16 @@ export class KeyboardMouse {
     if (e.code === "KeyE") this.wheel.open();
     if (e.code === "KeyR") this.scripting = true;
     if (e.code === "KeyG") this.resizing = true;
+  }
+
+  /** Takes the mouse back on a key pressed after a menu closed, so no click is needed. */
+  private relockAfter(e: KeyboardEvent): void {
+    const typing = e.target instanceof Element && !!e.target.closest("input, select, textarea");
+    if (!relocksOn(e, typing)) return;
+    // Waits for the key's own handlers, which may open a menu or chat instead.
+    setTimeout(() => {
+      if (this.mayRelock()) this.canvas.requestPointerLock().catch(() => undefined);
+    });
   }
 
   private keyUp(e: KeyboardEvent): void {
