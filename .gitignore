@@ -7,3 +7,4 @@ data/
 server/internal/web/dist/*
 !server/internal/web/dist/.gitkeep
 .env
+*.test

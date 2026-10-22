@@ -7,3 +7,6 @@ data
 server/internal/web/dist
 .env
 .env.example
+.github
+README.md
+LICENSE
