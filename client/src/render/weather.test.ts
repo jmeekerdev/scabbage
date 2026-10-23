@@ -22,6 +22,27 @@ describe("weatherAt", () => {
   });
 });
 
+describe("weatherAt with held weather", () => {
+  // Spell 3 is rain and 4 clear, so holding a storm over them shows every change.
+  const held = { kind: STORM, sinceMs: spell(3) + FADE_MS, untilMs: spell(4) + FADE_MS };
+
+  it("fades from the weather it found into the held weather", () => {
+    expect(weatherAt(held.sinceMs, held)).toMatchObject({ kind: STORM, wet: 1, storm: 0 });
+    expect(weatherAt(held.sinceMs + FADE_MS / 2, held).storm).toBeCloseTo(0.5);
+    expect(weatherAt(spell(4) + 1, held)).toMatchObject({ kind: STORM, wet: 1, storm: 1 });
+  });
+
+  it("fades back to the wall clock's weather once the hold ends", () => {
+    expect(weatherAt(held.untilMs + FADE_MS / 2, held).wet).toBeCloseTo(0.5);
+    expect(weatherAt(held.untilMs + FADE_MS, held)).toEqual(weatherAt(held.untilMs + FADE_MS));
+  });
+
+  it("holds for good with no end", () => {
+    const always = { ...held, untilMs: Infinity };
+    expect(weatherAt(spell(40), always).kind).toBe(STORM);
+  });
+});
+
 describe("snowsAt", () => {
   it("snows only high up", () => {
     expect(snowsAt(40)).toBe(false);

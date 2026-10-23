@@ -120,7 +120,7 @@ reload. Tabs also reload by themselves when a reconnect finds a newer build.
 | `render/`                                            | the scene and frame pacer, chunk materials, the texture atlas, procedural textures, look shaders and after-effects, sky, weather, avatars, mobs, drops |
 | `looks/`                                             | one file per look, plus the registry and range checks                                                                                                  |
 | `player/`                                            | physics, input (keyboard and mouse, gamepad, touch), building and digging, inventory, other players (drawn 2 ticks behind)                             |
-| `autopilot/`                                         | `/goto`, `/fill` and `/clear` jobs, path finding, undo, and running agent commands                                                                     |
+| `autopilot/`                                         | `/goto`, `/fill`, `/clear` and `/build` jobs, templates, the `/yes` preview, path finding, undo, and running agent commands                            |
 | `ui/`                                                | DOM views: chat, hotbar, backpack, settings, the pixel and script editors (Blockly loads lazily), dialogue, quests, scoreboard, admin cards            |
 | `join/`, `settings/`, `social/`, `editor/`, `audio/` | identity and invites, settings and auto quality, emotes, pixel helpers, sound                                                                          |
 | `pb/`                                                | generated Protobuf code                                                                                                                                |

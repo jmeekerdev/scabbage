@@ -1,6 +1,6 @@
 import type { RenderTable } from "../world/mesher";
 import { customLayerName } from "./atlas";
-import { Shape } from "../world/shapes";
+import { isStairs, Shape } from "../world/shapes";
 import { Smooth } from "../world/soft-corners";
 import { Wiring } from "../world/wire";
 import { CHANNELS, CLOCK_MODES, COUNT_DOWN, GATE_MODES } from "./machine-textures";
@@ -205,6 +205,9 @@ export function styleOf(t: BlockTypeInfo): BlockStyle {
   return BLOCK_STYLES[t.name] ?? BLOCK_STYLES[material] ?? same("missing");
 }
 
+/** Stairs and slabs are solid stuff filling part of a block: see-through, but light doesn't pass. */
+const fillsPart = (shape: number) => shape === Shape.SLAB || isStairs(shape);
+
 /** Turns the server's block list into the mesher's per-ID lookup arrays. */
 export function buildRenderTable(
   types: readonly BlockTypeInfo[],
@@ -214,6 +217,7 @@ export function buildRenderTable(
   const table: RenderTable = {
     layers: new Int16Array(n * 6).fill(-1),
     transparent: new Uint8Array(n).fill(1),
+    passes: new Uint8Array(n).fill(1),
     translucent: new Uint8Array(n),
     shape: new Uint8Array(n),
     light: new Uint8Array(n),
@@ -223,6 +227,7 @@ export function buildRenderTable(
   for (const t of types) {
     table.transparent[t.id] = t.transparent ? 1 : 0;
     table.shape[t.id] = t.shape ?? Shape.CUBE;
+    table.passes[t.id] = t.transparent && !fillsPart(table.shape[t.id]) ? 1 : 0;
     table.light[t.id] = t.light ?? 0;
     table.wiring![t.id] = wiringOf(t);
     if (t.name === "air") continue;

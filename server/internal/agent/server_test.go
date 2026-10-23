@@ -128,7 +128,7 @@ func TestAPlainGetExplainsTheAPI(t *testing.T) {
 		!strings.Contains(g.About, "MCP at http://example.com/mcp") || len(g.Tools) != len(Tools) {
 		t.Fatalf("guide: %v %s", err, w.Body)
 	}
-	if w := r.post(r.srv.REST(), "/api/agent/v1/build", r.admin, `{}`); !strings.Contains(w.Body.String(), "GET /api/agent/v1/") {
+	if w := r.post(r.srv.REST(), "/api/agent/v1/teleport", r.admin, `{}`); !strings.Contains(w.Body.String(), "GET /api/agent/v1/") {
 		t.Fatalf("404 gives no hint: %s", w.Body)
 	}
 }

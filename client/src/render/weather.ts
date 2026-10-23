@@ -24,17 +24,41 @@ export interface WeatherState {
   storm: number; // 0 calm to 1 stormy
 }
 
-/** The weather at a wall-clock time, fading from the spell before over FADE_MS. */
-export function weatherAt(nowMs: number): WeatherState {
+/** Weather an admin holds from sinceMs until untilMs (Infinity for good). */
+export interface Held {
+  kind: Weather;
+  sinceMs: number;
+  untilMs: number;
+}
+
+/** The weather at a time: held weather while it lasts, fading in and out over FADE_MS. */
+export function weatherAt(nowMs: number, held?: Held): WeatherState {
+  if (!held || nowMs < held.sinceMs) return clockWeather(nowMs);
+  const start = (ms: number) => Math.min(1, (ms - held.sinceMs) / FADE_MS);
+  if (nowMs < held.untilMs) return blend(clockWeather(held.sinceMs), full(held.kind), start(nowMs));
+  const left = blend(clockWeather(held.sinceMs), full(held.kind), start(held.untilMs));
+  return blend(left, clockWeather(nowMs), Math.min(1, (nowMs - held.untilMs) / FADE_MS));
+}
+
+/** The wall clock's weather, fading from the spell before over FADE_MS. */
+function clockWeather(nowMs: number): WeatherState {
   const spell = Math.floor(nowMs / SPELL_MS);
-  const kind = kindOf(spell);
-  const was = kindOf(spell - 1);
   const t = Math.min(1, (nowMs - spell * SPELL_MS) / FADE_MS);
-  const blend = (f: (k: Weather) => number) => f(was) + (f(kind) - f(was)) * t;
+  return blend(full(kindOf(spell - 1)), full(kindOf(spell)), t);
+}
+
+const full = (kind: Weather): WeatherState => ({
+  kind,
+  wet: kind === Weather.CLEAR ? 0 : 1,
+  storm: kind === Weather.STORM ? 1 : 0,
+});
+
+/** Part way from a to b, taking b's kind. */
+function blend(a: WeatherState, b: WeatherState, t: number): WeatherState {
   return {
-    kind,
-    wet: blend((k) => (k === Weather.CLEAR ? 0 : 1)),
-    storm: blend((k) => (k === Weather.STORM ? 1 : 0)),
+    kind: b.kind,
+    wet: a.wet + (b.wet - a.wet) * t,
+    storm: a.storm + (b.storm - a.storm) * t,
   };
 }
 
@@ -43,8 +67,8 @@ export function snowsAt(y: number): boolean {
 }
 
 /** How bright a lightning flash is at a time, 0 most of the time; the same for everyone. */
-export function flashAt(nowMs: number): number {
-  const storm = weatherAt(nowMs).storm;
+export function flashAt(nowMs: number, held?: Held): number {
+  const storm = weatherAt(nowMs, held).storm;
   if (storm === 0) return 0;
   const slot = Math.floor(nowMs / FLASH_SLOT_MS);
   const roll = mix(slot);

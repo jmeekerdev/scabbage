@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 24;
+  PROTOCOL_VERSION_CURRENT = 26;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -81,6 +81,7 @@ message ServerMessage {
     AgentCommand agent_command = 33;
     AgentLinked agent_linked = 34;
     PlayerAway player_away = 35;
+    Sky sky = 36; // an admin changed the time or weather
   }
 }
 
@@ -114,6 +115,22 @@ message Welcome {
   // Where the player was last saved, with id 0; unset to start at the world spawn.
   Teleport start = 8;
   QuestLog quests = 9; // unset for admin console connections
+  Sky sky = 10;
+}
+
+// The shared clock and weather as admins set them; both otherwise follow the wall clock.
+message Sky {
+  int64 day_offset_ms = 1; // added to the wall clock for the time of day
+  Weather held = 2; // weather an admin holds; unspecified for none
+  int64 held_since_ms = 3; // Unix ms
+  int64 held_until_ms = 4; // Unix ms; 0 holds it until an admin lets go
+}
+
+enum Weather {
+  WEATHER_UNSPECIFIED = 0;
+  WEATHER_CLEAR = 1;
+  WEATHER_RAIN = 2; // snow, high up
+  WEATHER_STORM = 3;
 }
 
 message WorldInfo {
@@ -708,6 +725,7 @@ message AgentCommand {
   uint64 id = 1;
   string tool = 2;
   string json = 3;
+  bool confirm = 4; // a job it starts waits for the player's /yes
 }
 
 // The tab's answer to an AgentCommand: a JSON object, with "error" set if it refused.
@@ -729,4 +747,5 @@ enum AgentJobState {
   AGENT_JOB_STATE_RUNNING = 1;
   AGENT_JOB_STATE_DONE = 2;
   AGENT_JOB_STATE_STOPPED = 3;
+  AGENT_JOB_STATE_AWAITING_CONFIRMATION = 4; // waiting for the player's /yes
 }

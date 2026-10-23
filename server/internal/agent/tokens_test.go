@@ -150,3 +150,23 @@ func TestPlayersNeedAnAdminToTurnAgentsOn(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNoPlayer", err)
 	}
 }
+
+func TestOnlyAdminsCanLetTheirAgentsBuildWithoutAsking(t *testing.T) {
+	tokens, _ := newTokens(t)
+	tok, _ := tokens.Create(1, "laptop")
+	if o, _ := tokens.Owner(tok); !o.MustConfirm() {
+		t.Fatal("agents' jobs should wait for /yes until an admin turns that off")
+	}
+	if err := tokens.SetConfirm(1, false); err != nil {
+		t.Fatal(err)
+	}
+	if o, _ := tokens.Owner(tok); o.MustConfirm() {
+		t.Fatal("the admin turned confirming off, but it is still on")
+	}
+	if (Owner{Admin: false, SkipConfirm: true}).MustConfirm() == false {
+		t.Fatal("players who aren't admins must always confirm")
+	}
+	if err := tokens.SetConfirm(99, false); !errors.Is(err, ErrNoPlayer) {
+		t.Fatalf("err = %v, want ErrNoPlayer", err)
+	}
+}

@@ -59,9 +59,15 @@ vec3 axis(int a) {
   return vec3(equal(ivec3(a), ivec3(0, 1, 2)));
 }
 
+// Falls with the square of the meters walked from the lamp (lampFade kept at one meter), to 0 at the edge.
+float lampGlow(float light) {
+  float m = (MAX_LIGHT - light) / METER;
+  return light / MAX_LIGHT / (1.0 + (1.0 / lampFade - 1.0) * m * m);
+}
+
 void main() {
   vUv = uv / POSITION_SCALE;
-  vGlow = light > 0.0 ? pow(lampFade, (MAX_LIGHT - light) / METER) : 0.0; // each meter away dims it a little
+  vGlow = lampGlow(light);
   vLayer = layer;
   vAo = ao / 3.0;
   int f = int(face + 0.5);

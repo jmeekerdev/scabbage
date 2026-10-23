@@ -88,4 +88,38 @@ describe("ChunkStore", () => {
     expect(s.blockAt(3, 4, 6)).toBe(1);
     expect(s.setBlock(-1, 0, 0, 7)).toBe(false);
   });
+
+  describe("topAt", () => {
+    const bounds = { radius: 64, height: 2 * S };
+    it("finds the highest block in a column across layers, or -1 for none", () => {
+      const s = new ChunkStore(bounds);
+      s.set({ x: 0, y: 0, z: 0 }, uniform(1));
+      s.set({ x: 0, y: 1, z: 0 }, uniform(0));
+      expect(s.topAt(5, 7)).toBe(S - 1);
+      s.setBlock(5, S + 4, 7, 2);
+      expect(s.topAt(5, 7)).toBe(S + 4);
+      expect(s.topAt(6, 7)).toBe(S - 1);
+      expect(s.topAt(S + 1, 0)).toBe(-1); // nothing loaded there
+    });
+
+    it("drops when the top block is broken and rises when a chunk arrives above", () => {
+      const s = new ChunkStore(bounds);
+      s.set({ x: 0, y: 0, z: 0 }, uniform(0));
+      s.setBlock(1, 9, 1, 3);
+      expect(s.topAt(1, 1)).toBe(9);
+      s.setBlock(1, 9, 1, 0);
+      expect(s.topAt(1, 1)).toBe(-1);
+      s.set({ x: 0, y: 1, z: 0 }, uniform(4));
+      expect(s.topAt(1, 1)).toBe(2 * S - 1);
+    });
+
+    it("counts each change, so views of the tops know when to look again", () => {
+      const s = new ChunkStore(bounds);
+      const v0 = s.version;
+      s.set({ x: 0, y: 0, z: 0 }, uniform(0));
+      s.setBlock(1, 1, 1, 3);
+      s.delete(chunkKey(0, 0, 0));
+      expect(s.version).toBe(v0 + 3);
+    });
+  });
 });

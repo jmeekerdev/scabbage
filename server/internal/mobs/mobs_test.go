@@ -42,7 +42,7 @@ func steps(h *Herd, from time.Time, n int, players []Player, g Ground) (time.Tim
 	now := from
 	for range n {
 		now = now.Add(Every)
-		c := h.Step(now, players, g)
+		c := h.Step(now, Night(now), players, g)
 		all.Moved = append(all.Moved, c.Moved...)
 		all.Gone = append(all.Gone, c.Gone...)
 		all.Bitten = append(all.Bitten, c.Bitten...)

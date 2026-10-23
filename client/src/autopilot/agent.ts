@@ -1,6 +1,7 @@
 import type { Cell } from "../player/brush";
 import { boxBetween, MAX_PLACE, tooBig, type Job, type Placed } from "./job";
 import type { Jobs, Started } from "./jobs";
+import { FACINGS, placeTemplate, type Facing } from "./templates/templates";
 
 export interface AgentHost {
   jobs: Jobs;
@@ -17,12 +18,13 @@ export type AgentAnswer = Record<string, unknown> & { error?: string };
 
 type Args = Record<string, unknown>;
 
-/** Runs an agent's tool call in this tab: starts its job, or stops or undoes one. */
+/** Runs an agent's tool call in this tab: starts its job, or stops or undoes one; `confirm` waits for /yes. */
 export function runAgentCommand(
   id: number,
   tool: string,
   json: string,
   host: AgentHost,
+  confirm = false,
 ): AgentAnswer {
   let args: Args;
   try {
@@ -34,7 +36,7 @@ export function runAgentCommand(
   if (tool === "undo") return answer(host.jobs.undo(host.survival(), id), id);
   const job = toJob(tool, args, host.blocks());
   if (typeof job === "string") return { error: job };
-  return answer(host.jobs.start(job, host.survival(), id), id);
+  return answer(host.jobs.start(job, host.survival(), id, confirm), id);
 }
 
 function answer(r: Started, id: number): AgentAnswer {
@@ -48,6 +50,7 @@ function toJob(tool: string, args: Args, names: Names): Job | string {
     return target ? { kind: "goto", target } : "goto needs x, y and z as whole numbers.";
   }
   if (tool === "place") return placeJob(args.blocks, names);
+  if (tool === "build") return buildJob(args, names);
   if (tool !== "clear" && tool !== "fill") return `This game can't run ${tool}.`;
   const [from, to] = [cellOf(args.from), cellOf(args.to)];
   if (!from || !to) return `${tool} needs from and to, each with x, y and z as whole numbers.`;
@@ -57,6 +60,20 @@ function toJob(tool: string, args: Args, names: Names): Job | string {
   if (tool === "clear" || args.block === "air") return { kind: "clear", box };
   const block = blockOf(args.block, names);
   return typeof block === "string" ? block : { kind: "fill", box, block };
+}
+
+function buildJob(args: Args, names: Names): Job | string {
+  const at = cellOf(args);
+  if (!at)
+    return "build needs x, y and z as whole numbers: the middle of its front, at the bottom.";
+  const facing = args.facing ?? "south";
+  if (!FACINGS.includes(facing as Facing)) return "build's facing is north, east, south or west.";
+  const template = String(args.template);
+  const size = { w: args.w, d: args.d, h: args.h } as Record<string, number | undefined>;
+  for (const k of Object.keys(size)) if (size[k] === undefined) delete size[k];
+  const material = args.material === undefined ? undefined : String(args.material);
+  const cells = placeTemplate(template, size, at, facing as Facing, material, names);
+  return typeof cells === "string" ? cells : { kind: "build", template, cells };
 }
 
 function placeJob(blocks: unknown, names: Names): Job | string {

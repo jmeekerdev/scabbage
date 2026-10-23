@@ -42,7 +42,7 @@ export class WorldClient {
   private running = 0; // mesh jobs sent and not yet back
   private center = { cx: 0, cz: 0, vd: 0 };
   private emits: Uint8Array = new Uint8Array(0); // light level per block ID
-  private transparent: Uint8Array = new Uint8Array(0); // 1 where light passes, per block ID
+  private passes: Uint8Array = new Uint8Array(0); // 1 where light passes, per block ID
   private readonly glowing = new Map<ChunkKey, boolean>(); // cached: holds a glowing block
   private readonly stale = new Set<ChunkKey>(); // shown, but being fetched again
   private readonly drawn = new Map<string, Set<number>>(); // column → layers with a finished mesh
@@ -85,9 +85,9 @@ export class WorldClient {
   }
 
   /** How brightly each block ID glows and which let light through; meshes made from now on use it. */
-  setLights(emits: Uint8Array, transparent: Uint8Array): void {
+  setLights(emits: Uint8Array, passes: Uint8Array): void {
     this.emits = emits;
-    this.transparent = transparent;
+    this.passes = passes;
     this.glowing.clear();
   }
 
@@ -119,6 +119,16 @@ export class WorldClient {
   /** The block at world position x,y,z, or undefined if it isn't loaded. */
   blockAt(x: number, y: number, z: number): number | undefined {
     return this.store.blockAt(x, y, z);
+  }
+
+  /** The y of the highest loaded block in column x,z that isn't air, or -1. */
+  topAt(x: number, z: number): number {
+    return this.store.topAt(x, z);
+  }
+
+  /** Goes up whenever a loaded block changes. */
+  get version(): number {
+    return this.store.version;
   }
 
   /** Changes a loaded block and re-meshes every chunk whose mesh shows it or its light. */
@@ -175,7 +185,7 @@ export class WorldClient {
   private lightReach(old: number, block: number, cx: number, cy: number, cz: number): number {
     const glow = Math.max(this.emits[old] ?? 0, this.emits[block] ?? 0);
     if (glow > 0) return Math.min(glow, LIGHT_MARGIN);
-    const blocksLight = (b: number) => this.transparent[b] !== 1;
+    const blocksLight = (b: number) => this.passes[b] !== 1;
     return blocksLight(old) !== blocksLight(block) && this.lightsNear(cx, cy, cz)
       ? LIGHT_MARGIN
       : 1;

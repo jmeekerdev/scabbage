@@ -253,3 +253,56 @@ func jsonNumber(n uint64) string {
 	b, _ := json.Marshal(n)
 	return string(b)
 }
+
+func TestAgentJobsWaitForThePlayersYes(t *testing.T) {
+	ts := startServer(t)
+	c := ts.joinAdmin(t)
+	o := ts.owner(t, "Mom")
+	o.SkipConfirm = false
+	done := make(chan map[string]any, 1)
+	go func() {
+		out, _ := ts.call(t, o, "build", `{"template":"cabin","x":0,"y":10,"z":0}`)
+		done <- out
+	}()
+	cmd := recvWhere(t, c, isAgentCommand).GetAgentCommand()
+	if cmd.Tool != "build" || !cmd.Confirm {
+		t.Fatalf("command = %v, want build waiting for /yes", cmd)
+	}
+	send(t, c, agentReply(cmd.Id, `{"job":`+jsonNumber(cmd.Id)+`,"started":"Building a cabin.","awaiting":true}`))
+	<-done
+	status, _ := ts.call(t, o, "status", `{}`)
+	if status["state"] != "awaiting_confirmation" {
+		t.Fatalf("status = %v", status)
+	}
+	send(t, c, agentProgress(cmd.Id, pb.AgentJobState_AGENT_JOB_STATE_RUNNING, 0, ""))
+	eventually(t, func() bool { s, _ := ts.call(t, o, "status", `{}`); return s["state"] == "running" })
+
+	o.SkipConfirm = true
+	go func() { _, _ = ts.call(t, o, "stop", `{}`) }()
+	if cmd := recvWhere(t, c, isAgentCommand).GetAgentCommand(); cmd.Confirm {
+		t.Fatal("an admin who turned confirming off still has to confirm")
+	}
+}
+
+func TestAdminsTurnConfirmingOffForThemselves(t *testing.T) {
+	ts := startServer(t)
+	c := ts.joinAdmin(t)
+	send(t, c, sendChat("/agent confirm off"))
+	recvWhere(t, c, noticeOf("without asking"))
+	tok, _ := ts.agents.Create(ts.owner(t, "Mom").PlayerID, "laptop")
+	if o, _ := ts.agents.Owner(tok); o.MustConfirm() {
+		t.Fatal("/agent confirm off didn't stick")
+	}
+	send(t, c, sendChat("/agent confirm on"))
+	recvWhere(t, c, noticeOf("/yes"))
+}
+
+// eventually waits up to 2 seconds for ok to hold.
+func eventually(t *testing.T, ok func() bool) {
+	t.Helper()
+	for deadline := time.Now().Add(2 * time.Second); !ok(); time.Sleep(5 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("timed out waiting")
+		}
+	}
+}

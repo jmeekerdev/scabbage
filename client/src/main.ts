@@ -75,6 +75,8 @@ import { MOB_REACH, MOB_STEP_MS, type MobState, Mobs, pickMob } from "./player/m
 import { GamepadControls } from "./player/gamepad";
 import { combineIntents, isActive, type BuildActions } from "./player/input";
 import { runAgentCommand } from "./autopilot/agent";
+import { parseBuild } from "./autopilot/templates/command";
+import { TEMPLATES } from "./autopilot/templates/templates";
 import { Jobs, type JobState } from "./autopilot/jobs";
 import { agentLinkedView } from "./ui/agent-linked";
 import type { Tick } from "./autopilot/autopilot";
@@ -87,12 +89,14 @@ import { pickPlayer, RemotePlayers } from "./player/remote-players";
 import { Avatars, skinPixels } from "./render/avatars";
 import { ArenaMarks } from "./render/arena-marks";
 import { Drops } from "./render/drops";
-import { Precipitation, sheltered } from "./render/precipitation";
+import { Precipitation } from "./render/precipitation";
+import { setSkyClock, skyClock } from "./render/sky-clock";
 import { weatherAt } from "./render/weather";
 import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
 import { TEXTURE_NAMES } from "./render/textures";
 import { DEBUG_FRAMES, startScene } from "./render/scene";
+import { Ghost } from "./render/ghost";
 import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
 import { AutoQuality } from "./settings/auto-quality";
@@ -146,6 +150,8 @@ const ADMIN_COMMANDS = [
   "tp",
   "map",
   "world",
+  "time",
+  "weather",
 ];
 const overlay = $("#overlay");
 const statusEl = $("#status");
@@ -259,9 +265,12 @@ let solid: BoxesAt = () => FULL_BLOCK;
 let padAt: PadAt = () => undefined;
 let building: BuildWorld | undefined;
 let blockNames = new Map<string, number>(); // blocks players may place, for /fill
+const ghost = new Ghost(gameScene.scene);
 const jobs = new Jobs({
   note: (text) => chat.note(text),
   blockAt: (x, y, z) => world.blockAt(x, y, z),
+  filled: (b) => building?.targetable[b] ?? b !== 0,
+  preview: (p) => ghost.show(p),
   refusedAt: (x, z) => (zones.canBuild(x, z) ? undefined : (zones.at(x, z)?.name ?? "this zone")),
   agentJob: (id, state, percent, note) =>
     conn?.send(encodeAgentProgress(BigInt(id), AGENT_STATES[state], percent, note)),
@@ -293,8 +302,8 @@ gameScene.onFrame((timeMs) => {
   build(intent.build, intent.move.descend, [eye.x, eye.y, eye.z], dt, near);
   for (const edit of auto?.edits ?? []) sendEdit(edit);
   drops.update(timeMs);
-  const indoors = !moves || sheltered((x, y, z) => world.blockAt(x, y, z), eye);
-  precipitation.update(Date.now(), eye, weatherAt(Date.now()), indoors);
+  const sky = weatherAt(Date.now(), skyClock.held);
+  precipitation.update(Date.now(), eye, moves ? sky : { ...sky, wet: 0 }, world.roofs);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
   avatars.update(others?.sample(performance.now()) ?? [], performance.now());
@@ -499,6 +508,7 @@ function enterGame(w: Welcome): void {
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   void reloadIfStale().catch(() => undefined); // a reconnect may find the server updated
   if (away) conn?.send(encodeSetAway(true)); // a reconnect while paused
+  setSkyClock(w.sky);
   if (w.world) enterWorld(w.world, w.tickRateHz);
   if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
@@ -516,7 +526,7 @@ function questNews(quests: Quest[]): void {
 /** Our own health and game mode: survival walks, carries its blocks and shows hearts. */
 function applyVitals(v: Vitals): void {
   survival = v.mode === GameMode.SURVIVAL;
-  if (survival && jobs.busy) jobs.stop();
+  if (survival && (jobs.busy || jobs.waiting)) jobs.stop();
   player.allowFlying(!survival);
   hotbar.carry(survival ? inventory.slots : undefined);
   picker.node.hidden = survival;
@@ -615,6 +625,7 @@ function autopilot(dt: number): Tick | undefined {
 
 const AGENT_STATES: Record<JobState, AgentJobState> = {
   running: AgentJobState.RUNNING,
+  awaiting: AgentJobState.AWAITING_CONFIRMATION,
   done: AgentJobState.DONE,
   stopped: AgentJobState.STOPPED,
 };
@@ -623,7 +634,7 @@ const AGENT_STATES: Record<JobState, AgentJobState> = {
 function agentCommand(c: AgentCommand): void {
   resumeGame(); // its job needs frames, even with the agent's window in front
   const host = { jobs, blocks: () => blockNames, survival: () => survival };
-  const reply = runAgentCommand(Number(c.id), c.tool, c.json, host);
+  const reply = runAgentCommand(Number(c.id), c.tool, c.json, host, c.confirm);
   conn?.send(encodeAgentReply(c.id, JSON.stringify(reply)));
 }
 
@@ -642,7 +653,7 @@ function showAgentLinked(linked: AgentLinked): void {
   dialog.showModal();
 }
 
-/** Commands that send the autopilot to fly, clear or fill for us. */
+/** Commands that send the autopilot to fly, clear, fill or build for us, and answer its /yes. */
 function addJobCommands(): void {
   const here = () => {
     const { x, y, z } = player.body;
@@ -656,8 +667,20 @@ function addJobCommands(): void {
   commands.add("fill", "fill x1 y1 z1 x2 y2 z2 with a block", job("fill"), () => [
     ...blockNames.keys(),
   ]);
-  commands.add("stop", "stop /goto, /clear or /fill", () => jobs.stop());
-  commands.add("undo", "take back the last /clear or /fill", () => jobs.undo(survival));
+  commands.add(
+    "build",
+    "build a cabin, tower, wall, floor or stairs in front of you",
+    (arg) => {
+      const job = parseBuild(arg, here(), player.look.yaw, blockNames);
+      if (typeof job === "string") chat.note(job);
+      else jobs.start(job, survival);
+    },
+    () => [...TEMPLATES.keys()],
+  );
+  commands.add("yes", "build the job waiting for your yes", () => jobs.yes());
+  commands.add("no", "cancel the job waiting for your yes", () => jobs.no());
+  commands.add("stop", "stop /goto, /clear, /fill or /build", () => jobs.stop());
+  commands.add("undo", "take back the last job", () => jobs.undo(survival));
 }
 
 /** Outlines the block in reach and carries out this frame's building actions, or hits a mob or player. */
@@ -878,6 +901,7 @@ function rosterChanged(msg: ServerMessage): boolean {
     for (const p of b.value.poses) others?.move(p.entity, poseOf(p), now);
   else if (b.case === "playerLeft") others?.leave(b.value.entity);
   else if (b.case === "playerAway") others?.setAway(b.value.entity, b.value.away);
+  else if (b.case === "sky") setSkyClock(b.value);
   else return false;
   return true;
 }

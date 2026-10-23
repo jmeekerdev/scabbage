@@ -10,7 +10,7 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 )
 
-const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /tp X Z, /tp X Y Z, /tp NAME, /zone, /arena, /map, /world, /agent; anyone can /leave a game"
+const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /tp X Z, /tp X Y Z, /tp NAME, /zone, /arena, /map, /world, /time, /weather, /agent; anyone can /leave a game"
 
 // sendChat runs a command or shares a line with everyone in the world.
 func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
@@ -85,6 +85,10 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 		return s.mapCommand(ctx, c.Arg)
 	case "world":
 		return s.worldCommand(ctx, c.Arg)
+	case "time":
+		return s.timeCommand(ctx, c.Arg)
+	case "weather":
+		return s.weatherCommand(ctx, c.Arg)
 	default:
 		return s.notice(ctx, commandHelp)
 	}
@@ -93,7 +97,7 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 // adminCommands are the commands only admins may run.
 var adminCommands = map[string]bool{
 	"approve": true, "deny": true, "admin": true, "unadmin": true, "creative": true, "survival": true,
-	"zone": true, "arena": true, "tp": true, "map": true, "world": true,
+	"zone": true, "arena": true, "tp": true, "map": true, "world": true, "time": true, "weather": true,
 }
 
 // refusal tells a player who isn't an admin why their command didn't run.

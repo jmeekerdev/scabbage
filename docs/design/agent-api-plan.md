@@ -180,6 +180,19 @@ Built; [agents.md](../play/agents.md) is the user guide. Where it differs from t
 
 ## Phase 3: templates and ghost preview
 
+Built; [Building](../play/building.md#templates) and [agents.md](../play/agents.md) are the user
+guides. Where it differs from this plan:
+
+- The first templates are `cabin`, `tower`, `wall`, `floor` and `stairs`. `house` and `bridge`
+  can follow. Stairs are full blocks, one up per step, so they don't need turned stair blocks.
+- The "always confirm" switch is per admin, for their own agents: `/agent confirm on|off`,
+  stored in `players.agent_skip_confirm`. Non-admins' agent jobs always wait, so a switch for
+  them would do nothing. The server sends `AgentCommand.confirm`, and the protocol went to 25
+  so old tabs, which would ignore it, reload.
+- `goto` never waits, and `/undo` doesn't either. Moving doesn't drop a waiting job, so the
+  player can fly around the preview; `/no`, `/stop`, `/undo` or a new job does.
+- `status` with `wait: true` also returns when the player answers.
+
 - **`build` command and tool.** `/build cabin|house|tower|bridge|wall|floor|stairs [w d h]
 [material] [facing]`, placed at the player or at x,y,z. Templates are small TS functions that
   return cells, so agents and players share them.
