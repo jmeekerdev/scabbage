@@ -72,7 +72,7 @@ autopilot uses the biggest brushes that fit, about 8 a second, so boxes with sid
 multiples of 3 go fastest. It follows your rules: a job that reaches into a zone you can't
 build in is refused. Moving or building yourself stops it.
 
-A job that changes more than 500 blocks waits for you first. The blocks it will build show as
+A `/build`, and any job that changes more than 500 blocks, waits for you first. The blocks it will build show as
 see-through blue and the blocks it will break as red, and chat asks "Build it? /yes builds, /no
 cancels." You can fly around the preview before you answer.
 

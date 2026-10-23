@@ -180,6 +180,15 @@ describe("Jobs", () => {
     expect(previews.at(-1)).toBeUndefined();
   });
 
+  it("always holds a /build, however small, so the player can check which way it faces", () => {
+    const { jobs, previews } = setup();
+    const cells = [{ x: 0, y: 10, z: 0, block: PLANKS }];
+    expect(jobs.start({ kind: "build", template: "wall", cells }, false)).toMatchObject({
+      awaiting: true,
+    });
+    expect(previews.at(-1)?.add).toHaveLength(1);
+  });
+
   it("holds an agent's job when asked, telling it the player must say yes", () => {
     const { jobs, reports } = setup();
     const job = {

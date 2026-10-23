@@ -14,6 +14,12 @@ export type JobState = "running" | "awaiting" | "done" | "stopped";
 /** Jobs changing more blocks than this wait for the player to say /yes. */
 export const CONFIRM_OVER = 500;
 
+// A player's /build always waits, so they can check where and which way it goes.
+function mustConfirm(job: Job, agent: number, asked: boolean, changes: number): boolean {
+  if (job.kind === "goto") return false;
+  return asked || (job.kind === "build" && !agent) || changes > CONFIRM_OVER;
+}
+
 const TAKE_BACK = "/stop stops, /undo takes it back.";
 
 /**
@@ -104,7 +110,7 @@ export class Jobs {
     const plan = planFor(job, this.host.blockAt);
     const preview = previewOf(job, this.host.blockAt, this.host.filled ?? ((b) => b !== 0));
     const changes = preview.add.length + preview.remove.length;
-    if (job.kind !== "goto" && (confirm || changes > CONFIRM_OVER))
+    if (mustConfirm(job, agent, confirm, changes))
       return this.hold({ plan, agent, note: startNote(job) }, preview);
     this.begin(plan, agent);
     return this.started(
