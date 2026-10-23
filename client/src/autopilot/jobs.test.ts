@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildWorldFor } from "../player/building";
 import { EYE_HEIGHT, newBody } from "../player/physics";
 import { Jobs } from "./jobs";
+import type { Preview } from "./preview";
 
 const [AIR, STONE, PLANKS] = [0, 1, 5];
 
@@ -17,9 +18,11 @@ function setup() {
   const w = buildWorldFor({ radius: -1, height: 64, blocks }, blockAt);
   const notes: string[] = [];
   const reports: string[] = [];
+  const previews: (Preview | undefined)[] = [];
   const jobs = new Jobs({
     note: (t) => notes.push(t),
     blockAt,
+    preview: (p) => previews.push(p),
     agentJob: (id, state, percent, note) => reports.push(`${id} ${state} ${percent} ${note}`),
   });
   const body = newBody(1.5, 12, 1.5);
@@ -32,7 +35,7 @@ function setup() {
   };
   const at = { x: 1, y: 12, z: 1 };
   const named = (n: string) => ({ planks: PLANKS })[n];
-  return { jobs, notes, reports, blockAt, finish, at, named };
+  return { jobs, notes, reports, previews, blockAt, finish, at, named };
 }
 
 describe("Jobs", () => {
@@ -148,5 +151,60 @@ describe("Jobs", () => {
       "started",
     );
     expect(notes[0]).toBe(refusal.error);
+  });
+
+  it("holds a job of over 500 blocks until /yes, showing what it will change", () => {
+    const { jobs, notes, previews, at, named } = setup();
+    jobs.run("fill", "0 10 0 10 14 9 planks", at, named, false);
+    expect(jobs.busy).toBe(false);
+    expect(notes.at(-1)).toMatch(/550 blocks.*Build it\? \/yes builds, \/no cancels/);
+    expect(previews.at(-1)?.add).toHaveLength(550);
+    jobs.interrupt(); // looking around the preview doesn't drop it
+    jobs.yes();
+    expect(jobs.busy).toBe(true);
+    expect(previews.at(-1)).toBeUndefined();
+    expect(notes.at(-1)).toMatch(/^Filling 550 blocks\. \/stop stops/);
+  });
+
+  it("drops a held job on /no, and runs small ones at once", () => {
+    const { jobs, notes, previews, at, named } = setup();
+    jobs.run("clear", "0 0 0 10 4 9", at, named, false);
+    expect(previews.at(-1)?.remove).toHaveLength(550);
+    jobs.no();
+    expect(notes.at(-1)).toBe("Cancelled.");
+    expect(previews.at(-1)).toBeUndefined();
+    jobs.yes();
+    expect(notes.at(-1)).toBe("Nothing is waiting for /yes.");
+    jobs.run("clear", "0 0 0 2 2 2", at, named, false);
+    expect(jobs.busy).toBe(true);
+    expect(previews.at(-1)).toBeUndefined();
+  });
+
+  it("holds an agent's job when asked, telling it the player must say yes", () => {
+    const { jobs, reports } = setup();
+    const job = {
+      kind: "fill",
+      box: { min: { x: 0, y: 10, z: 0 }, max: { x: 2, y: 10, z: 2 } },
+      block: PLANKS,
+    } as const;
+    expect(jobs.start(job, false, 7, true)).toMatchObject({ awaiting: true });
+    expect(reports.at(-1)).toMatch(/^7 awaiting 0 /);
+    reports.length = 0;
+    jobs.yes();
+    expect(reports).toEqual(["7 running 0 "]);
+    expect(jobs.start(job, false, 8, true)).toMatchObject({ awaiting: true });
+    jobs.no();
+    expect(reports.at(-1)).toBe("8 stopped 0 The player said no.");
+  });
+
+  it("tells an agent its held job was replaced by another", () => {
+    const { jobs, reports, at, named } = setup();
+    const job = {
+      kind: "clear",
+      box: { min: { x: 0, y: 8, z: 0 }, max: { x: 2, y: 9, z: 2 } },
+    } as const;
+    jobs.start(job, false, 7, true);
+    jobs.run("clear", "0 0 0 2 2 2", at, named, false);
+    expect(reports).toContain("7 stopped 0 Stopped: another job started.");
   });
 });

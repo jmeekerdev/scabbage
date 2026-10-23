@@ -21,10 +21,11 @@ export type Job =
   | { kind: "goto"; target: Cell }
   | { kind: "clear"; box: Box }
   | { kind: "fill"; box: Box; block: number }
-  | { kind: "place"; cells: Placed[] };
+  | { kind: "place"; cells: Placed[] }
+  | { kind: "build"; template: string; cells: Placed[] };
 
-/** The jobs chat commands start; place comes only from agents. */
-export type CommandKind = Exclude<Job["kind"], "place">;
+/** The jobs chat commands start with a box or spot; place comes only from agents. */
+export type CommandKind = Exclude<Job["kind"], "place" | "build">;
 
 const USAGE = {
   goto: "Use /goto x y z, where ~ means where you are, e.g. /goto ~ ~10 ~.",
@@ -55,7 +56,7 @@ export function parseJob(
 }
 
 /** A whole number, or ~ / ~n for the player's own coordinate on that axis plus n. */
-function coordinate(word: string, at: Cell, index: number): number | undefined {
+export function coordinate(word: string, at: Cell, index: number): number | undefined {
   const base = word.startsWith("~") ? [at.x, at.y, at.z][index % 3]! : 0;
   const rest = word.startsWith("~") ? word.slice(1) || "0" : word;
   return /^-?\d+$/.test(rest) ? base + Number(rest) : undefined;

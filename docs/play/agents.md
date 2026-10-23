@@ -32,6 +32,7 @@ first. `/agent deny NAME` turns agents off again and revokes that player's token
 | `/agent list`                     | shows your linked agents and when each was last used                         |
 | `/agent revoke LABEL` / `all`     | turns a token off                                                            |
 | `/agent allow NAME` / `deny NAME` | admins: turn agents on or off for a player                                   |
+| `/agent confirm on` / `off`       | admins: whether your own agents' jobs wait for your `/yes` (on at first)     |
 
 ## MCP or plain HTTP?
 
@@ -58,6 +59,10 @@ claude --mcp-config scabbage-mcp.json
 - **Same rules as your hands.** Every edit goes through the normal building path: reach,
   zones, bedrock and the edit rate limit. The avatar flies there with normal physics and never
   teleports.
+- **You say yes first.** Before an agent's job changes a block, you see a see-through preview
+  (blue for blocks it builds, red for blocks it breaks) and chat asks you to say `/yes` or
+  `/no`. Jobs for players who aren't admins always wait like this. An admin can let their own
+  agents build without asking with `/agent confirm off`. Flying with `goto` never asks.
 - **You stay in charge.** Moving or building yourself, or `/stop`, stops the agent's job.
   `/undo` takes back the last job. Jobs an agent starts show 🤖 in chat, and so do its lines
   from `say`.
@@ -75,24 +80,27 @@ meter, the avatar is about 5 blocks tall, and y is up. `whereami` gives the avat
 
 ## Tools
 
-| Tool       | Arguments                    | Returns                                                                                                                                                                                        |
-| ---------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `whereami` |                              | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone`                                                                                                                          |
-| `blocks`   |                              | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors) |
-| `look`     | `from`, `to`                 | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null                                                                      |
-| `players`  |                              | `players`: who is online, where, their mode, and `away` when their game is paused                                                                                                              |
-| `status`   | `wait?`                      | the last job: `job`, `tool`, `state` (`running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end                                                            |
-| `say`      | `text`                       | chats as you, marked 🤖                                                                                                                                                                        |
-| `goto`     | `x y z`                      | flies there; starts a job                                                                                                                                                                      |
-| `clear`    | `from`, `to`                 | breaks every breakable block in the box, top layer first; starts a job                                                                                                                         |
-| `fill`     | `from`, `to`, `block`        | fills the box's empty cells (air, water, plants), bottom layer first; `"air"` clears the box instead, e.g. for a doorway; starts a job                                                         |
-| `place`    | `blocks: [{x, y, z, block}]` | sets each cell to its block (`"air"` breaks it), clearing what's in the way; starts a job                                                                                                      |
-| `stop`     |                              | stops the job                                                                                                                                                                                  |
-| `undo`     |                              | puts back what the last job changed; starts a job                                                                                                                                              |
+| Tool       | Arguments                                               | Returns                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `whereami` |                                                         | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone`                                                                                                                          |
+| `blocks`   |                                                         | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors) |
+| `look`     | `from`, `to`                                            | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null                                                                      |
+| `players`  |                                                         | `players`: who is online, where, their mode, and `away` when their game is paused                                                                                                              |
+| `status`   | `wait?`                                                 | the last job: `job`, `tool`, `state` (`awaiting_confirmation`, `running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end, or for the player to answer      |
+| `say`      | `text`                                                  | chats as you, marked 🤖                                                                                                                                                                        |
+| `goto`     | `x y z`                                                 | flies there; starts a job                                                                                                                                                                      |
+| `clear`    | `from`, `to`                                            | breaks every breakable block in the box, top layer first; starts a job                                                                                                                         |
+| `fill`     | `from`, `to`, `block`                                   | fills the box's empty cells (air, water, plants), bottom layer first; `"air"` clears the box instead, e.g. for a doorway; starts a job                                                         |
+| `place`    | `blocks: [{x, y, z, block}]`                            | sets each cell to its block (`"air"` breaks it), clearing what's in the way; starts a job                                                                                                      |
+| `build`    | `template`, `x y z`, `w? d? h?`, `material?`, `facing?` | builds a [template](building.md#templates) with its front's bottom middle at `x y z`, facing `north`, `east`, `south` or `west` (default `south`), the rest behind it; starts a job            |
+| `stop`     |                                                         | stops the job                                                                                                                                                                                  |
+| `undo`     |                                                         | puts back what the last job changed; starts a job                                                                                                                                              |
 
 `from` and `to` are `{x, y, z}` corners, both included. A job tool answers at once with
-`{"job": id, "started": "…", "brushes": n, "seconds": s}`. Follow up with `status` and `wait: true` until `state` isn't
-`running`. One job runs at a time, and a new one stops the last. The avatar flies to the work by
+`{"job": id, "started": "…", "brushes": n, "seconds": s}`, plus `"awaiting": true` when it waits
+for the player's `/yes`. Follow up with `status` and `wait: true` until `state` is `done` or
+`stopped`. A good agent tells the player in chat what it's about to build, so they know to
+answer. One job runs at a time, and a new one stops the last. The avatar flies to the work by
 itself: it searches for a way through, and when there's none, it rises above everything on the
 way, crosses and drops down.
 

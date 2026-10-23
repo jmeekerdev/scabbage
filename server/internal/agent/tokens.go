@@ -34,15 +34,19 @@ var labelPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,16}$`)
 
 // Owner is the player a token acts for.
 type Owner struct {
-	PlayerID int64
-	Name     string
-	Admin    bool
-	Allowed  bool // an admin turned agents on for them
-	Label    string
+	PlayerID    int64
+	Name        string
+	Admin       bool
+	Allowed     bool // an admin turned agents on for them
+	SkipConfirm bool // their agents' jobs needn't wait for /yes, if they're an admin
+	Label       string
 }
 
 // MayUseAgents reports whether the owner may drive their avatar with an agent.
 func (o Owner) MayUseAgents() bool { return o.Admin || o.Allowed }
+
+// MustConfirm reports whether the owner says /yes before their agents' jobs change the world.
+func (o Owner) MustConfirm() bool { return !o.Admin || !o.SkipConfirm }
 
 // Token describes a linked agent, without its secret.
 type Token struct {
@@ -99,8 +103,9 @@ func (t *Tokens) Owner(token string) (Owner, error) {
 	o := Owner{}
 	err := t.db.QueryRow(`UPDATE agent_tokens SET last_used_ms = ? WHERE hash = ?
 		RETURNING player_id, label, (SELECT name FROM players WHERE id = player_id),
-		(SELECT admin FROM players WHERE id = player_id), (SELECT agent_allowed FROM players WHERE id = player_id)`,
-		t.now().UnixMilli(), hashToken(token)).Scan(&o.PlayerID, &o.Label, &o.Name, &o.Admin, &o.Allowed)
+		(SELECT admin FROM players WHERE id = player_id), (SELECT agent_allowed FROM players WHERE id = player_id),
+		(SELECT agent_skip_confirm FROM players WHERE id = player_id)`,
+		t.now().UnixMilli(), hashToken(token)).Scan(&o.PlayerID, &o.Label, &o.Name, &o.Admin, &o.Allowed, &o.SkipConfirm)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Owner{}, ErrBadToken
 	}
@@ -157,6 +162,18 @@ func (t *Tokens) Allow(playerID int64, on bool) error {
 		_, err = t.Revoke(playerID, "all")
 	}
 	return err
+}
+
+// SetConfirm sets whether a player's agents' jobs wait for their /yes; it only counts for admins.
+func (t *Tokens) SetConfirm(playerID int64, on bool) error {
+	res, err := t.db.Exec(`UPDATE players SET agent_skip_confirm = ? WHERE id = ?`, !on, playerID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNoPlayer
+	}
+	return nil
 }
 
 // Allowed reports whether an admin turned agents on for a player.

@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 24;
+  PROTOCOL_VERSION_CURRENT = 25;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -708,6 +708,7 @@ message AgentCommand {
   uint64 id = 1;
   string tool = 2;
   string json = 3;
+  bool confirm = 4; // a job it starts waits for the player's /yes
 }
 
 // The tab's answer to an AgentCommand: a JSON object, with "error" set if it refused.
@@ -729,4 +730,5 @@ enum AgentJobState {
   AGENT_JOB_STATE_RUNNING = 1;
   AGENT_JOB_STATE_DONE = 2;
   AGENT_JOB_STATE_STOPPED = 3;
+  AGENT_JOB_STATE_AWAITING_CONFIRMATION = 4; // waiting for the player's /yes
 }

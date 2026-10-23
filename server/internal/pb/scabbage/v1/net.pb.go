@@ -26,18 +26,18 @@ type ProtocolVersion int32
 
 const (
 	ProtocolVersion_PROTOCOL_VERSION_UNSPECIFIED ProtocolVersion = 0
-	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 24
+	ProtocolVersion_PROTOCOL_VERSION_CURRENT     ProtocolVersion = 25
 )
 
 // Enum value maps for ProtocolVersion.
 var (
 	ProtocolVersion_name = map[int32]string{
 		0:  "PROTOCOL_VERSION_UNSPECIFIED",
-		24: "PROTOCOL_VERSION_CURRENT",
+		25: "PROTOCOL_VERSION_CURRENT",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
-		"PROTOCOL_VERSION_CURRENT":     24,
+		"PROTOCOL_VERSION_CURRENT":     25,
 	}
 )
 
@@ -481,10 +481,11 @@ func (DisconnectCode) EnumDescriptor() ([]byte, []int) {
 type AgentJobState int32
 
 const (
-	AgentJobState_AGENT_JOB_STATE_UNSPECIFIED AgentJobState = 0
-	AgentJobState_AGENT_JOB_STATE_RUNNING     AgentJobState = 1
-	AgentJobState_AGENT_JOB_STATE_DONE        AgentJobState = 2
-	AgentJobState_AGENT_JOB_STATE_STOPPED     AgentJobState = 3
+	AgentJobState_AGENT_JOB_STATE_UNSPECIFIED           AgentJobState = 0
+	AgentJobState_AGENT_JOB_STATE_RUNNING               AgentJobState = 1
+	AgentJobState_AGENT_JOB_STATE_DONE                  AgentJobState = 2
+	AgentJobState_AGENT_JOB_STATE_STOPPED               AgentJobState = 3
+	AgentJobState_AGENT_JOB_STATE_AWAITING_CONFIRMATION AgentJobState = 4 // waiting for the player's /yes
 )
 
 // Enum value maps for AgentJobState.
@@ -494,12 +495,14 @@ var (
 		1: "AGENT_JOB_STATE_RUNNING",
 		2: "AGENT_JOB_STATE_DONE",
 		3: "AGENT_JOB_STATE_STOPPED",
+		4: "AGENT_JOB_STATE_AWAITING_CONFIRMATION",
 	}
 	AgentJobState_value = map[string]int32{
-		"AGENT_JOB_STATE_UNSPECIFIED": 0,
-		"AGENT_JOB_STATE_RUNNING":     1,
-		"AGENT_JOB_STATE_DONE":        2,
-		"AGENT_JOB_STATE_STOPPED":     3,
+		"AGENT_JOB_STATE_UNSPECIFIED":           0,
+		"AGENT_JOB_STATE_RUNNING":               1,
+		"AGENT_JOB_STATE_DONE":                  2,
+		"AGENT_JOB_STATE_STOPPED":               3,
+		"AGENT_JOB_STATE_AWAITING_CONFIRMATION": 4,
 	}
 )
 
@@ -6553,6 +6556,7 @@ type AgentCommand struct {
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Tool          string                 `protobuf:"bytes,2,opt,name=tool,proto3" json:"tool,omitempty"`
 	Json          string                 `protobuf:"bytes,3,opt,name=json,proto3" json:"json,omitempty"`
+	Confirm       bool                   `protobuf:"varint,4,opt,name=confirm,proto3" json:"confirm,omitempty"` // a job it starts waits for the player's /yes
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6606,6 +6610,13 @@ func (x *AgentCommand) GetJson() string {
 		return x.Json
 	}
 	return ""
+}
+
+func (x *AgentCommand) GetConfirm() bool {
+	if x != nil {
+		return x.Confirm
+	}
+	return false
 }
 
 // The tab's answer to an AgentCommand: a JSON object, with "error" set if it refused.
@@ -7159,11 +7170,12 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x06blocks\x18\x03 \x03(\rR\x06blocks\"9\n" +
 	"\vAgentLinked\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\"F\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"`\n" +
 	"\fAgentCommand\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
 	"\x04tool\x18\x02 \x01(\tR\x04tool\x12\x12\n" +
-	"\x04json\x18\x03 \x01(\tR\x04json\"0\n" +
+	"\x04json\x18\x03 \x01(\tR\x04json\x12\x18\n" +
+	"\aconfirm\x18\x04 \x01(\bR\aconfirm\"0\n" +
 	"\n" +
 	"AgentReply\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
@@ -7175,7 +7187,7 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x04note\x18\x04 \x01(\tR\x04note*Q\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x1c\n" +
-	"\x18PROTOCOL_VERSION_CURRENT\x10\x18*\xcf\x01\n" +
+	"\x18PROTOCOL_VERSION_CURRENT\x10\x19*\xcf\x01\n" +
 	"\x05Shape\x12\x15\n" +
 	"\x11SHAPE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -7230,12 +7242,13 @@ const file_scabbage_v1_net_proto_rawDesc = "" +
 	"\x18DISCONNECT_CODE_BAD_NAME\x10\x04\x12\x1a\n" +
 	"\x16DISCONNECT_CODE_DENIED\x10\x05\x12 \n" +
 	"\x1cDISCONNECT_CODE_RATE_LIMITED\x10\x06\x12\x1d\n" +
-	"\x19DISCONNECT_CODE_NOT_ADMIN\x10\a*\x84\x01\n" +
+	"\x19DISCONNECT_CODE_NOT_ADMIN\x10\a*\xaf\x01\n" +
 	"\rAgentJobState\x12\x1f\n" +
 	"\x1bAGENT_JOB_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17AGENT_JOB_STATE_RUNNING\x10\x01\x12\x18\n" +
 	"\x14AGENT_JOB_STATE_DONE\x10\x02\x12\x1b\n" +
-	"\x17AGENT_JOB_STATE_STOPPED\x10\x03B-Z+scabbage/internal/pb/scabbage/v1;scabbagev1b\x06proto3"
+	"\x17AGENT_JOB_STATE_STOPPED\x10\x03\x12)\n" +
+	"%AGENT_JOB_STATE_AWAITING_CONFIRMATION\x10\x04B-Z+scabbage/internal/pb/scabbage/v1;scabbagev1b\x06proto3"
 
 var (
 	file_scabbage_v1_net_proto_rawDescOnce sync.Once

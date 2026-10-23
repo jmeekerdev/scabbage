@@ -66,9 +66,13 @@ Like the player, the avatar edits with a brush: a cube 3, 2 or 1 blocks on a sid
 biggest brushes that fit by themselves, about 8 brushes a second, so one fill of a big box is far
 quicker than many small calls, and boxes whose sides are multiples of 3 go fastest (a 9×9×3 wall
 is 9 brushes). Job tools answer with the brushes they need and the seconds that takes on the spot.
-goto, clear, fill, place and undo start a job and return at once; then call status with wait: true
-until its state isn't running (each wait lasts up to 20 seconds). One job runs at a time, and the
-player stops it by moving. The avatar flies to the work itself, over the trees when it finds no way
+For a cabin, tower, wall, floor or stairs, build makes one from a template in a single call.
+goto, clear, fill, place, build and undo start a job and return at once; then call status with
+wait: true until its state is done or stopped (each wait lasts up to 20 seconds). One job runs at a
+time, and the player stops it by moving.
+Jobs that change blocks usually wait for the player first: they see a see-through preview and say
+/yes or /no in game. Then the job's answer has awaiting: true and status says
+awaiting_confirmation; tell the player in chat what you're about to build so they know to answer. The avatar flies to the work itself, over the trees when it finds no way
 through, so there's no need to goto first. Edits follow the player's own rules.
 Every job really changes the world wherever its cells are, even high in the sky: there's no dry
 run, so build only where you mean to. undo takes back the last job.`
@@ -128,6 +132,20 @@ var Tools = []Tool{
 		object(schema{"blocks": schema{"type": "array", "minItems": 1, "maxItems": MaxPlace,
 			"items": object(with(point["properties"].(schema), schema{"block": schema{"type": "string"}}), "x", "y", "z", "block")}},
 			"blocks")},
+	{"build", "Builds a template with its front's bottom middle at x,y,z, facing north, east, south or west " +
+		"(default south), the rest behind it. Templates, with their default width, depth and height: " +
+		"cabin 9×9×13 (log, with a doorway, windows and a planks gable roof), tower 9×9×21 (cobblestone, " +
+		"with a doorway, window slits and battlements), wall 9×1×6 (stone), floor 9×9×1 (planks) and " +
+		"stairs 3×9×9 (cobblestone, one block up per step). w, d and h change the size, up to 32 each; " +
+		"material changes the main block. It clears what's in its way, inside included. Starts a job.",
+		object(with(point["properties"].(schema), schema{
+			"template": schema{"type": "string", "enum": []string{"cabin", "tower", "wall", "floor", "stairs"}},
+			"w":        schema{"type": "integer", "minimum": 1, "maximum": 32},
+			"d":        schema{"type": "integer", "minimum": 1, "maximum": 32},
+			"h":        schema{"type": "integer", "minimum": 1, "maximum": 32},
+			"material": schema{"type": "string"},
+			"facing":   schema{"type": "string", "enum": []string{"north", "east", "south", "west"}},
+		}), "template", "x", "y", "z")},
 	{"stop", "Stops the current job.", noArgs},
 	{"undo", "Puts back what the last job changed. Starts a job.", noArgs},
 }

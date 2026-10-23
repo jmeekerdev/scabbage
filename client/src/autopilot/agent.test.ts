@@ -13,7 +13,8 @@ function setup(survival = false) {
     ["oak_door", 30],
   ]);
   const host = { jobs, blocks: () => names, survival: () => survival };
-  const run = (tool: string, args: unknown) => runAgentCommand(9, tool, JSON.stringify(args), host);
+  const run = (tool: string, args: unknown, confirm = false) =>
+    runAgentCommand(9, tool, JSON.stringify(args), host, confirm);
   return { jobs, run };
 }
 
@@ -106,5 +107,35 @@ describe("runAgentCommand", () => {
       error: "Agents work in creative for now; survival is coming later.",
     });
     expect(run("undo", {}).error).toContain("creative");
+  });
+
+  it("builds a template, with its size, material and facing", () => {
+    const { jobs, run } = setup();
+    const at = { x: 10, y: 20, z: 30 };
+    expect(run("build", { template: "floor", ...at, w: 3, d: 3, material: "glass" })).toMatchObject(
+      {
+        job: 9,
+        started: expect.stringContaining("Building a floor"),
+      },
+    );
+    expect(jobs.busy).toBe(true);
+    expect(run("build", { template: "castle", ...at })).toMatchObject({
+      error: expect.stringMatching(/no template called castle/),
+    });
+    expect(run("build", { template: "wall", ...at, facing: "up" })).toMatchObject({
+      error: expect.stringMatching(/facing is north, east, south or west/),
+    });
+    expect(run("build", { template: "floor", x: 1 })).toMatchObject({
+      error: expect.stringMatching(/x, y and z/),
+    });
+  });
+
+  it("holds jobs for the player's /yes when the server asks", () => {
+    const { jobs, run } = setup();
+    expect(run("fill", { ...box, block: "planks" }, true)).toMatchObject({
+      job: 9,
+      awaiting: true,
+    });
+    expect(jobs.busy).toBe(false);
   });
 });

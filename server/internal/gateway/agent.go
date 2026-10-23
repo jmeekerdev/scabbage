@@ -18,7 +18,9 @@ var agentTimeout = 10 * time.Second
 const statusWait = 20 * time.Second
 
 // relayed tools are run by the player's tab, through its autopilot.
-var relayed = map[string]bool{"goto": true, "clear": true, "fill": true, "place": true, "stop": true, "undo": true}
+var relayed = map[string]bool{
+	"goto": true, "clear": true, "fill": true, "place": true, "build": true, "stop": true, "undo": true,
+}
 
 // Call runs an agent's tool for its owner: the server answers what it knows, the tab the rest.
 func (g *Gateway) Call(ctx context.Context, o agent.Owner, tool string, args json.RawMessage) (any, error) {
@@ -43,7 +45,7 @@ func (g *Gateway) Call(ctx context.Context, o agent.Owner, tool string, args jso
 		return g.agentSay(s, args)
 	}
 	if relayed[tool] {
-		return s.agent.relay(ctx, s, g.agentIDs.Add(1), tool, args)
+		return s.agent.relay(ctx, s, agentCommand{g.agentIDs.Add(1), tool, args, o.MustConfirm()})
 	}
 	return nil, agent.Refusal("no tool called " + tool)
 }
@@ -87,19 +89,27 @@ type agentCall struct {
 
 func newAgentLink() *agentLink { return &agentLink{calls: map[uint64]agentCall{}} }
 
+// agentCommand is a tool call for the tab; confirm holds any job it starts for the player's /yes.
+type agentCommand struct {
+	id      uint64
+	tool    string
+	args    json.RawMessage
+	confirm bool
+}
+
 // relay sends a tool to the tab and waits for its answer: a JSON object, or a refusal.
-func (l *agentLink) relay(ctx context.Context, s *session, id uint64, tool string, args json.RawMessage) (any, error) {
+func (l *agentLink) relay(ctx context.Context, s *session, c agentCommand) (any, error) {
 	reply := make(chan string, 1)
 	l.mu.Lock()
 	if l.closed {
 		l.mu.Unlock()
 		return nil, agent.Refusal("the tab just closed")
 	}
-	l.calls[id] = agentCall{tool, reply}
+	l.calls[c.id] = agentCall{c.tool, reply}
 	l.mu.Unlock()
-	defer l.forget(id)
+	defer l.forget(c.id)
 	s.push(&pb.ServerMessage{Body: &pb.ServerMessage_AgentCommand{AgentCommand: &pb.AgentCommand{
-		Id: id, Tool: tool, Json: string(args),
+		Id: c.id, Tool: c.tool, Json: string(c.args), Confirm: c.confirm,
 	}}})
 	select {
 	case js := <-reply:
@@ -139,11 +149,15 @@ func (l *agentLink) replied(m *pb.AgentReply) {
 	}
 	delete(l.calls, m.Id) // answered once, so close can't answer it again
 	var started struct {
-		Job uint64 `json:"job"`
+		Job      uint64 `json:"job"`
+		Awaiting bool   `json:"awaiting"`
 	}
 	if json.Unmarshal([]byte(m.Json), &started) == nil && started.Job == m.Id {
 		l.endJob()
 		l.job = agentJob{ID: m.Id, Tool: call.tool, State: "running"}
+		if started.Awaiting {
+			l.job.State = awaiting
+		}
 		l.ended = make(chan struct{})
 	}
 	call.reply <- m.Json
@@ -153,20 +167,34 @@ func (l *agentLink) replied(m *pb.AgentReply) {
 func (l *agentLink) progressed(m *pb.AgentProgress) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if m.Id != l.job.ID || l.job.State != "running" {
+	if m.Id != l.job.ID || !l.job.live() {
 		return
 	}
+	was := l.job.State
 	l.job.Percent, l.job.Note = min(m.Percent, 100), m.Note
 	switch m.State {
+	case pb.AgentJobState_AGENT_JOB_STATE_RUNNING:
+		l.job.State = "running"
+	case pb.AgentJobState_AGENT_JOB_STATE_AWAITING_CONFIRMATION:
+		l.job.State = awaiting
 	case pb.AgentJobState_AGENT_JOB_STATE_DONE:
 		l.job.State = "done"
 	case pb.AgentJobState_AGENT_JOB_STATE_STOPPED:
 		l.job.State = "stopped"
 	}
-	if l.job.State != "running" {
+	if !l.job.live() {
 		l.endJob()
+	} else if was == awaiting && l.job.State != awaiting {
+		l.endJob() // the player said yes: wake anyone waiting, then wait again for the end
+		l.ended = make(chan struct{})
 	}
 }
+
+// awaiting is the state of a job held for the player's /yes.
+const awaiting = "awaiting_confirmation"
+
+// live reports whether the job may still change the world: running, or waiting for /yes.
+func (j agentJob) live() bool { return j.State == "running" || j.State == awaiting }
 
 // endJob wakes anyone waiting on the job; call with mu held.
 func (l *agentLink) endJob() {
@@ -176,7 +204,7 @@ func (l *agentLink) endJob() {
 	}
 }
 
-// status reports the job, first waiting up to statusWait for it to end if asked.
+// status reports the job, first waiting up to statusWait for it to end, or for the player to answer.
 func (l *agentLink) status(ctx context.Context, args json.RawMessage) (any, error) {
 	var a struct {
 		Wait bool `json:"wait"`
@@ -212,7 +240,7 @@ func (l *agentLink) close() {
 		c.reply <- `{"error":"the tab closed before answering"}`
 	}
 	l.calls = map[uint64]agentCall{}
-	if l.job.State == "running" {
+	if l.job.live() {
 		l.job.State = "stopped"
 	}
 	l.endJob()

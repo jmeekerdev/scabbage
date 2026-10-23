@@ -75,6 +75,8 @@ import { MOB_REACH, MOB_STEP_MS, type MobState, Mobs, pickMob } from "./player/m
 import { GamepadControls } from "./player/gamepad";
 import { combineIntents, isActive, type BuildActions } from "./player/input";
 import { runAgentCommand } from "./autopilot/agent";
+import { parseBuild } from "./autopilot/templates/command";
+import { TEMPLATES } from "./autopilot/templates/templates";
 import { Jobs, type JobState } from "./autopilot/jobs";
 import { agentLinkedView } from "./ui/agent-linked";
 import type { Tick } from "./autopilot/autopilot";
@@ -93,6 +95,7 @@ import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
 import { TEXTURE_NAMES } from "./render/textures";
 import { DEBUG_FRAMES, startScene } from "./render/scene";
+import { Ghost } from "./render/ghost";
 import { Selection } from "./render/selection";
 import { createWorldRenderer } from "./render/world-renderer";
 import { AutoQuality } from "./settings/auto-quality";
@@ -259,9 +262,12 @@ let solid: BoxesAt = () => FULL_BLOCK;
 let padAt: PadAt = () => undefined;
 let building: BuildWorld | undefined;
 let blockNames = new Map<string, number>(); // blocks players may place, for /fill
+const ghost = new Ghost(gameScene.scene);
 const jobs = new Jobs({
   note: (text) => chat.note(text),
   blockAt: (x, y, z) => world.blockAt(x, y, z),
+  filled: (b) => building?.targetable[b] ?? b !== 0,
+  preview: (p) => ghost.show(p),
   refusedAt: (x, z) => (zones.canBuild(x, z) ? undefined : (zones.at(x, z)?.name ?? "this zone")),
   agentJob: (id, state, percent, note) =>
     conn?.send(encodeAgentProgress(BigInt(id), AGENT_STATES[state], percent, note)),
@@ -516,7 +522,7 @@ function questNews(quests: Quest[]): void {
 /** Our own health and game mode: survival walks, carries its blocks and shows hearts. */
 function applyVitals(v: Vitals): void {
   survival = v.mode === GameMode.SURVIVAL;
-  if (survival && jobs.busy) jobs.stop();
+  if (survival && (jobs.busy || jobs.waiting)) jobs.stop();
   player.allowFlying(!survival);
   hotbar.carry(survival ? inventory.slots : undefined);
   picker.node.hidden = survival;
@@ -615,6 +621,7 @@ function autopilot(dt: number): Tick | undefined {
 
 const AGENT_STATES: Record<JobState, AgentJobState> = {
   running: AgentJobState.RUNNING,
+  awaiting: AgentJobState.AWAITING_CONFIRMATION,
   done: AgentJobState.DONE,
   stopped: AgentJobState.STOPPED,
 };
@@ -623,7 +630,7 @@ const AGENT_STATES: Record<JobState, AgentJobState> = {
 function agentCommand(c: AgentCommand): void {
   resumeGame(); // its job needs frames, even with the agent's window in front
   const host = { jobs, blocks: () => blockNames, survival: () => survival };
-  const reply = runAgentCommand(Number(c.id), c.tool, c.json, host);
+  const reply = runAgentCommand(Number(c.id), c.tool, c.json, host, c.confirm);
   conn?.send(encodeAgentReply(c.id, JSON.stringify(reply)));
 }
 
@@ -642,7 +649,7 @@ function showAgentLinked(linked: AgentLinked): void {
   dialog.showModal();
 }
 
-/** Commands that send the autopilot to fly, clear or fill for us. */
+/** Commands that send the autopilot to fly, clear, fill or build for us, and answer its /yes. */
 function addJobCommands(): void {
   const here = () => {
     const { x, y, z } = player.body;
@@ -656,8 +663,20 @@ function addJobCommands(): void {
   commands.add("fill", "fill x1 y1 z1 x2 y2 z2 with a block", job("fill"), () => [
     ...blockNames.keys(),
   ]);
-  commands.add("stop", "stop /goto, /clear or /fill", () => jobs.stop());
-  commands.add("undo", "take back the last /clear or /fill", () => jobs.undo(survival));
+  commands.add(
+    "build",
+    "build a cabin, tower, wall, floor or stairs in front of you",
+    (arg) => {
+      const job = parseBuild(arg, here(), player.look.yaw, blockNames);
+      if (typeof job === "string") chat.note(job);
+      else jobs.start(job, survival);
+    },
+    () => [...TEMPLATES.keys()],
+  );
+  commands.add("yes", "build the job waiting for your yes", () => jobs.yes());
+  commands.add("no", "cancel the job waiting for your yes", () => jobs.no());
+  commands.add("stop", "stop /goto, /clear, /fill or /build", () => jobs.stop());
+  commands.add("undo", "take back the last job", () => jobs.undo(survival));
 }
 
 /** Outlines the block in reach and carries out this frame's building actions, or hits a mob or player. */

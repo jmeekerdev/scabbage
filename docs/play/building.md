@@ -62,12 +62,38 @@ In creative, the autopilot flies and builds for you:
 | `/goto X Y Z`                   | flies there. `~` means where you are now, and `~5` means 5 more, so `/goto ~ ~20 ~` goes up 20 blocks |
 | `/fill X1 Y1 Z1 X2 Y2 Z2 BLOCK` | fills the empty spots in the box, bottom layer first. Tab completes block names                       |
 | `/clear X1 Y1 Z1 X2 Y2 Z2`      | breaks every block in the box, top layer first                                                        |
+| `/build NAME`                   | builds a template just in front of you. See [Templates](#templates)                                   |
+| `/yes`, `/no`                   | build or cancel the job waiting for you                                                               |
 | `/stop`                         | stops                                                                                                 |
-| `/undo`                         | takes back the last fill or clear. Undo again to redo it                                              |
+| `/undo`                         | takes back the last job. Undo again to redo it                                                        |
 
 Corners are both included, and a job can be up to 32,768 blocks (a 32-block cube). The
 autopilot uses the biggest brushes that fit, about 8 a second, so boxes with sides that are
 multiples of 3 go fastest. It follows your rules: a job that reaches into a zone you can't
 build in is refused. Moving or building yourself stops it.
 
-An [agent](agents.md) uses the same autopilot.
+A job that changes more than 500 blocks waits for you first. The blocks it will build show as
+see-through blue and the blocks it will break as red, and chat asks "Build it? /yes builds, /no
+cancels." You can fly around the preview before you answer.
+
+### Templates
+
+`/build NAME [W D H] [BLOCK] [FACING] [at X Y Z]` builds one of these:
+
+| Template | Default size (W×D×H) | Made of                                                                   |
+| -------- | -------------------- | ------------------------------------------------------------------------- |
+| `cabin`  | 9×9×13               | log walls with a doorway and glass windows, a planks floor and gable roof |
+| `tower`  | 9×9×21               | cobblestone, with a doorway, window slits, a flat top and battlements     |
+| `wall`   | 9×1×6                | stone                                                                     |
+| `floor`  | 9×9×1                | planks                                                                    |
+| `stairs` | 3×9×9                | cobblestone steps, one block up per step, with the space above cleared    |
+
+W is the width across the front, D the depth and H the height, up to 32 each. BLOCK swaps the
+main material, so `/build cabin brick` makes a brick cabin with the same windows and roof.
+
+The front's bottom middle goes 3 blocks in front of your feet, at your feet's height, and the
+rest goes away from you, with the door facing you. FACING (`north`, `east`, `south` or
+`west`) turns it, and `at X Y Z` puts the front somewhere else, with `~` for where you are. A
+template clears what's in its way, inside included, so you can build into a hill.
+
+An [agent](agents.md) uses the same autopilot and templates.

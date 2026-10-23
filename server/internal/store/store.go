@@ -136,6 +136,7 @@ var migrations = []string{
 		UNIQUE (player_id, label)
 	);
 	ALTER TABLE players ADD COLUMN agent_allowed INTEGER NOT NULL DEFAULT 0;`,
+	`ALTER TABLE players ADD COLUMN agent_skip_confirm INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

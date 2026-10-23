@@ -11,7 +11,7 @@ import (
 )
 
 const agentHelp = "Agents: /agent link [label] connects one (Claude Code or any MCP client), /agent list, " +
-	"/agent revoke LABEL|all; admins: /agent allow NAME, /agent deny NAME"
+	"/agent revoke LABEL|all; admins: /agent allow NAME, /agent deny NAME, /agent confirm on|off"
 
 // agentCommand runs /agent: linking, listing and revoking agents, and admins turning them on.
 func (s *session) agentCommand(ctx context.Context, arg string) error {
@@ -29,6 +29,8 @@ func (s *session) agentCommand(ctx context.Context, arg string) error {
 		return s.revokeAgent(ctx, rest)
 	case "allow", "deny":
 		return s.allowAgents(ctx, rest, strings.EqualFold(sub, "allow"))
+	case "confirm":
+		return s.confirmAgents(ctx, rest)
 	}
 	return s.notice(ctx, agentHelp)
 }
@@ -114,6 +116,25 @@ func (s *session) allowAgents(ctx context.Context, name string, on bool) error {
 		return s.notice(ctx, p.Name+" may link agents now, with /agent link.")
 	}
 	return s.notice(ctx, p.Name+" can't use agents now; their links are revoked.")
+}
+
+// confirmAgents sets whether an admin's own agents' jobs wait for their /yes.
+func (s *session) confirmAgents(ctx context.Context, arg string) error {
+	if !s.player.Admin {
+		return s.notice(ctx, "Your agents' jobs always wait for you to say /yes.")
+	}
+	on := strings.EqualFold(arg, "on")
+	if !on && !strings.EqualFold(arg, "off") {
+		return s.notice(ctx, "Use /agent confirm on or /agent confirm off.")
+	}
+	if err := s.gw.cfg.Agents.SetConfirm(s.player.ID, on); err != nil {
+		return err
+	}
+	s.log.Info("agent confirm", "name", s.player.Name, "on", on)
+	if on {
+		return s.notice(ctx, "Your agents' jobs will wait for you to say /yes.")
+	}
+	return s.notice(ctx, "Your agents will build without asking; /stop and /undo still work.")
 }
 
 func plural(n int) string {

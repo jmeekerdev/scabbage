@@ -15,8 +15,10 @@ matter. `/help` lists the commands you can use.
 | `/goto X Y Z`                     | the autopilot flies you there. `~` is where you are, `~5` is 5 more |
 | `/fill X1 Y1 Z1 X2 Y2 Z2 BLOCK`   | fill a box's empty spots                                            |
 | `/clear X1 Y1 Z1 X2 Y2 Z2`        | break every block in a box                                          |
+| `/build NAME [W D H] [BLOCK]`     | build a cabin, tower, wall, floor or stairs in front of you         |
+| `/yes`, `/no`                     | build or cancel the job waiting for you                             |
 | `/stop`                           | stop the autopilot                                                  |
-| `/undo`                           | take back the last fill or clear                                    |
+| `/undo`                           | take back the last job                                              |
 | `/leave`                          | leave a minigame round                                              |
 | `/agent link [LABEL]`             | link an AI agent (admins, or players an admin allowed)              |
 | `/agent list`                     | your linked agents                                                  |
@@ -35,6 +37,7 @@ The autopilot commands work in creative only. See [Building](../play/building.md
 | `/creative NAME`, `/survival NAME`      | set a player's mode                                            |
 | `/tp X Z`, `/tp X Y Z`, `/tp NAME`      | teleport                                                       |
 | `/agent allow NAME`, `/agent deny NAME` | let a player link agents, or stop them and revoke their tokens |
+| `/agent confirm on`, `off`              | whether your own agents' jobs wait for your `/yes`             |
 
 ### `/zone`
 
