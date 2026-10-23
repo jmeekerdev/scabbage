@@ -18,6 +18,7 @@ the agent brings its own brain.
    Other MCP clients use the URL `https://your.server/mcp` with the same header. Agents without
    MCP can use plain HTTP: tell them to start by reading `https://your.server/api/agent/v1/`,
    which explains the API and lists the tools.
+
 3. Keep the Scabbage tab open and visible. The agent drives that tab's avatar, and browsers
    pause hidden tabs. The game pauses itself and goes quiet when another window has focus,
    but it keeps running while an agent's job is under way.
@@ -25,12 +26,12 @@ the agent brings its own brain.
 Admins can link agents right away. Other players need an admin to type `/agent allow NAME`
 first. `/agent deny NAME` turns agents off again and revokes that player's tokens.
 
-| Command | Does |
-|---|---|
-| `/agent link [label]` | makes a token (up to 5 per player; linking a label again replaces its token) |
-| `/agent list` | shows your linked agents and when each was last used |
-| `/agent revoke LABEL` / `all` | turns a token off |
-| `/agent allow NAME` / `deny NAME` | admins: turn agents on or off for a player |
+| Command                           | Does                                                                         |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| `/agent link [label]`             | makes a token (up to 5 per player; linking a label again replaces its token) |
+| `/agent list`                     | shows your linked agents and when each was last used                         |
+| `/agent revoke LABEL` / `all`     | turns a token off                                                            |
+| `/agent allow NAME` / `deny NAME` | admins: turn agents on or off for a player                                   |
 
 ## MCP or plain HTTP?
 
@@ -74,20 +75,20 @@ meter, the avatar is about 5 blocks tall, and y is up. `whereami` gives the avat
 
 ## Tools
 
-| Tool | Arguments | Returns |
-|---|---|---|
-| `whereami` | | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone` |
-| `blocks` | | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors) |
-| `look` | `from`, `to` | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null |
-| `players` | | `players`: who is online, where, their mode, and `away` when their game is paused |
-| `status` | `wait?` | the last job: `job`, `tool`, `state` (`running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end |
-| `say` | `text` | chats as you, marked 🤖 |
-| `goto` | `x y z` | flies there; starts a job |
-| `clear` | `from`, `to` | breaks every breakable block in the box, top layer first; starts a job |
-| `fill` | `from`, `to`, `block` | fills the box's empty cells (air, water, plants), bottom layer first; `"air"` clears the box instead, e.g. for a doorway; starts a job |
-| `place` | `blocks: [{x, y, z, block}]` | sets each cell to its block (`"air"` breaks it), clearing what's in the way; starts a job |
-| `stop` | | stops the job |
-| `undo` | | puts back what the last job changed; starts a job |
+| Tool       | Arguments                    | Returns                                                                                                                                                                                        |
+| ---------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `whereami` |                              | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone`                                                                                                                          |
+| `blocks`   |                              | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors) |
+| `look`     | `from`, `to`                 | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null                                                                      |
+| `players`  |                              | `players`: who is online, where, their mode, and `away` when their game is paused                                                                                                              |
+| `status`   | `wait?`                      | the last job: `job`, `tool`, `state` (`running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end                                                            |
+| `say`      | `text`                       | chats as you, marked 🤖                                                                                                                                                                        |
+| `goto`     | `x y z`                      | flies there; starts a job                                                                                                                                                                      |
+| `clear`    | `from`, `to`                 | breaks every breakable block in the box, top layer first; starts a job                                                                                                                         |
+| `fill`     | `from`, `to`, `block`        | fills the box's empty cells (air, water, plants), bottom layer first; `"air"` clears the box instead, e.g. for a doorway; starts a job                                                         |
+| `place`    | `blocks: [{x, y, z, block}]` | sets each cell to its block (`"air"` breaks it), clearing what's in the way; starts a job                                                                                                      |
+| `stop`     |                              | stops the job                                                                                                                                                                                  |
+| `undo`     |                              | puts back what the last job changed; starts a job                                                                                                                                              |
 
 `from` and `to` are `{x, y, z}` corners, both included. A job tool answers at once with
 `{"job": id, "started": "…", "brushes": n, "seconds": s}`. Follow up with `status` and `wait: true` until `state` isn't

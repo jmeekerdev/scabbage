@@ -2,7 +2,7 @@ import { CHUNK_SIZE } from "./constants";
 
 export const CHUNK_VOLUME = CHUNK_SIZE ** 3;
 
-/** A 16³ block volume; uniform chunks keep only their fill block. */
+/** A CHUNK_SIZE³ block volume; uniform chunks keep only their fill block. */
 export interface Chunk {
   fill: number;
   blocks?: Uint16Array;

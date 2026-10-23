@@ -17,7 +17,7 @@ import (
 
 const (
 	worldHelp = "World: /world reset starts this world over from its seed, /world new [SEED] makes a new one. " +
-		"Another admin approves with /world approve CODE, or anyone stops it with /world deny."
+		"Another admin approves with /world approve CODE, or any admin stops it with /world deny."
 	wipeWait  = 10 * time.Minute // how long a request waits for approval
 	kickDelay = time.Second      // lets everyone read the news before they reconnect to the new world
 	codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ"

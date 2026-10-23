@@ -6,23 +6,23 @@ minigames all happen in one shared, persistent world.
 
 ## Decisions so far
 
-| Area | Decision |
-|---|---|
-| Genre | All-in-one: a voxel sandbox world is the base, and survival, adventure and minigames are layered on top |
-| Art | Blocky voxel; textures are 16×16 pixel art the family can make |
-| Players | 2–6 at once, ages 8+ |
-| Client | TypeScript + Three.js (WebGL2), built with Vite, installable as a PWA |
-| Server | Go, authoritative, a single binary that also serves the client's static files |
-| Transport | WebSocket carrying binary Protobuf messages (WebTransport later if needed) |
-| Hosting | A home server reachable from the internet, run with Docker / docker compose; budget ≤2 GB RAM and ~2 CPU cores |
-| TLS | Recommended, not required. The server speaks plain HTTP; a reverse proxy (Caddy) adds TLS |
-| Efficiency | As close to zero work as possible when nobody is playing; lean dependencies, no bloat |
-| World | Starts bounded (a world border), designed so it can later open up to infinite |
-| Login | Join code or invite link, then an admin approves each new device |
-| Social | Text chat plus quick emotes and stickers |
-| Input | Keyboard + mouse, touch, and gamepad, all treated as first-class |
-| Creativity | Logic blocks, a minigame maker, kid-friendly scripting, custom skins and blocks |
-| Plan location | This repo (`docs/`) |
+| Area          | Decision                                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------------------------- |
+| Genre         | All-in-one: a voxel sandbox world is the base, and survival, adventure and minigames are layered on top        |
+| Art           | Blocky voxel; textures are 16×16 pixel art the family can make                                                 |
+| Players       | 2–6 at once, ages 8+                                                                                           |
+| Client        | TypeScript + Three.js (WebGL2), built with Vite, installable as a PWA                                          |
+| Server        | Go, authoritative, a single binary that also serves the client's static files                                  |
+| Transport     | WebSocket carrying binary Protobuf messages (WebTransport later if needed)                                     |
+| Hosting       | A home server reachable from the internet, run with Docker / docker compose; budget ≤2 GB RAM and ~2 CPU cores |
+| TLS           | Recommended, not required. The server speaks plain HTTP; a reverse proxy (Caddy) adds TLS                      |
+| Efficiency    | As close to zero work as possible when nobody is playing; lean dependencies, no bloat                          |
+| World         | Starts bounded (a world border), designed so it can later open up to infinite                                  |
+| Login         | Join code or invite link, then an admin approves each new device                                               |
+| Social        | Text chat plus quick emotes and stickers                                                                       |
+| Input         | Keyboard + mouse, touch, and gamepad, all treated as first-class                                               |
+| Creativity    | Logic blocks, a minigame maker, kid-friendly scripting, custom skins and blocks                                |
+| Plan location | This repo (`docs/`)                                                                                            |
 
 ## Architecture
 
@@ -45,7 +45,8 @@ minigames all happen in one shared, persistent world.
 ```
 
 Key principles:
-- **The server is authoritative.** Clients send *intents* (move, place a block, chat), and the
+
+- **The server is authoritative.** Clients send _intents_ (move, place a block, chat), and the
   server validates them and broadcasts the results. The client predicts its own movement so
   play feels responsive, then reconciles with the server.
 - **One schema.** `proto/*.proto` generates both the Go and TS types (`buf` + `protobuf-es`),
@@ -78,6 +79,7 @@ Targets: at idle, **~0% CPU and under ~30 MB RSS**. In a session with 6 players,
 ## TLS and plain HTTP
 
 The Go server only speaks HTTP/WS. TLS comes from Caddy (in the compose file, optional).
+
 - **Local dev:** `http://localhost` counts as a secure context, so everything works without TLS.
 - **Plain HTTP over a LAN IP or the internet** still works for playing, but the browser turns
   off some features: no PWA install or service worker, and Chrome may block the Gamepad API.
@@ -120,7 +122,7 @@ The Go server only speaks HTTP/WS. TLS comes from Caddy (in the compose file, op
 6. **iOS caveat:** Safari can wipe site storage after about 7 days without a visit unless the game
    is installed as a PWA, so we encourage installing it. Re-approving a returning player is one click.
 7. Admin-only messages (`DecideJoin`, `CreateJoinCode`) are checked server-side. The admin page
-   connects in *console* mode, which does not wake the world.
+   connects in _console_ mode, which does not wake the world.
 8. Admins can make other players admins, or remove their admin rights, from **Players** on
    `/admin.html` or with `/admin NAME` and `/unadmin NAME` in chat. Admins can't change their own
    rights, so at least one admin always remains. The player is reconnected to pick up the change.
@@ -154,6 +156,7 @@ shell.nix         Dev tools (Go, Node, buf, linters); `make dev` hot-reloads the
 Each phase ends with something the family can play. Compact the model context between phases.
 
 ### Phase 0 — Foundations
+
 - [x] git init, `.gitignore`, `Makefile` (`check`, `test`, `dev`, `build`)
 - [x] Dockerfile (multi-stage: node build → go build → distroless), `compose.yaml` with
       resource limits, optional Caddy TLS profile
@@ -164,6 +167,7 @@ Each phase ends with something the family can play. Compact the model context be
 - [x] CI-ready `make check` passing with tests in place
 
 ### Phase 1 — Shared Build World (Milestone 1)
+
 - [x] Join code → pending → admin approve → device registered; admin page (`/admin.html`) + in-game approve toasts
       (`/approve <name>` lands with chat)
 - [x] World: chunk storage in SQLite, versioned seeded terrain gen, world border, ~10 starter blocks
@@ -193,6 +197,7 @@ Each phase ends with something the family can play. Compact the model context be
   world is still there after a server restart.
 
 ### Phase 2 — Look & Feel + Personalization
+
 - [x] Better avatars (rigged blocky characters, animations), sounds, music toggle
       (synthesized in the browser, no audio files; music starts off)
 - [x] Ambient occlusion + simple sky/day–night cycle (20-minute day from the wall clock, so every device agrees; nights stay playable)
@@ -207,6 +212,7 @@ Each phase ends with something the family can play. Compact the model context be
       frames stay under 70% of target, until the player picks settings themselves)
 
 ### Phase 3 — Survival
+
 - [x] Health, damage, respawn; survival vs. creative game modes per area or player
       (server-side fall damage, water breaks falls, slow healing, faint → back to spawn;
       modes per player via admin page or `/survival NAME`, server default `-mode`;
@@ -231,6 +237,7 @@ Each phase ends with something the family can play. Compact the model context be
       checks every edit and the client refuses early and greets you on entering)
 
 ### Phase 4 — Logic Blocks
+
 - [x] Signal-propagation system (server tick): wire, switch, button, pressure plate, lamp
       (`internal/logic`: each block has an off and an on ID, so power needs no extra storage.
       A circuit is re-powered only when one of its blocks changes, walking at most 4096 wires;
@@ -250,6 +257,7 @@ Each phase ends with something the family can play. Compact the model context be
       Doors never close on a player; they wait until everyone has stepped out.)
 
 ### Phase 5 — Minigame Maker
+
 - [x] Mark an area as an arena: spawns, teams, goal, timer, win condition
       (an arena is a saved zone's minigame setup, stored as JSON beside it and removed with it;
       admins run `/arena spawn|goal ZONE [red|blue|green|yellow]` to mark where they stand,
@@ -272,6 +280,7 @@ Each phase ends with something the family can play. Compact the model context be
       a scoreboard in the corner shows status, clock, points and flags; anyone can `/leave`)
 
 ### Phase 6 — Kid-Friendly Scripting
+
 - [x] Blockly (visual blocks) in the browser, generating Lua
       (a lazy chunk loaded when the script editor opens; "when" blocks for each event plus place, give,
       teleport, points and wait blocks, placed relative to `here`; the blocks ride along in a trailing Lua
@@ -286,6 +295,7 @@ Each phase ends with something the family can play. Compact the model context be
       scripts act for whoever saved them, within 16 blocks)
 
 ### Phase 7 — Adventure
+
 - [x] Quests (data + scripts), NPCs with dialogue
       (a script calling `npc("Granny Ivy")` stands a character on its block, saved with the script so it
       stays after restarts; using it runs `on_talk(player)`; `talk` and `ask(player, text, choices, fn)`
@@ -324,9 +334,11 @@ Each phase ends with something the family can play. Compact the model context be
       clients reconnect; refused while a game is being played)
 
 ### Phase 8 — Finer world (blocks a third the size)
+
 Every old block becomes 3×3×3 small blocks, one world unit is still one block, and the world starts fresh
 (generator v3; old worlds and `.scabmap` files are refused). Each step is measured against the 2 GB /
 2-core budget before moving on.
+
 - [x] Core scale: 32-block chunks, height 384, radius 1536; Uint16 mesh positions; every body, speed,
       reach, range and timing ×3 on both sides, kept in one shared table of numbers; protocol bump;
       v3 land is v2's shapes scaled up; measure chunk bytes, server memory and meshing time
@@ -374,6 +386,7 @@ Every old block becomes 3×3×3 small blocks, one world unit is still one block,
       ~0.2 s of server time and ~370 KB once, and a few milliseconds per chunk walked
 
 ### Phase 9 — Looks (each player picks how the world is drawn)
+
 The world, its blocks and every mechanic stay the same; only drawing changes. A look is one config file
 in `client/src/looks/`, with these groups: surface (textured or flat color, edge treatment, noise),
 light (sun and shade colors, wrap, bands, shine, corner-shade tint), shape (soft corners and which
@@ -382,6 +395,7 @@ tilt-shift on the map only, vignette, saturation) and per-block palette override
 without one uses its texture's average color. Adding a look is adding a file. The mockups and Fable's
 review are in the look book (Today, Clay Diorama, Ink & Cel, Watercolor, Dusk Pastel, Felt & Stitch,
 Smooth Clay). Each step is measured against today's frame time and triangle count.
+
 - [x] Look config, registry and picker: a schema; Today moved into a config with no visible change; the
       choice is a client setting beside the graphics presets; the picker shows each look's cost
       (light, adds an outline pass, rebuilds chunks), worked out from its features
@@ -415,6 +429,7 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       a lone vignette is multiplied over the finished frame instead of copying it
 
 ### Phase 10 — More wire devices
+
 - [x] Room for more blocks: built-in IDs below 256 are nearly used up (110 left), so new built-ins
       go in a second range from 4096 up, leaving 256–4095 for painted blocks. Chunk storage, the
       wire format and the client's render tables are tested with IDs past 4096
