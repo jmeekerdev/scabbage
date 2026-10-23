@@ -66,12 +66,17 @@ export class Avatar {
   private readonly legs: [Group, Group];
   private readonly arms: [Group, Group];
   private readonly gait = new Gait();
-  private readonly tag?: Sprite;
+  private tag?: Sprite;
+  private away = false;
   private readonly material: MeshBasicMaterial;
   private bubble?: { sprite: Sprite; untilMs: number };
   private shown?: Uint8Array;
 
-  constructor(name: string | undefined, color: number, skin: Uint8Array) {
+  constructor(
+    private readonly name: string | undefined,
+    color: number,
+    skin: Uint8Array,
+  ) {
     this.root.scale.setScalar(METER); // the figure is modeled in meters
     this.material = litMesh({ alphaTest: 0.5 });
     this.setSkin(skin, color);
@@ -87,7 +92,26 @@ export class Avatar {
       at(new Mesh(shapes.body, m), 0, 18 * PX, 0),
       this.head,
     );
-    if (name !== undefined) this.root.add(at((this.tag = nameTag(name)), 0, 2.05, 0));
+    this.showTag();
+  }
+
+  /** Puts 💤 before the name while their game is paused. */
+  setAway(away: boolean): void {
+    if (away === this.away) return;
+    this.away = away;
+    this.showTag();
+  }
+
+  private showTag(): void {
+    if (this.name === undefined) return;
+    if (this.tag) this.root.remove(this.tag);
+    this.disposeTag();
+    this.tag = nameTag(this.away ? `💤 ${this.name}` : this.name);
+    this.root.add(at(this.tag, 0, 2.05, 0));
+  }
+
+  private disposeTag(): void {
+    this.disposeTag();
   }
 
   /** Re-uploads the skin after its pixels were changed in place, e.g. by the editor. */
@@ -224,6 +248,7 @@ export class Avatars {
         this.scene.add(a.root);
       }
       a.setSkin(p.skin, p.color);
+      a.setAway(p.away ?? false);
       a.expire(nowMs);
       a.pose(p.pose, dtMs, nowMs);
     }

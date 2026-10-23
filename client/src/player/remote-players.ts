@@ -7,6 +7,7 @@ export interface RemoteInfo {
   name: string;
   color: number;
   skin: Uint8Array; // empty for the default look
+  away?: boolean; // their game is paused
 }
 
 export interface RemoteState extends RemoteInfo {
@@ -44,6 +45,11 @@ export class RemotePlayers {
   setSkin(entity: number, skin: Uint8Array): void {
     const p = this.players.get(entity);
     if (p) p.info = { ...p.info, skin };
+  }
+
+  setAway(entity: number, away: boolean): void {
+    const p = this.players.get(entity);
+    if (p) p.info = { ...p.info, away };
   }
 
   leave(entity: number): void {

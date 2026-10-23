@@ -18,8 +18,9 @@ the agent brings its own brain.
    Other MCP clients use the URL `https://your.server/mcp` with the same header. Agents without
    MCP can use plain HTTP: tell them to start by reading `https://your.server/api/agent/v1/`,
    which explains the API and lists the tools.
-3. Keep the Scabbage tab open and in front. The agent drives that tab's avatar, and browsers
-   pause hidden tabs.
+3. Keep the Scabbage tab open and visible. The agent drives that tab's avatar, and browsers
+   pause hidden tabs. The game pauses itself and goes quiet when another window has focus,
+   but it keeps running while an agent's job is under way.
 
 Admins can link agents right away. Other players need an admin to type `/agent allow NAME`
 first. `/agent deny NAME` turns agents off again and revokes that player's tokens.
@@ -78,7 +79,7 @@ meter, the avatar is about 5 blocks tall, and y is up. `whereami` gives the avat
 | `whereami` | | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone` |
 | `blocks` | | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors) |
 | `look` | `from`, `to` | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null |
-| `players` | | `players`: who is online, where, and their mode |
+| `players` | | `players`: who is online, where, their mode, and `away` when their game is paused |
 | `status` | `wait?` | the last job: `job`, `tool`, `state` (`running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end |
 | `say` | `text` | chats as you, marked 🤖 |
 | `goto` | `x y z` | flies there; starts a job |

@@ -34,6 +34,11 @@ const CUES: Record<Cue, Recipe> = {
     tone(ctx, out, { freq: 260, endFreq: 140, start: t, dur: 0.2, gain: 0.45 * g }),
 };
 
+/** The tab is hidden or another window has focus. */
+function away(): boolean {
+  return document.hidden || !document.hasFocus();
+}
+
 /** Synthesized sound effects and gentle music; audio only starts after the first tap or key. */
 export class GameAudio {
   private ctx?: AudioContext;
@@ -50,6 +55,7 @@ export class GameAudio {
   ) {
     for (const type of GESTURES) addEventListener(type, this.unlock, true);
     document.addEventListener("visibilitychange", () => this.sync());
+    for (const type of ["focus", "blur"]) addEventListener(type, () => this.sync());
   }
 
   set(sound: boolean, music: boolean): void {
@@ -60,14 +66,14 @@ export class GameAudio {
 
   /** Plays a cue at `gain` (0..1), e.g. quieter for things far away. */
   play(cue: Cue, gain = 1): void {
-    if (!this.soundOn || !this.ctx || !this.sfx || !this.noise || gain <= 0) return;
+    if (!this.soundOn || away() || !this.ctx || !this.sfx || !this.noise || gain <= 0) return;
     this.wake();
     CUES[cue](this.ctx, this.sfx, this.noise, this.ctx.currentTime, gain);
   }
 
   /** Plays a note block's MIDI note, like a soft xylophone. */
   playNote(midi: number, gain = 1): void {
-    if (!this.soundOn || !this.ctx || !this.sfx || gain <= 0) return;
+    if (!this.soundOn || away() || !this.ctx || !this.sfx || gain <= 0) return;
     this.wake();
     const t = { freq: midiHz(midi), start: this.ctx.currentTime, dur: 0.6, gain: 0.35 * gain };
     tone(this.ctx, this.sfx, { ...t, type: "triangle" });
@@ -96,14 +102,15 @@ export class GameAudio {
     return ctx;
   }
 
-  /** Starts or stops music and lets the context sleep whenever nothing needs it. */
+  /** Starts or stops music and lets the context sleep whenever nothing needs it; silent while away. */
   private sync(): void {
     const ctx = this.ctx;
     if (!ctx) return;
-    const playing = this.musicOn && !document.hidden;
+    const playing = this.musicOn && !away();
     if (playing && this.nextBar === undefined) this.playBar(0, 0, ctx.currentTime + 0.1);
     if (!playing) this.stopSong(ctx);
     if (playing) this.wake();
+    else if (away()) void ctx.suspend();
     else this.sleepSoon();
   }
 

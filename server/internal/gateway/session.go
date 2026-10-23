@@ -185,6 +185,9 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 	case *pb.ClientMessage_AgentProgress:
 		s.agent.progressed(body.AgentProgress)
 		return nil
+	case *pb.ClientMessage_SetAway:
+		s.setAway(body.SetAway)
+		return nil
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:

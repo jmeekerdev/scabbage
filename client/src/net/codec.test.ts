@@ -30,6 +30,7 @@ import {
   encodeRequestFar,
   encodeSendChat,
   encodeSetAdmin,
+  encodeSetAway,
   encodeSetGameMode,
   encodeSubmitArt,
 } from "./codec";
@@ -37,6 +38,13 @@ import {
 const decodeClient = (b: Uint8Array) => fromBinary(ClientMessageSchema, b).body;
 
 describe("codec", () => {
+  it("encodes whether the game is paused", () => {
+    expect(decodeClient(encodeSetAway(true))).toMatchObject({
+      case: "setAway",
+      value: { away: true },
+    });
+  });
+
   it("encodes a chat line and an emote", () => {
     expect(decodeClient(encodeSendChat("hi"))).toMatchObject({
       case: "sendChat",
