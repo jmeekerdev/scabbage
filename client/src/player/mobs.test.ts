@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
-import { type MobInfo, Mobs, pickMob } from "./mobs";
+import { MOB_SIZE, type MobInfo, Mobs, pickMob } from "./mobs";
 import { METER } from "../world/constants";
 
 const sheep = (x: number, more: Partial<MobInfo> = {}): MobInfo => ({
@@ -58,7 +58,7 @@ describe("pickMob", () => {
   it("finds the mob the ray points at, with its distance", () => {
     const hit = pickMob([0, eye, 0], [0, 0, -1], mobs, 4 * METER);
     expect(hit?.id).toBe(7);
-    expect(hit?.distance).toBeCloseTo((3 - 0.45) * METER);
+    expect(hit?.distance).toBeCloseTo(3 * METER - MOB_SIZE[MobKind.SHEEP].halfWidth);
   });
 
   it("hits a golem's tall body", () => {

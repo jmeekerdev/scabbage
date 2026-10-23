@@ -72,10 +72,10 @@ func (f feature) canopy(x, z float64) (int32, Block, bool) {
 	top := float64(t.top)
 	switch t.kind {
 	case oakTree:
-		r := 6.5 + float64(t.r%3)*0.75
+		r := oakCrown(t.r)
 		return dome(d, top-1, r, r*0.75, Leaves)
 	case pineTree:
-		y := top + 4 - max(0, (d-0.6)/0.32) // the narrowest its tiers get
+		y := top + 4 - max(0, (d-0.9)/pineTaper) // the narrowest its tiers get
 		return int32(y), PineLeaves, y >= float64(t.ground+2*Meter)
 	}
 	r := 4.0 + float64(t.r%2)

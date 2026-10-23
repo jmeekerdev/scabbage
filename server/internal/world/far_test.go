@@ -12,6 +12,16 @@ func realTop(at func(x, y, z int32) Block, x, z int32) (int32, Block) {
 	return MinY, Air
 }
 
+// leavesNear reports whether column x,z has leaves within 4 m of y; stray rim leaves can stand above.
+func leavesNear(at func(x, y, z int32) Block, x, y, z int32) bool {
+	for dy := int32(-4 * Meter); dy <= 4*Meter; dy++ {
+		if b := at(x, y+dy-1, z); b == Leaves || b == PineLeaves {
+			return true
+		}
+	}
+	return false
+}
+
 func TestFarTilesFollowTheGround(t *testing.T) {
 	g := NewGenV3(42)
 	at := cachedBlocks(g)
@@ -26,7 +36,7 @@ func TestFarTilesFollowTheGround(t *testing.T) {
 				switch tile.Blocks[i] {
 				case Leaves, PineLeaves:
 					leafy++
-					if got < want-4*Meter || got > want+4*Meter {
+					if (got < want-4*Meter || got > want+4*Meter) && !leavesNear(at, x, got, z) {
 						t.Fatalf("crown at %d,%d is %d high, the tree %d", x, z, got, want)
 					}
 				case b:

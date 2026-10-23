@@ -17,8 +17,9 @@ import { litMesh } from "./entity-material";
 import { Gait, type Stance } from "./gait";
 import { boxUVs, defaultSkin, PARTS, SKIN_H, SKIN_W, type Part } from "./skin";
 import { METER } from "../world/constants";
+import { HEIGHT } from "../player/physics";
 
-const PX = 1.8 / 32; // meters per skin pixel: the figure is 32 pixels tall
+const PX = HEIGHT / METER / 32; // meters per skin pixel: the figure is 32 pixels tall
 const TAG_HEIGHT = 0.3; // meters
 const EMOTE_SIZE = 0.7; // meters
 const EMOTE_MS = 3000;
@@ -107,7 +108,7 @@ export class Avatar {
     if (this.tag) this.root.remove(this.tag);
     this.disposeTag();
     this.tag = nameTag(this.away ? `💤 ${this.name}` : this.name);
-    this.root.add(at(this.tag, 0, 2.05, 0));
+    this.root.add(at(this.tag, 0, HEIGHT / METER + 0.25, 0));
   }
 
   private disposeTag(): void {
@@ -149,7 +150,7 @@ export class Avatar {
   /** Floats an emoji over the head for a few seconds, replacing any earlier one. */
   emote(emoji: string, nowMs: number): void {
     this.clearBubble();
-    const sprite = at(new Sprite(emojiMaterial(emoji)), 0, 2.6, 0);
+    const sprite = at(new Sprite(emojiMaterial(emoji)), 0, HEIGHT / METER + 0.8, 0);
     sprite.scale.set(EMOTE_SIZE, EMOTE_SIZE, 1);
     sprite.renderOrder = 1;
     this.root.add(sprite);

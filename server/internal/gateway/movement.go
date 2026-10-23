@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"scabbage/internal/edit"
@@ -38,6 +39,7 @@ func (s *session) move(ctx context.Context, m *pb.Move) error {
 	}
 	s.teleport++
 	at := s.body.Pos()
+	slog.Info("move rejected", "name", s.player.Name, "from", at, "to", to) // one per snap-back
 	return s.write(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Teleport{Teleport: &pb.Teleport{
 		Id: s.teleport, Pos: &pb.Vec3{X: float32(at.X), Y: float32(at.Y), Z: float32(at.Z)},
 	}}})

@@ -10,7 +10,7 @@ const HURT_MS = 300;
 
 /** Mob sizes; must match server/internal/mobs/ai.go. */
 export const MOB_SIZE: Record<number, { halfWidth: number; height: number }> = {
-  [MobKind.SHEEP]: { halfWidth: 0.45 * METER, height: 1.3 * METER },
+  [MobKind.SHEEP]: { halfWidth: 0.35 * METER, height: 0.95 * METER },
   [MobKind.SLIME]: { halfWidth: 0.4 * METER, height: 0.8 * METER },
   [MobKind.KING_SLIME]: { halfWidth: 1 * METER, height: 2 * METER },
   [MobKind.GOLEM]: { halfWidth: 0.6 * METER, height: 2.6 * METER },

@@ -24,7 +24,7 @@ const meter = world.Meter
 
 // Body sizes must match client/src/player/mobs.ts.
 var kinds = map[Kind]kind{
-	Sheep:     {height: 1.3 * meter, halfWidth: 0.45 * meter, health: 1, walk: 1 * meter},
+	Sheep:     {height: 0.95 * meter, halfWidth: 0.35 * meter, health: 1, walk: 1 * meter},
 	Slime:     {height: 0.8 * meter, halfWidth: 0.4 * meter, health: 3, walk: 2.5 * meter, chases: true, damage: 2},
 	KingSlime: {height: 2 * meter, halfWidth: 1 * meter, health: 24, walk: 2 * meter, chases: true, damage: 4, boss: true},
 	Golem:     {height: 2.6 * meter, halfWidth: 0.6 * meter, health: 40, walk: 1.6 * meter, chases: true, damage: 6, boss: true, steady: true},

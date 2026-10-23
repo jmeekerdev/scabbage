@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Pose } from "./move-sync";
+import { HALF_WIDTH } from "./physics";
 import { pickPlayer, RemotePlayers } from "./remote-players";
 import { METER } from "../world/constants";
 
@@ -82,7 +83,7 @@ describe("pickPlayer", () => {
   it("finds the player the ray points at, with their distance", () => {
     const hit = pickPlayer([0, eye, 0], [0, 0, -1], players, 4 * METER);
     expect(hit?.entity).toBe(1);
-    expect(hit?.distance).toBeCloseTo((3 - 0.3) * METER);
+    expect(hit?.distance).toBeCloseTo(3 * METER - HALF_WIDTH);
   });
 
   it("misses players off to the side, above or out of reach", () => {

@@ -115,8 +115,32 @@ func TestTreesHaveLeavesBesideTheirTop(t *testing.T) {
 				t.Errorf("%v has no leaves beside its top log at %v", k, d)
 			}
 		}
-		if tr.top < f.ground+3*Meter {
-			t.Errorf("%v is only %d blocks tall", k, tr.top-f.ground)
+	}
+}
+
+func TestOaksAndPinesTowerOverPlayers(t *testing.T) {
+	for k, least := range map[featureKind]int32{oakTree: 6 * Meter, pineTree: 10 * Meter} {
+		for r := range uint64(16) {
+			if tr := (feature{kind: k, ground: 100, r: r}).tree(); tr.top-tr.ground < least {
+				t.Errorf("%v with r %d is only %d blocks tall", k, r, tr.top-tr.ground)
+			}
+		}
+	}
+}
+
+// Chunks only draw features rooted within featureReach of them and featureRoom under the sky.
+func TestTreesStayWithinTheirReachAndRoom(t *testing.T) {
+	for _, k := range []featureKind{oakTree, pineTree, slimTree} {
+		for r := range uint64(64) {
+			f := feature{kind: k, x: 30, z: 30, ground: 100, r: r * 0x9e3779b97f4a7c15}
+			check := func(x, y, z int32, _ Block, _ bool) {
+				if x < f.x-featureReach*Meter || x >= f.x+(featureReach+1)*Meter ||
+					z < f.z-featureReach*Meter || z >= f.z+(featureReach+1)*Meter || y > f.ground+featureRoom {
+					t.Fatalf("%v with r %d puts a block at %d,%d,%d", k, r, x, y, z)
+				}
+			}
+			f.solid(anywhere(check))
+			f.foliage(anywhere(check))
 		}
 	}
 }
@@ -200,7 +224,7 @@ func TestGenV3Golden(t *testing.T) {
 	for _, p := range []ChunkPos{{0, 3, 0}, {0, 4, 0}, {-19, 2, -20}, {-22, 3, -20}} {
 		h.Write(Encode(g.Generate(p)))
 	}
-	const want = "d62d2972fc2bac4d30e67a8f1bbd84efa6256730052b03a87132e1d7040829d9"
+	const want = "a1986d67c6e8f01bc0fc51a86349e5f39050f7bacf02b4cfa4217e8410a90ea3"
 	if got := hex.EncodeToString(h.Sum(nil)); got != want {
 		t.Fatalf("generator v3 output changed: %s", got)
 	}

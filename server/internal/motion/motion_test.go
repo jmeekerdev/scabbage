@@ -198,3 +198,21 @@ func TestStepsUpOntoAWholeBlock(t *testing.T) {
 		t.Fatal("walking onto a one-block ledge should be allowed")
 	}
 }
+
+func TestAcceptsWalkingUnderAFiveBlockCeiling(t *testing.T) {
+	low := cubes(func(x, y, _ int32) bool { return y < 10 || (x >= 2 && y == 15) })
+	tr := newTracker()
+	for i := 1; i <= 16; i++ {
+		if !tr.Move(Vec{0.5 + float64(i)*0.25, 10, 0.5}, at(i*50), low) {
+			t.Fatalf("step %d rejected", i)
+		}
+	}
+}
+
+func TestStepsUpUnderALowCeiling(t *testing.T) {
+	low := cubes(func(x, y, _ int32) bool { return y < 10 || (x >= 5 && y == 10) || y == 16 })
+	tr := NewTracker(DefaultLimits, Vec{4, 10, 0.5}, t0)
+	if !tr.Move(Vec{4.7, 11, 0.5}, at(50), low) {
+		t.Fatal("stepping up a block with just enough headroom should be allowed")
+	}
+}

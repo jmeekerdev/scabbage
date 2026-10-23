@@ -13,9 +13,9 @@ type Vec struct{ X, Y, Z float64 }
 
 // Player body size; must match client/src/player/physics.ts.
 const (
-	HalfWidth = 0.3 * world.Meter
-	Height    = 1.8 * world.Meter
-	EyeHeight = 1.62 * world.Meter
+	HalfWidth = 0.25 * world.Meter
+	Height    = 1.6 * world.Meter
+	EyeHeight = 1.45 * world.Meter
 )
 
 // slack shrinks the body when checking overlap, absorbing float32 rounding on the wire.
@@ -26,7 +26,7 @@ const pathStep = 0.25
 
 // cornerSlack narrows the body between a move's ends, where the client's sliding path rounds
 // corners that a straight line cuts; the narrowed body is still too wide for a one-block gap.
-const cornerSlack = 0.3
+const cornerSlack = 0.2
 
 // StepHeight is how far the client lifts a walking body onto blocks, slabs and stairs.
 const StepHeight = 0.5 * world.Meter
@@ -103,11 +103,22 @@ func pathBlocked(from, to Vec, solid BoxesFunc) bool {
 	for i := 1; i < steps; i++ {
 		f := float64(i) / float64(steps)
 		p := Vec{from.X + (to.X-from.X)*f, from.Y + (to.Y-from.Y)*f, from.Z + (to.Z-from.Z)*f}
-		if blocked(p, cornerSlack, solid) && blocked(Vec{p.X, p.Y + StepHeight, p.Z}, cornerSlack, solid) {
+		if !fitsLifted(p, math.Max(from.Y, to.Y), solid) {
 			return true
 		}
 	}
 	return Blocked(to, solid)
+}
+
+// fitsLifted reports whether the narrowed body fits at p, or lifted onto a step, as the client
+// lifts it as far as there's room: up to top, the move's higher end, or a whole StepHeight.
+func fitsLifted(p Vec, top float64, solid BoxesFunc) bool {
+	for _, lift := range []float64{0, top - p.Y, StepHeight} {
+		if lift >= 0 && lift <= StepHeight && !blocked(Vec{p.X, p.Y + lift, p.Z}, cornerSlack, solid) {
+			return true
+		}
+	}
+	return false
 }
 
 // Blocked reports whether a body with its feet centered at p overlaps any collision box.

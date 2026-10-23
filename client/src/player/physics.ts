@@ -2,9 +2,9 @@ import type { Box } from "../world/shapes";
 import { METER } from "../world/constants";
 
 // Body size must match server/internal/motion; speeds must stay under its limits.
-export const HALF_WIDTH = 0.3 * METER;
-export const HEIGHT = 1.8 * METER;
-export const EYE_HEIGHT = 1.62 * METER;
+export const HALF_WIDTH = 0.25 * METER;
+export const HEIGHT = 1.6 * METER;
+export const EYE_HEIGHT = 1.45 * METER;
 export const WALK_SPEED = 4.5 * METER;
 export const FLY_SPEED = 11 * METER;
 const FLY_VERTICAL_SPEED = 8 * METER;
@@ -13,6 +13,9 @@ const JUMP_SPEED = 8.4 * METER; // about 1.26 m high
 const TERMINAL_SPEED = 50 * METER;
 const EPS = 1e-6;
 const STEP_HEIGHT = 0.5 * METER; // server/internal/motion allows the same
+const CLIMB_PACE = 0.5; // walking speed while climbing stairs
+const STAIR_RUN = 1.5; // step-ups at most this many blocks apart are stairs, not a gentle slope
+const STAIR_AHEAD = 1; // stairs pace lasts while another step is this near ahead
 
 /** What players collide with in the block at integer x,y,z. */
 export type BoxesAt = (x: number, y: number, z: number) => readonly Box[];
@@ -35,10 +38,23 @@ export interface Body {
   vz: number;
   onGround: boolean;
   flying: boolean;
+  sinceStep: number; // blocks walked since the last step-up
+  onStairs: boolean; // stepped up twice within STAIR_RUN
 }
 
 export function newBody(x: number, y: number, z: number): Body {
-  return { x, y, z, vy: 0, vx: 0, vz: 0, onGround: false, flying: false };
+  return {
+    x,
+    y,
+    z,
+    vy: 0,
+    vx: 0,
+    vz: 0,
+    onGround: false,
+    flying: false,
+    sinceStep: Infinity,
+    onStairs: false,
+  };
 }
 
 /** Advances the body by dt seconds, facing yaw (0 looks toward -z). */
@@ -49,7 +65,8 @@ export function stepBody(
   dt: number,
   boxesAt: BoxesAt,
 ): void {
-  const speed = b.flying ? FLY_SPEED : WALK_SPEED;
+  b.onStairs &&= stepAhead(b, horizontalVelocity(input, yaw, 1), boxesAt);
+  const speed = b.flying ? FLY_SPEED : WALK_SPEED * (b.onStairs ? CLIMB_PACE : 1);
   const [vx, vz] = horizontalVelocity(input, yaw, speed);
   b.vy = b.flying ? flyVertical(input) : fallVertical(b, input, dt);
 
@@ -59,8 +76,20 @@ export function stepBody(
   if (hitY) b.vy = 0;
   if (b.onGround) b.flying = false;
   if (b.onGround || b.flying) [b.vx, b.vz] = [0, 0];
+  const [x, z] = [b.x, b.z];
   walkAxis(b, 0, (vx + b.vx) * dt, boxesAt);
   walkAxis(b, 2, (vz + b.vz) * dt, boxesAt);
+  b.sinceStep += Math.hypot(b.x - x, b.z - z);
+  b.onStairs &&= !b.flying && b.sinceStep <= STAIR_RUN;
+}
+
+/** Whether something rises in the body's way within STAIR_AHEAD along dx,dz; true when standing still. */
+function stepAhead(b: Body, [dx, dz]: [number, number], boxesAt: BoxesAt): boolean {
+  const len = Math.hypot(dx, dz);
+  if (len === 0) return true;
+  const probe = { ...b };
+  const hitX = moveAxis(probe, 0, (dx / len) * STAIR_AHEAD, boxesAt);
+  return moveAxis(probe, 2, (dz / len) * STAIR_AHEAD, boxesAt) || hitX;
 }
 
 /** Throws the body off the ground with velocity v, in blocks per second. */
@@ -97,7 +126,9 @@ function walkAxis(b: Body, axis: Axis, delta: number, boxesAt: BoxesAt): void {
   moveAxis(lifted, 1, STEP_HEIGHT, boxesAt);
   moveAxis(lifted, axis, delta - (b[KEYS[axis]] - start), boxesAt);
   moveAxis(lifted, 1, -STEP_HEIGHT, boxesAt);
-  if (Math.abs(lifted[KEYS[axis]] - b[KEYS[axis]]) > EPS) Object.assign(b, lifted);
+  if (Math.abs(lifted[KEYS[axis]] - b[KEYS[axis]]) <= EPS) return;
+  if (lifted.y > b.y + EPS) [lifted.onStairs, lifted.sinceStep] = [b.sinceStep <= STAIR_RUN, 0];
+  Object.assign(b, lifted);
 }
 
 /** Moves along one axis until the first collision box; returns whether one was hit. */

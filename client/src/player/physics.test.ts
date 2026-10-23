@@ -94,6 +94,43 @@ describe("stepBody", () => {
     expect(b.y + HEIGHT).toBeLessThanOrEqual(16);
   });
 
+  it("climbs a staircase slower than it walks, then walks at full speed on top", () => {
+    const stairs = cubes((x, y) => y < 10 + Math.min(Math.max(0, x - 4), 8));
+    const flat = run(newBody(3.5, 10, 0.5), { right: 1 }, 0.5);
+    const b = run(newBody(3.5, 10, 0.5), { right: 1 }, 0.5, stairs);
+    expect(b.y).toBeGreaterThan(13);
+    expect(b.x - 3.5).toBeLessThan(0.65 * (flat.x - 3.5));
+    run(b, { right: 1 }, 2, stairs);
+    const top = b.x;
+    run(b, { right: 1 }, 0.5, stairs);
+    expect(b.y).toBe(18);
+    expect(b.x - top).toBeCloseTo(flat.x - 3.5, 1);
+  });
+
+  it("walks at full speed as soon as it reaches the top of the stairs", () => {
+    const stairs = cubes((x, y) => y < 10 + Math.min(Math.max(0, x - 4), 8));
+    const b = newBody(3.5, 10, 0.5);
+    while (b.y < 18) run(b, { right: 1 }, DT, stairs);
+    const top = b.x;
+    run(b, { right: 1 }, 0.2, stairs);
+    expect(b.x - top).toBeCloseTo(WALK_SPEED * 0.2, 0);
+  });
+
+  it("walks up a gentle slope at full speed", () => {
+    const slope = cubes((x, y) => y < 10 + Math.floor(Math.max(0, x - 4) / 2));
+    const flat = run(newBody(3.5, 10, 0.5), { right: 1 }, 1);
+    const b = run(newBody(3.5, 10, 0.5), { right: 1 }, 1, slope);
+    expect(b.y).toBeGreaterThan(14);
+    expect(b.x).toBeCloseTo(flat.x, 1);
+  });
+
+  it("walks under a ceiling five blocks up", () => {
+    const low = cubes((x, y) => below10(x, y) || (x >= 5 && y === 15));
+    const b = run(newBody(3.5, 10, 0.5), { right: 1 }, 1, low);
+    expect(b.x).toBeGreaterThan(6);
+    expect(b.y).toBeCloseTo(10, 5);
+  });
+
   it("flies without gravity, rising and sinking on demand", () => {
     const b = newBody(0.5, 20, 0.5);
     b.flying = true;
@@ -125,7 +162,7 @@ describe("stepBody", () => {
   });
 
   it("steps up onto slabs and single blocks while walking, but not up walls", () => {
-    const up = run(newBody(3.5, 10, 0.5), { right: 1 }, 0.25, slabAtX5);
+    const up = run(newBody(3.5, 10, 0.5), { right: 1 }, 0.2, slabAtX5);
     expect(up.x).toBeGreaterThan(5);
     expect(up.y).toBeCloseTo(10.5, 5);
     const ledge = cubes((x, y) => below10(x, y) || (x >= 5 && y === 10));
