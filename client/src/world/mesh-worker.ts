@@ -41,7 +41,11 @@ self.onmessage = (ev: MessageEvent<MeshRequest>) => {
 /** A light region is lit and cropped first; a plain padded volume is meshed in the dark. */
 function meshVolume(volume: Uint16Array, t: RenderTable): ChunkMesh {
   if (volume.length !== REGION_VOLUME) return meshChunk(volume, t, undefined, options);
-  const light = blockLight(volume, t.transparent, t.light);
+  const light = blockLight(volume, {
+    transparent: t.transparent,
+    passes: t.passes,
+    emits: t.light,
+  });
   return meshChunk(cropToPadded(volume), t, light, options);
 }
 

@@ -82,7 +82,7 @@ export interface Look {
     /** Light left in the most tucked-in corners: gray darkens, a color tints. */
     ao: Rgb;
     lamp: Rgb;
-    /** Lamp light kept per meter away from it. */
+    /** Lamp light kept one meter away; farther, it falls with the square of the distance. */
     lampFade: number;
     /** Light from one fixed direction, on top of the face brightness. */
     sun?: LookSun;

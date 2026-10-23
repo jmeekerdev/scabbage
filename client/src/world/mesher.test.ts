@@ -31,7 +31,8 @@ function table(): RenderTable {
   const shape = Uint8Array.from([0, 0, 0, 0, 0, Shape.SLAB, Shape.STAIRS_NORTH]);
   const { EMPTY, NATURAL, BUILT } = Smooth;
   const smooth = Uint8Array.from([EMPTY, NATURAL, NATURAL, EMPTY, BUILT, BUILT, BUILT]);
-  return { layers, transparent, translucent, shape, light: new Uint8Array(n), smooth };
+  const passes = Uint8Array.from([1, 0, 0, 1, 1, 0, 0]);
+  return { layers, transparent, passes, translucent, shape, light: new Uint8Array(n), smooth };
 }
 
 function volume(blocks: [number, number, number, number][]): Uint16Array {
@@ -194,6 +195,16 @@ describe("block light", () => {
     const m = meshChunk(volume(floor()), table(), light).opaque;
     const tops = [...m.faces.keys()].filter((i) => m.faces[i] === 2);
     expect(new Set(tops.map((i) => m.light[i]))).toEqual(new Set([MAX_LIGHT]));
+  });
+
+  it("lights a slab's faces from the cells they look into, not the slab's own cell", () => {
+    const light = new Uint8Array(PADDED_VOLUME);
+    light[paddedIndex(5, 5, 5)] = 9; // inside the slab, lit from a room on one side
+    const dark = meshChunk(volume([[5, 5, 5, 5]]), table(), light).opaque;
+    expect(new Set(dark.light)).toEqual(new Set([0]));
+    light[paddedIndex(5, 6, 5)] = 7;
+    const lit = meshChunk(volume([[5, 5, 5, 5]]), table(), light).opaque;
+    expect(new Set(lit.light)).toEqual(new Set([0, 7]));
   });
 
   it("is dark everywhere without a light volume", () => {

@@ -4,6 +4,7 @@ import type { Look } from "../looks/look";
 import type { ChunkPos } from "../world/coords";
 import type { RenderTable } from "../world/mesher";
 import { cornerShift, Smooth } from "../world/soft-corners";
+import type { Roofs } from "./precipitation";
 import { WorldClient } from "../world/world-client";
 import { buildAtlas, type Atlas } from "./atlas";
 import { buildRenderTable, type BlockTypeInfo } from "./blocks";
@@ -31,6 +32,8 @@ export interface WorldRenderer {
   refetch(chunks: readonly ChunkPos[]): void;
   /** The block at world position x,y,z, or undefined if it isn't loaded. */
   blockAt(x: number, y: number, z: number): number | undefined;
+  /** The highest block in each loaded column, for rain to stop at. */
+  readonly roofs: Roofs;
   /** How far soft corners moved world corner x,y,z in the drawn look, in blocks. */
   softCorner(x: number, y: number, z: number): number[];
   /** Changes a loaded block, e.g. from a server update or a predicted edit. */
@@ -143,7 +146,7 @@ export function createWorldRenderer(
       for (const m of [...materials, ...retired]) m.uniforms.blocks.value = textures;
       old.dispose();
       mesher.setTable(table);
-      world.setLights(table.light, table.transparent);
+      world.setLights(table.light, table.passes);
       art = { atlas, table };
       paint();
       game.invalidate(); // the frame check can't see textures inside shader uniforms
@@ -155,6 +158,7 @@ export function createWorldRenderer(
     receiveFar: (land) => far.receive(land.tiles),
     refetch: (chunks) => world.refetch(chunks),
     blockAt: (x, y, z) => world.blockAt(x, y, z),
+    roofs: world,
     softCorner(x, y, z) {
       const { softCorners } = meshOptions(look);
       const smooth = art?.table.smooth;

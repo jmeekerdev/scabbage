@@ -1,9 +1,14 @@
 import {
   BufferAttribute,
   BufferGeometry,
+  DataTexture,
+  FloatType,
   LineSegments,
+  NearestFilter,
   Points,
+  RedFormat,
   ShaderMaterial,
+  Vector2,
   Vector3,
   type Object3D,
   type Scene,
@@ -19,17 +24,33 @@ const BOX = new Vector3(16 * METER, 12 * METER, 16 * METER); // the space drops 
 const RAIN = { fall: 8 * METER, length: 0.4 * METER, slant: 1.5 * METER }; // per second; length
 const SNOW = { fall: 1 * METER, size: 60 }; // per second; flake size in pixels one block away
 
+/** Columns across the square of roof heights around the eye; covers the box with a column spare. */
+export const ROOF_SPAN = BOX.x + 2;
+
+/** Where the highest block in each column is, and a count that changes whenever any block does. */
+export interface Roofs {
+  topAt(x: number, z: number): number;
+  readonly version: number;
+}
+
 const vertexShader = /* glsl */ `
 uniform vec3 center;
 uniform vec3 box;
 uniform vec3 tailOffset;
 uniform float sway;
 uniform float size;
+uniform sampler2D roofs;
+uniform vec2 roofOrigin;
 attribute float tail;
 void main() {
   vec3 head = (modelMatrix * vec4(position, 1.0)).xyz;
   vec3 at = center + mod(head - center + 0.5 * box, box) - 0.5 * box;
   at.x += sin(sway + position.y) * 0.5;
+  vec2 column = (floor(at.xz) - roofOrigin + 0.5) / ${ROOF_SPAN.toFixed(1)};
+  if (at.y < texture2D(roofs, column).r) {
+    gl_Position = vec4(0.0, 0.0, 2.0, 1.0); // under a roof: outside the view, so not drawn
+    return;
+  }
   at += tail * tailOffset;
   vec4 seen = viewMatrix * vec4(at, 1.0);
   gl_Position = projectionMatrix * seen;
@@ -51,12 +72,19 @@ export class Precipitation {
   private readonly rain: LineSegments<BufferGeometry, ShaderMaterial>;
   private readonly snow: Points<BufferGeometry, ShaderMaterial>;
   private drops: number;
+  private readonly roofs = roofTexture();
+  private readonly roofOrigin = new Vector2(NaN, NaN);
+  private roofVersion = NaN;
 
   constructor(scene: Scene, preset: Preset) {
     this.drops = DROPS[preset];
     const seeds = scatter(DROPS.high);
     this.rain = new LineSegments(dropGeometry(seeds, 2), material(0.35, false));
     this.snow = new Points(dropGeometry(seeds, 1), material(0.85, true));
+    for (const o of [this.rain, this.snow]) {
+      o.material.uniforms.roofs.value = this.roofs;
+      o.material.uniforms.roofOrigin.value = this.roofOrigin;
+    }
     this.snow.material.uniforms.size.value = SNOW.size;
     for (const o of [this.rain, this.snow]) hide(o, scene);
   }
@@ -65,19 +93,20 @@ export class Precipitation {
     this.drops = DROPS[preset];
   }
 
-  /** Shows the weather at the eye, unless it is sheltered by something overhead. */
+  /** Shows the weather around the eye; drops stop at the highest block in their column. */
   update(
     nowMs: number,
     eye: { x: number; y: number; z: number },
     w: WeatherState,
-    sheltered: boolean,
+    roofs: Roofs,
   ): void {
-    const falling = w.wet > 0 && !sheltered;
+    const falling = w.wet > 0;
     const snowing = snowsAt(eye.y);
     this.rain.visible = falling && !snowing;
     this.snow.visible = falling && snowing;
     const shown = snowing ? this.snow : this.rain;
     if (!shown.visible) return;
+    this.fitRoofs(eye, roofs);
     const count = Math.round(this.drops * w.wet * (0.5 + 0.5 * w.storm));
     shown.geometry.setDrawRange(0, count * (snowing ? 1 : 2));
     const s = nowMs / 1000;
@@ -92,6 +121,34 @@ export class Precipitation {
       shown.position.set((-s * slant) % BOX.x, -(s * RAIN.fall) % BOX.y, 0);
     }
   }
+
+  /** Reads the roof heights again when the eye has moved to another column or a block changed. */
+  private fitRoofs(eye: { x: number; z: number }, roofs: Roofs): void {
+    const half = ROOF_SPAN / 2;
+    const [ox, oz] = [Math.floor(eye.x) - half, Math.floor(eye.z) - half];
+    const o = this.roofOrigin;
+    if (o.x === ox && o.y === oz && this.roofVersion === roofs.version) return;
+    o.set(ox, oz);
+    this.roofVersion = roofs.version;
+    const heights = this.roofs.image.data as Float32Array;
+    for (let z = 0; z < ROOF_SPAN; z++)
+      for (let x = 0; x < ROOF_SPAN; x++)
+        heights[z * ROOF_SPAN + x] = roofs.topAt(ox + x, oz + z) + 1;
+    this.roofs.needsUpdate = true;
+  }
+}
+
+/** Heights drops stop at, one texel per column; 0 lets them fall to the bottom of the world. */
+function roofTexture(): DataTexture {
+  const t = new DataTexture(
+    new Float32Array(ROOF_SPAN * ROOF_SPAN),
+    ROOF_SPAN,
+    ROOF_SPAN,
+    RedFormat,
+    FloatType,
+  );
+  t.minFilter = t.magFilter = NearestFilter;
+  return t;
 }
 
 /** Random spots in the box, the same each time so drops don't jump when settings change. */
@@ -130,6 +187,8 @@ function material(opacity: number, flakes: boolean): ShaderMaterial {
       tailOffset: { value: new Vector3() },
       sway: { value: 0 },
       size: { value: 1 },
+      roofs: { value: null },
+      roofOrigin: { value: null },
       color: { value: new Vector3(0.85, 0.9, 1) },
       opacity: { value: opacity },
     },
@@ -143,17 +202,4 @@ function hide(o: Object3D, scene: Scene): void {
   o.frustumCulled = false; // the shader places drops around the camera wherever the mesh is
   o.visible = false;
   scene.add(o);
-}
-
-/** Whether anything but air is over the eye, below the height drops fall from. */
-export function sheltered(
-  blockAt: (x: number, y: number, z: number) => number | undefined,
-  eye: { x: number; y: number; z: number },
-): boolean {
-  const [x, z] = [Math.floor(eye.x), Math.floor(eye.z)];
-  for (let y = Math.floor(eye.y) + 1; y < eye.y + BOX.y; y++) {
-    const b = blockAt(x, y, z);
-    if (b !== undefined && b !== 0) return true;
-  }
-  return false;
 }

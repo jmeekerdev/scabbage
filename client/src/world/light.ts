@@ -17,14 +17,20 @@ export function regionIndex(x: number, y: number, z: number): number {
 
 const STEPS = [1, -1, REGION, -REGION, REGION * REGION, -REGION * REGION];
 
+/** Per block ID: whether it is see-through, whether light passes it, and how brightly it glows. */
+export interface LightTable {
+  transparent: Uint8Array;
+  passes: Uint8Array;
+  emits: Uint8Array;
+}
+
 /**
- * Floods light from glowing blocks through see-through ones, brightest first so each
+ * Floods light from glowing blocks through those it passes, brightest first so each
  * cell is settled the first time it is reached. Returns levels for the padded chunk.
  */
 export function blockLight(
   region: Uint16Array,
-  transparent: Uint8Array,
-  emits: Uint8Array,
+  { transparent, passes, emits }: LightTable,
 ): Uint8Array {
   const level = new Uint8Array(REGION_VOLUME);
   const buckets: number[][] = Array.from({ length: MAX_LIGHT + 1 }, () => []);
@@ -40,13 +46,36 @@ export function blockLight(
       if (level[i] !== l) continue;
       for (const step of STEPS) {
         const n = i + step;
-        if (!sameRow(i, n, step) || level[n] >= l - 1 || transparent[region[n]] !== 1) continue;
+        if (!sameRow(i, n, step) || level[n] >= l - 1 || passes[region[n]] !== 1) continue;
         level[n] = l - 1;
         buckets[l - 1].push(n);
       }
     }
   }
+  lightPartFilled(level, region, transparent, passes);
   return cropToPadded(level);
+}
+
+/** Gives stairs and slabs in the padded chunk one less than their brightest neighbor, for their faces. */
+function lightPartFilled(
+  level: Uint8Array,
+  region: Uint16Array,
+  transparent: Uint8Array,
+  passes: Uint8Array,
+): void {
+  for (let y = -1; y <= S; y++) {
+    for (let z = -1; z <= S; z++) {
+      for (let x = -1; x <= S; x++) {
+        const i = regionIndex(x, y, z);
+        const b = region[i];
+        if (passes[b] === 1 || transparent[b] !== 1) continue;
+        let best = 0;
+        for (const step of STEPS)
+          if (passes[region[i + step]] === 1) best = Math.max(best, level[i + step]);
+        level[i] = Math.max(level[i], best - 1);
+      }
+    }
+  }
 }
 
 /** Whether stepping from i to n stays inside the region instead of wrapping around an edge. */

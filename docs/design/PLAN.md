@@ -470,7 +470,8 @@ Smooth Clay). Each step is measured against today's frame time and triangle coun
       day, the weather comes from the wall clock (server/internal/weather, mirrored by
       render/weather.ts), in four-minute spells that fade over 20 s, so nothing is sent or saved.
       Snow falls above 56 m, as there are no climates yet; storms add wind and shared lightning.
-      Drops are one line or point mesh around the camera, fewer on low, hidden under any roof
+      Drops are one line or point mesh around the camera, fewer on low; each drop stops at the
+      highest block in its column, so none fall indoors
 - [x] New powered devices: a sticky piston that pulls its block back when power stops; trapdoors
       and fence gates that open by hand or power and never close on anyone; a launch pad that
       bounces players up, or along its facing, while powered; a number display showing the count

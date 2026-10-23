@@ -29,6 +29,7 @@ export const FACE_NORMALS = [
 export interface RenderTable {
   layers: Int16Array; // texture layer per face, -1 for air
   transparent: Uint8Array; // neighbors' faces stay visible
+  passes: Uint8Array; // light goes through: see-through, and not a stair or slab
   translucent: Uint8Array; // drawn in the blended pass (water)
   shape: Uint8Array; // a Shape; anything but a cube is drawn box by box
   light: Uint8Array; // how brightly it glows
@@ -133,10 +134,10 @@ function meshShapes(vol: Volume, out: MeshBuilder): void {
         const block = blocks[paddedIndex(x, y, z)];
         const shape = table.shape[block] ?? Shape.CUBE;
         if (block === 0 || shape === Shape.CUBE) continue;
-        const l = lightAt(vol, x, y, z) * ALL_CORNERS; // the same level at all four corners
         for (const box of boxesAt(vol, block, shape, x, y, z)) {
           for (let face = 0; face < 6; face++) {
             if (hiddenByNeighbor(vol, box, face, x, y, z)) continue;
+            const l = boxFaceLight(vol, face, x, y, z) * ALL_CORNERS; // the same at all four corners
             emitBoxFace(out, box, face, [x, y, z], table.layers[block * 6 + face], l);
           }
         }
@@ -175,8 +176,13 @@ function emitBoxFace(
   out.quad(face, plane, at(u, false), at(v, false), at(u, true), at(v, true), layer, OPEN, light);
 }
 
-function lightAt(vol: Volume, x: number, y: number, z: number): number {
-  return vol.light ? vol.light[paddedIndex(x, y, z)] : 0;
+/** The light a box face looks out into: the next cell's if light gets there, else its own cell's. */
+function boxFaceLight(vol: Volume, face: number, x: number, y: number, z: number): number {
+  if (!vol.light) return 0;
+  const [dx, dy, dz] = FACE_NORMALS[face];
+  const next = paddedIndex(x + dx, y + dy, z + dz);
+  const own = paddedIndex(x, y, z);
+  return vol.table.passes[vol.blocks[next]] === 1 ? vol.light[next] : vol.light[own];
 }
 
 /** Axes of a face: d is its normal axis, u and v span the face (u × v points along +d). */

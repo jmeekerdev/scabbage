@@ -27,6 +27,13 @@ const layer = (name: string) => TEXTURE_NAMES.indexOf(name);
 describe("buildRenderTable", () => {
   const t = buildRenderTable(types);
 
+  it("lets light through air, water and torches but not stairs, slabs or solid cubes", () => {
+    const slab = { id: 13, name: "stone_slab", transparent: true, shape: Shape.SLAB };
+    const passes = buildRenderTable([...types, slab]).passes;
+    expect([0, 3, 6].map((id) => passes[id])).toEqual([1, 1, 1]);
+    expect([1, 5, 13].map((id) => passes[id])).toEqual([0, 0, 0]);
+  });
+
   it("softens natural cubes, makes room at water and pins at anything built", () => {
     const types2 = [...types, { id: 13, name: "stone_slab", transparent: true, shape: Shape.SLAB }];
     const kinds = buildRenderTable(types2).smooth;
