@@ -130,6 +130,20 @@ describe("runAgentCommand", () => {
     });
   });
 
+  it("builds a plan the server sent, named for it", () => {
+    const { run } = setup();
+    const plan = { name: "hut", palette: { p: "planks", g: "glass" }, layers: [["pgp"], ["p_p"]] };
+    expect(run("build", { plan, x: 0, y: 10, z: 0, facing: "north" }, true)).toMatchObject({
+      job: 9,
+      awaiting: true,
+      started: expect.stringContaining("Building a hut"),
+    });
+    const bad = { ...plan, palette: { p: "lava", g: "glass" } };
+    expect(run("build", { plan: bad, x: 0, y: 10, z: 0 })).toMatchObject({
+      error: expect.stringMatching(/no block named lava/),
+    });
+  });
+
   it("holds jobs for the player's /yes when the server asks", () => {
     const { jobs, run } = setup();
     expect(run("fill", { ...box, block: "planks" }, true)).toMatchObject({

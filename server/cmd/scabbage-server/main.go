@@ -23,6 +23,7 @@ import (
 	"scabbage/internal/crafting"
 	"scabbage/internal/gateway"
 	"scabbage/internal/maps"
+	"scabbage/internal/plan"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
 	"scabbage/internal/web"
@@ -104,6 +105,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Arenas:         arenas.New(db),
 		Maps:           maps.New(db),
 		Agents:         agents,
+		Plans:          plan.New(db, time.Now),
 		Backup:         wipeBackup(db, cfg, logger),
 		ScriptDB:       db,
 		ServerName:     cfg.ServerName,

@@ -204,6 +204,9 @@ describe("Jobs", () => {
     expect(jobs.start(job, false, 8, true)).toMatchObject({ awaiting: true });
     jobs.no();
     expect(reports.at(-1)).toBe("8 stopped 0 The player said no.");
+    jobs.start(job, false, 9, true);
+    jobs.no("  make it taller ");
+    expect(reports.at(-1)).toBe("9 stopped 0 The player said no: make it taller");
   });
 
   it("tells an agent its held job was replaced by another", () => {

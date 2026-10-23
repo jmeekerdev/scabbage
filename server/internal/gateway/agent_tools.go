@@ -149,7 +149,10 @@ func ptr[T any](v T) *T { return &v }
 
 // agentSay chats as the player, marked so everyone can tell an agent said it.
 func (g *Gateway) agentSay(s *session, args json.RawMessage) (any, error) {
-	var a struct{ Text string }
+	var a struct {
+		Text    string
+		Private bool
+	}
 	if err := decodeArgs(args, &a); err != nil {
 		return nil, err
 	}
@@ -160,10 +163,16 @@ func (g *Gateway) agentSay(s *session, args json.RawMessage) (any, error) {
 	if !s.agent.mayTalk(time.Now()) {
 		return nil, agent.Refusal("slow down: chat is limited to one line every two seconds")
 	}
-	s.log.Info("agent chat", "name", s.player.Name, "text", text)
-	g.broadcast(&pb.ServerMessage{Body: &pb.ServerMessage_Chat{Chat: &pb.Chat{
+	msg := &pb.ServerMessage{Body: &pb.ServerMessage_Chat{Chat: &pb.Chat{
 		Name: s.player.Name, Color: s.player.Color, Text: "🤖 " + text,
-	}}})
+	}}}
+	if a.Private {
+		s.push(msg)
+		return map[string]string{"said": text, "to": s.player.Name}, nil
+	}
+	s.log.Info("agent chat", "name", s.player.Name, "text", text)
+	g.chats.add(s.player.Name, "🤖 "+text, true, time.Now())
+	g.broadcast(msg)
 	return map[string]string{"said": text}, nil
 }
 

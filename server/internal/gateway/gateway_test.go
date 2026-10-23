@@ -19,6 +19,7 @@ import (
 	"scabbage/internal/maps"
 	"scabbage/internal/mobs"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/plan"
 	"scabbage/internal/sim"
 	"scabbage/internal/store"
 	"scabbage/internal/world"
@@ -70,7 +71,7 @@ func startServer(t *testing.T) *testServer {
 			return ts.backup()
 		}
 		return nil
-	}, Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, Maps: maps.New(db), Agents: agents, ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
+	}, Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, Maps: maps.New(db), Agents: agents, Plans: plan.New(db, time.Now), ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}

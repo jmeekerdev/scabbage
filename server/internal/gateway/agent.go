@@ -8,6 +8,7 @@ import (
 
 	"scabbage/internal/agent"
 	pb "scabbage/internal/pb/scabbage/v1"
+	"scabbage/internal/plan"
 	"scabbage/internal/rate"
 )
 
@@ -19,7 +20,7 @@ const statusWait = 20 * time.Second
 
 // relayed tools are run by the player's tab, through its autopilot.
 var relayed = map[string]bool{
-	"goto": true, "clear": true, "fill": true, "place": true, "build": true, "stop": true, "undo": true,
+	"goto": true, "clear": true, "fill": true, "place": true, "stop": true, "undo": true,
 }
 
 // Call runs an agent's tool for its owner: the server answers what it knows, the tab the rest.
@@ -29,6 +30,14 @@ func (g *Gateway) Call(ctx context.Context, o agent.Owner, tool string, args jso
 		return placeableBlocks(), nil
 	case "players":
 		return g.onlinePlayers(), nil
+	case "plans":
+		return g.listPlans(o)
+	case "plan":
+		return g.onePlan(o, args)
+	case "chat":
+		return g.agentChat(ctx, args)
+	case "listen":
+		return g.listen(ctx, o, args)
 	}
 	s := g.tabOf(o.PlayerID)
 	if s == nil {
@@ -43,6 +52,12 @@ func (g *Gateway) Call(ctx context.Context, o agent.Owner, tool string, args jso
 		return s.agent.status(ctx, args)
 	case "say":
 		return g.agentSay(s, args)
+	case "build":
+		return g.build(ctx, s, o, args)
+	case "propose":
+		return g.propose(ctx, s, args)
+	case "save_plan":
+		return s.savePlan(args)
 	}
 	if relayed[tool] {
 		return s.agent.relay(ctx, s, agentCommand{g.agentIDs.Add(1), tool, args, o.MustConfirm()})
@@ -80,6 +95,7 @@ type agentLink struct {
 	ended  chan struct{} // closed when the running job ends
 	closed bool
 	talk   *rate.Bucket // say's chat allowance, made on first use
+	plan   *plan.Plan   // the last plan proposed, for save_plan and /plan save
 }
 
 type agentCall struct {
@@ -119,6 +135,23 @@ func (l *agentLink) relay(ctx context.Context, s *session, c agentCommand) (any,
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+}
+
+// proposed keeps the plan just shown to the player.
+func (l *agentLink) proposed(p plan.Plan) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.plan = &p
+}
+
+// proposal is the last plan shown to the player, if any.
+func (l *agentLink) proposal() (plan.Plan, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.plan == nil {
+		return plan.Plan{}, false
+	}
+	return *l.plan, true
 }
 
 func (l *agentLink) forget(id uint64) {

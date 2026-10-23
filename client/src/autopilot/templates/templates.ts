@@ -50,14 +50,29 @@ export function placeTemplate(
   const cells = t.cells(size);
   const blocks = partBlocks(t, new Set(cells.map((c) => c.part)), material, names);
   if (typeof blocks === "string") return blocks;
+  return turnCells(
+    cells.map((c) => ({ ...c, block: blocks[c.part] })),
+    size.w,
+    at,
+    facing,
+  );
+}
+
+/** Cells in a design's own space (x across its front, z back), turned and moved so its front's bottom middle is at `at`. */
+export function turnCells(
+  cells: readonly Placed[],
+  width: number,
+  at: Cell,
+  facing: Facing,
+): Placed[] {
   const [fx, fz] = FRONT[facing];
   const [rx, rz] = [-fz, fx]; // a quarter turn clockwise from the front, seen from above
-  const mid = Math.floor(size.w / 2);
+  const mid = Math.floor(width / 2);
   return cells.map((c) => ({
     x: at.x + (c.x - mid) * rx - c.z * fx,
     y: at.y + c.y,
     z: at.z + (c.x - mid) * rz - c.z * fz,
-    block: blocks[c.part],
+    block: c.block,
   }));
 }
 

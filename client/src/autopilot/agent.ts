@@ -1,6 +1,7 @@
 import type { Cell } from "../player/brush";
 import { boxBetween, MAX_PLACE, tooBig, type Job, type Placed } from "./job";
 import type { Jobs, Started } from "./jobs";
+import { placePlan, type Plan } from "./templates/plan";
 import { FACINGS, placeTemplate, type Facing } from "./templates/templates";
 
 export interface AgentHost {
@@ -68,10 +69,15 @@ function buildJob(args: Args, names: Names): Job | string {
     return "build needs x, y and z as whole numbers: the middle of its front, at the bottom.";
   const facing = args.facing ?? "south";
   if (!FACINGS.includes(facing as Facing)) return "build's facing is north, east, south or west.";
+  const material = args.material === undefined ? undefined : String(args.material);
+  if (args.plan) {
+    const plan = args.plan as Plan;
+    const cells = placePlan(plan, at, facing as Facing, material, names);
+    return typeof cells === "string" ? cells : { kind: "build", template: plan.name, cells };
+  }
   const template = String(args.template);
   const size = { w: args.w, d: args.d, h: args.h } as Record<string, number | undefined>;
   for (const k of Object.keys(size)) if (size[k] === undefined) delete size[k];
-  const material = args.material === undefined ? undefined : String(args.material);
   const cells = placeTemplate(template, size, at, facing as Facing, material, names);
   return typeof cells === "string" ? cells : { kind: "build", template, cells };
 }

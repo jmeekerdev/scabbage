@@ -224,6 +224,86 @@ guides. Where it differs from this plan:
   - Survival branches in `autopilot.ts`.
   - A materials check in `job.ts`.
 
+## Phase 5: plans
+
+Built; [agents.md](../play/agents.md#plans) and [Building](../play/building.md#plans) are the
+user guides. Where it differs from this plan:
+
+- A palette entry names a block only. `material` swaps the block the plan uses most, so there
+  are no template parts to name.
+- Rows read left to right as seen from the front. The size comes from the layers, so a plan
+  carries no `w d h`.
+- `propose` answers like any job, with its job id, not a separate proposal id. `save_plan` takes
+  just an optional `name` and saves the last plan proposed in the tab.
+- The `/no` reason comes back in `status` as the `note` ("The player said no: …").
+- Added after trying it: `chat` takes `after` and `wait` to long-poll for the player's answer,
+  `/ai MESSAGE` sends a private message to the player's own agent, which loops on a new `listen`
+  tool, and `say` takes `private: true`.
+- `propose` and `build` reach the tab as `build` with the whole plan in its arguments, so
+  `AgentCommand` needed no change. Protocol 27 adds only `PlanRequest` and `Plan`.
+
+Agents design new buildings, show them as a ghost, revise them from the player's answers, and
+save them as **plans** that `/build NAME` can build later, like the built-in templates.
+
+- **The format.** A plan has:
+  - a `name` and an `about` line
+  - its size `w d h`, each side at most 32
+  - a `palette` of one-character keys, such as `{"p": "planks", "g": "glass"}`, where `.`
+    means "leave alone" and `_` means air
+  - its `layers`, bottom first, each a list of `d` rows (front row first) of `w` characters
+
+  The coordinates are the plan's own: x across the front, y up, z back from the front. That
+  makes plans turn and place the same way templates do. A palette entry may name a template part
+  instead of a block (`"p": "main"`), so `material` swaps work as they do for templates.
+
+- **Who sees what.**
+  - A saved plan is its owner's.
+  - The owner can share it with `/plan share NAME` and take it back with `/plan unshare NAME`.
+    No admin approval is needed.
+  - A shared name must not match a built-in template or another shared plan. Sharing refuses
+    such a name and says to rename the plan first.
+  - Private names only need to be unique for their owner.
+  - Admins can delete any shared plan.
+  - `/build NAME` looks in this order: the built-in templates, the player's own plans, then
+    shared plans.
+  - A player can have at most 50 plans, each at most 32,768 cells.
+- **Agent tools.**
+  - **`propose`** takes `plan` (a whole plan, or the name of a saved one), `x y z` and
+    `facing?`. It shows the ghost, always waiting for the player, even with `/agent confirm
+off`. It answers with a proposal `id`. A new `propose` replaces the ghost, so the agent can
+    revise without starting over. `/yes` builds it.
+  - **`/no [reason]`**: the reason comes back in `status` as `answer`.
+  - **`chat`**: recent chat lines the player can see, so the agent hears "make the roof
+    steeper". It reads only; the agent already talks with `say`.
+  - **`save_plan`** takes a proposal `id` and a `name`, and saves the plan the player has seen.
+    It doesn't ask again, because the plan is private until the player shares it.
+  - **`plans`** lists the player's own plans and the shared ones, with sizes and owners.
+    **`plan`** returns one in full, so an agent can start from it.
+  - **`build`** also takes plan names.
+- **In game.**
+  - `/plans` lists them.
+  - `/plan save NAME` saves the ghost on screen.
+  - `/plan share`, `/plan unshare`, `/plan rename OLD NEW` and `/plan delete NAME`.
+- **Server.** The `plan` package checks the format, the limits and the names. It stores plans
+  in a `plans` table (owner, name, shared, the plan as JSON, created). Proposals are held in
+  memory per player, and only the latest one is kept.
+- **Protocol 27.**
+  - `AgentCommand` can carry a plan.
+  - The client asks for a saved plan by name for `/build` (`PlanRequest`), and the server
+    answers with `Plan`.
+  - Plans aren't sent at login.
+- **Files.**
+  - `server/internal/plan/` (+ tests): the format, the checks and the queries.
+  - `server/internal/gateway/plans.go`: the `/plan` commands, `PlanRequest`, and the tools.
+  - `client/src/autopilot/templates/plan.ts`: turns a plan into cells that `placeTemplate`
+    places.
+- **Tests.**
+  - Parsing and refusing bad plans: wrong row lengths, unknown keys, too big.
+  - The name rules for sharing.
+  - Rotation matching the built-in templates.
+  - A rejected proposal's reason reaching `status`.
+  - `/build` finding a shared plan.
+
 ## Order and size
 
 | Phase                  | Rough size                     | Ships as                             |
@@ -232,5 +312,6 @@ guides. Where it differs from this plan:
 | 2 Agent link           | ~900 lines Go + ~200 TS + docs | one or two PRs (server, then client) |
 | 3 Templates + preview  | ~500 lines TS                  | one PR                               |
 | 4 Survival             | ~500 lines TS                  | one PR                               |
+| 5 Plans                | ~600 lines Go + ~250 TS + docs | one PR                               |
 
 Each phase is usable on its own. Phase 1 alone gives players `/fill` and `/clear`.

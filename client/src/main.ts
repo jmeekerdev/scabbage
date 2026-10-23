@@ -28,6 +28,7 @@ import {
   encodeAgentProgress,
   encodeSetAway,
   encodeAgentReply,
+  encodePlanRequest,
   type Bytes,
   type JoinInit,
 } from "./net/codec";
@@ -45,6 +46,7 @@ import {
   type BlockType,
   type Emote,
   type PlayerInfo,
+  type Plan as PlanMessage,
   type PlayerPose,
   type ServerMessage,
   type Teleport,
@@ -75,7 +77,8 @@ import { MOB_REACH, MOB_STEP_MS, type MobState, Mobs, pickMob } from "./player/m
 import { GamepadControls } from "./player/gamepad";
 import { combineIntents, isActive, type BuildActions } from "./player/input";
 import { runAgentCommand } from "./autopilot/agent";
-import { parseBuild } from "./autopilot/templates/command";
+import { parseBuild, planNeeded } from "./autopilot/templates/command";
+import type { Plan } from "./autopilot/templates/plan";
 import { TEMPLATES } from "./autopilot/templates/templates";
 import { Jobs, type JobState } from "./autopilot/jobs";
 import { agentLinkedView } from "./ui/agent-linked";
@@ -211,7 +214,7 @@ inventory.onChange = () => {
 };
 let locked = false;
 const commands = new Commands();
-commands.also(["leave", "agent"]);
+commands.also(["leave", "agent", "plans", "plan", "ai"]);
 const chat = new ChatView(
   $("#chat"),
   (text) => {
@@ -265,6 +268,8 @@ let solid: BoxesAt = () => FULL_BLOCK;
 let padAt: PadAt = () => undefined;
 let building: BuildWorld | undefined;
 let blockNames = new Map<string, number>(); // blocks players may place, for /fill
+let startBuild: (arg: string, plan?: Plan) => void = () => undefined;
+let awaitedPlan: { name: string; arg: string } | undefined; // a /build waiting for its saved plan
 const ghost = new Ghost(gameScene.scene);
 const jobs = new Jobs({
   note: (text) => chat.note(text),
@@ -451,6 +456,7 @@ function connect(join?: JoinInit): void {
         else if (msg.body.case === "skinChanged")
           others?.setSkin(msg.body.value.entity, msg.body.value.skin);
         else if (msg.body.case === "agentCommand") agentCommand(msg.body.value);
+        else if (msg.body.case === "plan") planArrived(msg.body.value);
         else if (msg.body.case === "agentLinked") showAgentLinked(msg.body.value);
         else if (!rosterChanged(msg)) onAdminMessage?.(msg);
       },
@@ -653,6 +659,15 @@ function showAgentLinked(linked: AgentLinked): void {
   dialog.showModal();
 }
 
+/** Builds the saved plan a /build asked for, or says why there's none. */
+function planArrived(m: PlanMessage): void {
+  const asked = awaitedPlan;
+  if (asked?.name !== m.name) return;
+  awaitedPlan = undefined;
+  if (m.error) chat.note(m.error);
+  else startBuild(asked.arg, JSON.parse(m.json) as Plan);
+}
+
 /** Commands that send the autopilot to fly, clear, fill or build for us, and answer its /yes. */
 function addJobCommands(): void {
   const here = () => {
@@ -667,18 +682,26 @@ function addJobCommands(): void {
   commands.add("fill", "fill x1 y1 z1 x2 y2 z2 with a block", job("fill"), () => [
     ...blockNames.keys(),
   ]);
+  startBuild = (arg, plan) => {
+    const job = parseBuild(arg, here(), player.look.yaw, blockNames, plan);
+    if (typeof job === "string") chat.note(job);
+    else jobs.start(job, survival);
+  };
   commands.add(
     "build",
-    "build a cabin, tower, wall, floor or stairs in front of you",
+    "build a cabin, tower, wall, floor, stairs or a saved plan in front of you",
     (arg) => {
-      const job = parseBuild(arg, here(), player.look.yaw, blockNames);
-      if (typeof job === "string") chat.note(job);
-      else jobs.start(job, survival);
+      const name = planNeeded(arg);
+      if (!name) return startBuild(arg);
+      awaitedPlan = { name, arg };
+      conn?.send(encodePlanRequest(name));
     },
     () => [...TEMPLATES.keys()],
   );
   commands.add("yes", "build the job waiting for your yes", () => jobs.yes());
-  commands.add("no", "cancel the job waiting for your yes", () => jobs.no());
+  commands.add("no", "cancel the job waiting for your yes; say why for an agent", (arg) =>
+    jobs.no(arg),
+  );
   commands.add("stop", "stop /goto, /clear, /fill or /build", () => jobs.stop());
   commands.add("undo", "take back the last job", () => jobs.undo(survival));
 }

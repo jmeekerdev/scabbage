@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lookFacing, parseBuild } from "./command";
+import { lookFacing, parseBuild, planNeeded } from "./command";
 
 const names = new Map([
   ["planks", 8],
@@ -33,6 +33,18 @@ describe("parseBuild", () => {
     expect(job.cells.every((c) => c.block === 1)).toBe(true);
     expect(Math.max(...job.cells.map((c) => c.x))).toBe(0); // facing east, it runs to -x
     expect(Math.min(...job.cells.map((c) => c.y))).toBe(20);
+  });
+
+  it("names a saved plan it needs, and builds it once it comes", () => {
+    expect(planNeeded("hut stone east")).toBe("hut");
+    expect(planNeeded("cabin")).toBeUndefined();
+    expect(planNeeded("")).toBeUndefined();
+    const plan = { name: "hut", palette: { p: "planks" }, layers: [["ppp"]] };
+    const job = parseBuild("hut stone", feet, 0, names, plan);
+    if (typeof job === "string") throw new Error(job);
+    expect(job.template).toBe("hut");
+    expect(job.cells.map((c) => c.block)).toEqual([1, 1, 1]);
+    expect(parseBuild("hut 3 3 3", feet, 0, names, plan)).toMatch(/can't be resized/);
   });
 
   it("explains what's wrong", () => {

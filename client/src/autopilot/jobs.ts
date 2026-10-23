@@ -130,10 +130,10 @@ export class Jobs {
     this.started(`${held.note} ${TAKE_BACK}`, held.agent, held.plan);
   }
 
-  /** Drops the job waiting for /yes. */
-  no(): void {
+  /** Drops the job waiting for /yes, telling its agent the player's reason, if any. */
+  no(reason = ""): void {
     if (!this.held) return this.host.note("Nothing is waiting for /no.");
-    this.drop("The player said no.");
+    this.drop(reason.trim() ? `The player said no: ${reason.trim()}` : "The player said no.");
     this.host.note("Cancelled.");
   }
 

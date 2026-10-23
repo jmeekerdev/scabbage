@@ -1,10 +1,11 @@
 import type { Cell } from "../../player/brush";
 import { coordinate, type Job } from "../job";
+import { placePlan, type Plan } from "./plan";
 import { FACINGS, placeTemplate, TEMPLATES, type Facing, type Size } from "./templates";
 
 const AHEAD = 3; // blocks in front of the feet a /build's front goes
 
-const USAGE = `Use /build ${[...TEMPLATES.keys()].join("|")} [w d h] [block] [north|east|south|west] [at x y z].`;
+const USAGE = `Use /build ${[...TEMPLATES.keys()].join("|")}|PLAN [w d h] [block] [north|east|south|west] [at x y z].`;
 
 // The way each quarter turn of yaw looks: yaw 0 looks north, turning left raises it.
 const BY_YAW: Facing[] = ["north", "west", "south", "east"];
@@ -27,8 +28,14 @@ export function lookFacing(yaw: number): Facing {
   return BY_YAW[((quarter % 4) + 4) % 4]!;
 }
 
+/** The saved plan a /build names, when it isn't a built-in template, for asking the server. */
+export function planNeeded(arg: string): string | undefined {
+  const name = arg.trim().toLowerCase().split(/\s+/)[0];
+  return name && !TEMPLATES.has(name) ? name : undefined;
+}
+
 /**
- * Reads /build's arguments into a job: by default just ahead of the feet with its front toward
+ * Reads /build's arguments into a job, from `plan` when the server sent one: by default just ahead of the feet with its front toward
  * the player. Or says what is wrong.
  */
 export function parseBuild(
@@ -36,11 +43,13 @@ export function parseBuild(
   feet: Cell,
   yaw: number,
   names: ReadonlyMap<string, number>,
+  plan?: Plan,
 ): Extract<Job, { kind: "build" }> | string {
   const [template, ...words] = arg.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (!template) return USAGE;
   const sizeWords = words.slice(0, 3).filter((w) => /^\d+$/.test(w));
   if (sizeWords.length && sizeWords.length < 3) return `Give all three of w d h, or none. ${USAGE}`;
+  if (sizeWords.length && plan) return "Saved plans can't be resized.";
   const [w, d, h] = sizeWords.map(Number);
   const size: Partial<Size> = sizeWords.length ? { w, d, h } : {};
   const looks = lookFacing(yaw);
@@ -58,7 +67,9 @@ export function parseBuild(
   }
   const [sx, sz] = STEP[looks];
   const from = at ?? { x: feet.x + sx * AHEAD, y: feet.y, z: feet.z + sz * AHEAD };
-  const cells = placeTemplate(template, size, from, facing, material, names);
+  const cells = plan
+    ? placePlan(plan, from, facing, material, names)
+    : placeTemplate(template, size, from, facing, material, names);
   return typeof cells === "string" ? cells : { kind: "build", template, cells };
 }
 

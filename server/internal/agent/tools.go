@@ -75,7 +75,23 @@ Jobs that change blocks usually wait for the player first: they see a see-throug
 awaiting_confirmation; tell the player in chat what you're about to build so they know to answer. The avatar flies to the work itself, over the trees when it finds no way
 through, so there's no need to goto first. Edits follow the player's own rules.
 Every job really changes the world wherever its cells are, even high in the sky: there's no dry
-run, so build only where you mean to. undo takes back the last job.`
+run, so build only where you mean to. undo takes back the last job.
+The player can talk to you from the game: /ai MESSAGE reaches only you, through listen. When asked
+to help in game, loop: listen, do what the message asks (asking back with say private: true when
+unsure), report with say, then listen again.
+To design a new building, write it as a plan and propose it: the player sees it as a ghost and
+says /yes to build it or /no, maybe with a reason that status shows in its note. The player may
+also just answer in chat, like "make the roof steeper": nothing reaches you unless you ask, so
+after proposing or asking a question, keep calling chat with wait: true and after: the last id you
+saw (or status with wait: true) until they answer. Propose again to show a revised plan in its place.
+When they like it, save_plan keeps it, and anyone can then build it by name: you with build, the
+player with /build NAME. They can share it with everyone from the game.
+A plan is a palette of one-character keys naming blocks, and layers from the bottom up, each a list
+of rows from the front to the back, each row a string of keys across the front from left to right
+(as seen facing the front). "." leaves a cell alone and "_" makes it air.
+Every layer has the same rows and every row the same length, at most 32 each way.
+Placed at x,y,z facing a way, the plan's front row's middle bottom cell lands at x,y,z, and its
+front faces that way. material swaps the block the plan uses most.`
 
 type schema = map[string]any
 
@@ -84,6 +100,19 @@ var (
 	point   = object(schema{"x": integer, "y": integer, "z": integer}, "x", "y", "z")
 	box     = schema{"from": point, "to": point}
 	noArgs  = object(schema{})
+	facing  = schema{"type": "string", "enum": []string{"north", "east", "south", "west"}}
+
+	planName  = schema{"type": "string", "pattern": "^[a-z][a-z0-9_-]{1,23}$"}
+	planInput = schema{"oneOf": []any{
+		schema{"type": "string", "description": "a saved plan's name"},
+		object(schema{
+			"name":    planName,
+			"about":   schema{"type": "string", "maxLength": 200},
+			"palette": schema{"type": "object", "additionalProperties": schema{"type": "string"}},
+			"layers": schema{"type": "array", "minItems": 1, "maxItems": 32, "items": schema{
+				"type": "array", "minItems": 1, "maxItems": 32, "items": schema{"type": "string", "minLength": 1, "maxLength": 32}}},
+		}, "name", "palette", "layers"),
+	}}
 )
 
 func object(props schema, required ...string) schema {
@@ -116,8 +145,14 @@ var Tools = []Tool{
 	{"status", "The current or last job: its state (running, done or stopped), percent done and a note. " +
 		"wait: true waits up to 20 seconds for a running job to end.",
 		object(schema{"wait": schema{"type": "boolean"}})},
-	{"say", "Says something in chat as the player, marked 🤖 so everyone knows an agent said it.",
-		object(schema{"text": schema{"type": "string", "minLength": 1, "maxLength": 200}}, "text")},
+	{"say", "Says something in chat as the player, marked 🤖 so everyone knows an agent said it. " +
+		"private: true says it only to the player, e.g. to answer their /ai message.",
+		object(schema{"text": schema{"type": "string", "minLength": 1, "maxLength": 200},
+			"private": schema{"type": "boolean"}}, "text")},
+	{"listen", "The player's messages for you, typed in game as /ai MESSAGE, each handed over once, oldest first. " +
+		"Waits up to seconds (default 20, at most 120) for one when none is waiting. " +
+		"Loop on listen to be the player's helper in game.",
+		object(schema{"seconds": schema{"type": "integer", "minimum": 0, "maximum": 120}})},
 	{"goto", "Flies your avatar to x,y,z (its feet). Starts a job.", point},
 	{"clear", "Breaks every breakable block in the box, top layer first, with the biggest brushes that fit. " +
 		"At most 32,768 blocks. Starts a job.",
@@ -137,15 +172,36 @@ var Tools = []Tool{
 		"cabin 9×9×13 (log, with a doorway, windows and a planks gable roof), tower 9×9×21 (cobblestone, " +
 		"with a doorway, window slits and battlements), wall 9×1×6 (stone), floor 9×9×1 (planks) and " +
 		"stairs 3×9×9 (cobblestone, one block up per step). w, d and h change the size, up to 32 each; " +
-		"material changes the main block. It clears what's in its way, inside included. Starts a job.",
+		"material changes the main block. It clears what's in its way, inside included. " +
+		"template may also name a saved plan, which can't be resized. Starts a job.",
 		object(with(point["properties"].(schema), schema{
-			"template": schema{"type": "string", "enum": []string{"cabin", "tower", "wall", "floor", "stairs"}},
+			"template": schema{"type": "string"},
 			"w":        schema{"type": "integer", "minimum": 1, "maximum": 32},
 			"d":        schema{"type": "integer", "minimum": 1, "maximum": 32},
 			"h":        schema{"type": "integer", "minimum": 1, "maximum": 32},
 			"material": schema{"type": "string"},
-			"facing":   schema{"type": "string", "enum": []string{"north", "east", "south", "west"}},
+			"facing":   facing,
 		}), "template", "x", "y", "z")},
+	{"propose", "Shows the player a plan as a ghost at x,y,z, its front facing north, east, south or west " +
+		"(default south), and waits for their /yes to build it, or /no. plan is a whole plan " +
+		"{name, about?, palette, layers} or the name of a saved one. material swaps its most-used block. " +
+		"A new propose replaces the ghost. Starts a job.",
+		object(with(point["properties"].(schema), schema{
+			"plan":     planInput,
+			"facing":   facing,
+			"material": schema{"type": "string"},
+		}), "plan", "x", "y", "z")},
+	{"save_plan", "Saves the plan last proposed as one of the player's plans, under name or its own name. " +
+		"Then build or /build can build it by name.",
+		object(schema{"name": planName})},
+	{"plans", "Lists the player's plans, then the ones others share: name, about, size, cells, owner.", noArgs},
+	{"plan", "One saved plan in full, with its palette and layers, to build on or change.",
+		object(schema{"name": planName}, "name")},
+	{"chat", "Lines said in chat after the id after (all kept lines, up to 20, when left out), oldest first, " +
+		"with ids, who said them, how many seconds ago, and agent: true for lines said with say; last is the newest id. " +
+		"wait: true first waits up to 20 seconds for a player to say something after that id. " +
+		"Loop on chat with after: last and wait: true to listen for the player's answer.",
+		object(schema{"after": schema{"type": "integer", "minimum": 0}, "wait": schema{"type": "boolean"}})},
 	{"stop", "Stops the current job.", noArgs},
 	{"undo", "Puts back what the last job changed. Starts a job.", noArgs},
 }
