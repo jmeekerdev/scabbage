@@ -31,6 +31,7 @@ type avatar struct {
 	journal    *journal.Journal
 	asked      *question // what a script last asked them, until they answer
 	checkpoint checkpoint
+	away       bool // their game is paused
 }
 
 func (a *avatar) pose() *pb.PlayerPose {
@@ -43,7 +44,7 @@ func (a *avatar) pose() *pb.PlayerPose {
 }
 
 func (s *session) other(a *avatar) *pb.OtherPlayer {
-	return &pb.OtherPlayer{Entity: a.entity, Name: s.player.Name, Color: s.player.Color, Pose: a.pose(), Skin: s.skin}
+	return &pb.OtherPlayer{Entity: a.entity, Name: s.player.Name, Color: s.player.Color, Pose: a.pose(), Skin: s.skin, Away: a.away}
 }
 
 // addPlayer puts a session in the world, introducing it and everyone already there to each other.

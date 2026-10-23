@@ -27,6 +27,15 @@ describe("RemotePlayers", () => {
     expect(r.sample(0)[0]?.skin).toBe(skin);
   });
 
+  it("marks a player away and back, ignoring strangers", () => {
+    const r = withMom();
+    r.setAway(1, true);
+    r.setAway(9, true);
+    expect(r.sample(0).map((p) => p.away)).toEqual([true]);
+    r.setAway(1, false);
+    expect(r.sample(0)[0]?.away).toBe(false);
+  });
+
   it("interpolates between moves, a little in the past", () => {
     const r = withMom();
     r.move(1, pose(1), 50);

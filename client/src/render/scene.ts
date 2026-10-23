@@ -27,6 +27,9 @@ export interface GameScene {
   onDrawn(fn: (timeMs: number, steady: boolean, change: Change) => void): void;
   /** Draws the next frame even if nothing visible seems to have changed, e.g. after new textures. */
   invalidate(): void;
+  /** Stops running frames until resume, leaving the last one on screen. */
+  pause(): void;
+  resume(): void;
 }
 
 // The sky moves so slowly that stepping it once a second is unnoticeable, and lets idle frames go undrawn.
@@ -109,6 +112,7 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   // While the view is still, a timer replaces requestAnimationFrame so the page mostly sleeps.
   const pacer = new Pacer();
   let sleeping = false;
+  let paused = false;
   let timer: number | undefined;
   const paced = (timeMs: number) => {
     pacer.frame(timeMs, step(timeMs));
@@ -118,14 +122,15 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   const sleep = (ms: number) => {
     if (!sleeping) renderer.setAnimationLoop(null);
     sleeping = true;
-    // Hidden tabs wait for visibilitychange instead.
-    timer = document.hidden ? undefined : window.setTimeout(idleTick, ms);
+    // Hidden and paused tabs wait for visibilitychange or resume instead.
+    timer = document.hidden || paused ? undefined : window.setTimeout(idleTick, ms);
   };
   const idleTick = () => {
     paced(performance.now());
     if (pacer.step() === undefined) wake();
   };
   const wake = () => {
+    if (paused) return;
     pacer.wake(performance.now());
     if (!sleeping) return;
     sleeping = false;
@@ -135,6 +140,15 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
   };
   for (const type of WAKING_EVENTS) addEventListener(type, wake, { capture: true, passive: true });
   document.addEventListener("visibilitychange", () => !document.hidden && wake());
+  const pause = () => {
+    paused = true;
+    clearTimeout(timer);
+    sleep(0);
+  };
+  const resume = () => {
+    paused = false;
+    wake();
+  };
   sleeping = true;
   wake();
   return {
@@ -146,6 +160,8 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
     onFrame: (fn) => frameHooks.push(fn),
     onDrawn: (fn) => drawnHooks.push(fn),
     invalidate: () => frame.invalidate(),
+    pause,
+    resume,
   };
 }
 

@@ -65,14 +65,15 @@ type agentPlayer struct {
 	Flying  bool    `json:"flying"`
 	Facing  string  `json:"facing"`
 	Zone    string  `json:"zone,omitempty"`
-	BlockAt [3]int  `json:"block"` // the block the feet are in, as the 📍 coordinates show it
+	Away    bool    `json:"away,omitempty"` // their game is paused
+	BlockAt [3]int  `json:"block"`          // the block the feet are in, as the 📍 coordinates show it
 }
 
 func (g *Gateway) describeLocked(s *session, a *avatar) agentPlayer {
 	quarter := int(math.Round(float64(a.yaw) / (math.Pi / 2)))
 	p := agentPlayer{
 		Name: s.player.Name, X: tenths(a.pos.X), Y: tenths(a.pos.Y), Z: tenths(a.pos.Z),
-		Mode: modeName(a.mode), Flying: a.flying, Facing: facings[(quarter%4+4)%4],
+		Mode: modeName(a.mode), Flying: a.flying, Facing: facings[(quarter%4+4)%4], Away: a.away,
 		BlockAt: [3]int{int(math.Floor(a.pos.X)), int(math.Floor(a.pos.Y)), int(math.Floor(a.pos.Z))},
 	}
 	if z, ok := g.cfg.Zones.At(int32(p.BlockAt[0]), int32(p.BlockAt[2])); ok {

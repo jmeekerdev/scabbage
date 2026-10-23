@@ -39,6 +39,7 @@ message ClientMessage {
     RequestFar request_far = 24;
     AgentReply agent_reply = 25;
     AgentProgress agent_progress = 26;
+    SetAway set_away = 27;
   }
 }
 
@@ -79,6 +80,7 @@ message ServerMessage {
     FarLand far_land = 32;
     AgentCommand agent_command = 33;
     AgentLinked agent_linked = 34;
+    PlayerAway player_away = 35;
   }
 }
 
@@ -252,6 +254,7 @@ message OtherPlayer {
   uint32 color = 3; // 0xRRGGBB
   PlayerPose pose = 4;
   bytes skin = 5; // 64×32 RGBA, rows top-down; empty means the default look from color
+  bool away = 6; // their game is paused
 }
 
 // Someone's new skin was approved.
@@ -279,6 +282,17 @@ message PlayersMoved {
 
 message PlayerLeft {
   uint32 entity = 1;
+}
+
+// The player's game paused, e.g. another window has focus, or came back. Mobs leave away players be.
+message SetAway {
+  bool away = 1;
+}
+
+// Someone else's game paused or came back.
+message PlayerAway {
+  uint32 entity = 1;
+  bool away = 2;
 }
 
 // A line typed into chat; text starting with "/" is a command such as "/approve NAME".

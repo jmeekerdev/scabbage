@@ -108,7 +108,7 @@ var Tools = []Tool{
 	{"look", "Counts the blocks in a box and maps its surface: for each column from x1 to x2 (rows from z1 to z2), " +
 		"the height of the top non-air block and its name, or null. At most 32,768 blocks.",
 		object(box, "from", "to")},
-	{"players", "Who is online, where, and in which game mode.", noArgs},
+	{"players", "Who is online, where, in which game mode, and whether they are away (their game is paused).", noArgs},
 	{"status", "The current or last job: its state (running, done or stopped), percent done and a note. " +
 		"wait: true waits up to 20 seconds for a running job to end.",
 		object(schema{"wait": schema{"type": "boolean"}})},
