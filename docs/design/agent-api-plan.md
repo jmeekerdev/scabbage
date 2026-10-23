@@ -26,13 +26,13 @@ offers a documented API, and the agent brings its own brain.
 
 There are no protocol changes. The commands run in the chat box:
 
-| Command | Does |
-|---|---|
-| `/goto x y z` | flies to x,y,z |
-| `/clear x1 y1 z1 x2 y2 z2` | breaks every breakable block in the box, top layer first |
+| Command                         | Does                                                                               |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| `/goto x y z`                   | flies to x,y,z                                                                     |
+| `/clear x1 y1 z1 x2 y2 z2`      | breaks every breakable block in the box, top layer first                           |
 | `/fill x1 y1 z1 x2 y2 z2 block` | places `block` into the box's empty cells (air, water, plants), bottom layer first |
-| `/stop` | cancels the job |
-| `/undo` | puts back what the last job changed |
+| `/stop`                         | cancels the job                                                                    |
+| `/undo`                         | puts back what the last job changed                                                |
 
 - Coordinates accept `~` and `~n`, relative to the player, so `/clear ~-5 ~ ~-5 ~5 ~10 ~5` works.
   Block names autocomplete from the world's block list.
@@ -42,6 +42,7 @@ There are no protocol changes. The commands run in the chat box:
 - Progress shows as chat notes ("Clearing… 40%") and ends with "Done: 1,240 blocks".
 
 **How it works.**
+
 - **Plan.** A job box is tiled into the largest brush cubes (size 3, 2, 1) that fit inside it, so
   no brush spills over the edge. The cubes are ordered layer by layer in a serpentine path:
   top-down for clear, bottom-up for fill.
@@ -57,6 +58,7 @@ There are no protocol changes. The commands run in the chat box:
   the cells it placed, then refills the old blocks.
 
 **Files.**
+
 - `client/src/autopilot/job.ts` (+ test): parses the command args (`~`, block names, the size
   cap) into a `Job` and tiles it into ordered cubes.
 - `client/src/autopilot/route.ts` (+ test): `Steering.steer(dt, body, target)`, which returns
@@ -74,6 +76,7 @@ There are no protocol changes. The commands run in the chat box:
   edits through `sendEdit`, cancels it on player input, and registers the commands.
 
 **Tests.**
+
 - Tiling covers the box exactly, with no overlap or spill.
 - Clear runs top-down and fill bottom-up.
 - `~` parsing works, unknown blocks are refused, and so are oversized jobs.
@@ -86,7 +89,8 @@ There are no protocol changes. The commands run in the chat box:
 
 ## Phase 2: agent link (server relay, MCP and JSON, docs)
 
-Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from this plan:
+Built; [agents.md](../play/agents.md) is the user guide. Where it differs from this plan:
+
 - The token is shown in a dialog with Copy buttons (`ServerMessage.agent_linked`), not in chat,
   since chat text can't be selected. The client builds the setup lines from its own address.
 - There's no ban in the game yet, so tokens are dropped by `/agent deny`, `/agent revoke` and
@@ -98,6 +102,7 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
   breaks one.
 
 **Pairing.**
+
 - `/agent link [label]` creates a token, shows it once in chat to that player only, and shows
   the MCP URL with it. The server keeps only a hash, in a new `agent_tokens` table
   (hash, player_id, label, created_ms, last_used_ms).
@@ -108,6 +113,7 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
   `agent_allowed`.
 
 **Endpoints** (on the game server, behind the same Caddy/TLS):
+
 - `POST /mcp`: MCP Streamable HTTP (JSON-RPC 2.0: `initialize`, `tools/list`, `tools/call`).
   It is hand-written, about 200 lines of Go, with no SDK dependency.
 - `POST /api/agent/v1/{tool}`: the same tools as plain JSON, for scripts and agents without MCP.
@@ -116,6 +122,7 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
   a second.
 
 **Tools.**
+
 - **Answered by the server from its own state** (works without a browser round trip):
   - `whereami`: position, facing, mode, zone.
   - `blocks`: names you can place.
@@ -134,12 +141,14 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
   first".
 
 **Protocol.**
+
 - New `ServerMessage.agent_command { id, tool, json }`.
 - New `ClientMessage.agent_reply { id, json }`.
 - New `ClientMessage.agent_progress { id, done, total, state }`.
 - The server keeps one pending request map per session, with a timeout.
 
 **Files.**
+
 - `proto/scabbage/v1/*.proto`: the messages above.
 - `server/internal/agent/`, with tests for each part:
   - `tokens.go`: create, hash and revoke tokens.
@@ -155,12 +164,14 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
   reports replies and progress.
 
 **Docs.**
-- `docs/agent-api.md`: setup (link, then add the MCP server), the tool reference, examples
+
+- `docs/play/agents.md`: setup (link, then add the MCP server), the tool reference, examples
   such as "build a 9×9 log cabin at my position", and safety notes.
 - Ready-to-paste config:
   `claude mcp add --transport http scabbage https://<host>/mcp --header "Authorization: Bearer <token>"`.
 
 **Tests.**
+
 - Token hashing, revocation, and refusal of tokens without `agent_allowed`.
 - MCP `initialize`/`tools/list`/`tools/call` golden responses.
 - Relay round trip with a fake session, and the timeout.
@@ -170,7 +181,7 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
 ## Phase 3: templates and ghost preview
 
 - **`build` command and tool.** `/build cabin|house|tower|bridge|wall|floor|stairs [w d h]
-  [material] [facing]`, placed at the player or at x,y,z. Templates are small TS functions that
+[material] [facing]`, placed at the player or at x,y,z. Templates are small TS functions that
   return cells, so agents and players share them.
 - **Ghost preview.** Before a job over 500 blocks, or any job from an agent (an admin can set
   this per player), the client shows a translucent mesh of the changes and a "Build it? /yes
@@ -196,17 +207,17 @@ Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from thi
 - **Safety.** It pauses when health is low or a mob is near, and reports it in `status`.
 - **Files.**
   - Walking routes in `client/src/autopilot/path.ts`, next to the flying search (+ tests on
-  small fixed worlds: stairs, gaps, walls).
+    small fixed worlds: stairs, gaps, walls).
   - Survival branches in `autopilot.ts`.
   - A materials check in `job.ts`.
 
 ## Order and size
 
-| Phase | Rough size | Ships as |
-|---|---|---|
-| 1 Autopilot + commands | ~600 lines TS + tests | one PR |
-| 2 Agent link | ~900 lines Go + ~200 TS + docs | one or two PRs (server, then client) |
-| 3 Templates + preview | ~500 lines TS | one PR |
-| 4 Survival | ~500 lines TS | one PR |
+| Phase                  | Rough size                     | Ships as                             |
+| ---------------------- | ------------------------------ | ------------------------------------ |
+| 1 Autopilot + commands | ~600 lines TS + tests          | one PR                               |
+| 2 Agent link           | ~900 lines Go + ~200 TS + docs | one or two PRs (server, then client) |
+| 3 Templates + preview  | ~500 lines TS                  | one PR                               |
+| 4 Survival             | ~500 lines TS                  | one PR                               |
 
 Each phase is usable on its own. Phase 1 alone gives players `/fill` and `/clear`.
