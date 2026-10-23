@@ -55,6 +55,17 @@ export function combineIntents(intents: readonly Intent[]): Intent {
   };
 }
 
+/** Whether a player is moving or building, e.g. to take over from the autopilot. */
+export function isActive({ move, build }: Intent): boolean {
+  return (
+    move.forward !== 0 ||
+    move.right !== 0 ||
+    move.jump ||
+    move.descend ||
+    Object.values(build).some(Boolean)
+  );
+}
+
 /** A stick's tilt with a radial dead zone, rescaled so the zone's edge is 0 and full tilt is 1. */
 export function stickAxes(x: number, y: number, deadZone: number): [number, number] {
   const len = Math.hypot(x, y);

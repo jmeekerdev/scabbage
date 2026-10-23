@@ -32,6 +32,28 @@ const PAD_FACINGS = [
   ["_west", "west"],
   ["_up", "up"],
 ];
+// The way the top arrow of a logic block facing along the ground points, by facing suffix.
+const ARROW_WAYS: Record<string, string> = {
+  "": "north",
+  _east: "east",
+  _south: "south",
+  _west: "west",
+};
+
+/** A logic block off and on: its light in front and, facing along the ground, an arrow on top. */
+function flowing(name: string, f: string, side: string, sideOn = side): [string, BlockStyle][] {
+  const way = ARROW_WAYS[f];
+  const style = (t: string, on: string): BlockStyle => ({
+    ...same(t),
+    front: `diode_front${on}`,
+    ...(way && { top: `logic_arrow_${way}${on}` }),
+  });
+  return [
+    [name, style(side, "")],
+    [`${name}_on`, style(sideOn, "_on")],
+  ];
+}
+
 const piston = (front: string): BlockStyle => ({ ...same("piston_side"), front });
 const diode = (front: string): BlockStyle => ({ ...same("diode_side"), front });
 const sensor = (side: string, top: string): BlockStyle => ({ top, side, bottom: side });
@@ -78,22 +100,15 @@ export const BLOCK_STYLES: Record<string, BlockStyle> = {
     FACINGS.flatMap(([f]) => [
       [`piston${f}`, piston("piston_front")],
       [`piston${f}_on`, piston("piston_front_on")],
-      [`diode${f}`, diode("diode_front")],
-      [`diode${f}_on`, diode("diode_front_on")],
-      ...GATE_MODES.flatMap((m) => [
-        [`gate_${m}${f}`, { ...same(`gate_${m}`), front: "diode_front" }],
-        [`gate_${m}${f}_on`, { ...same(`gate_${m}_on`), front: "diode_front_on" }],
-      ]),
-      ...Array.from({ length: 8 }, (_, i) => [
-        [`delay_${i + 1}${f}`, { ...same(`delay_${i + 1}`), front: "diode_front" }],
-        [`delay_${i + 1}${f}_on`, { ...same(`delay_${i + 1}`), front: "diode_front_on" }],
-      ]).flat(),
-      [`relay${f}`, { ...same("relay_side"), front: "diode_front" }],
-      [`relay${f}_on`, { ...same("relay_side"), front: "diode_front_on" }],
-      ...Array.from({ length: 10 }, (_, i) => [
-        [`capacitor_${i + 1}${f}`, { ...same(`capacitor_${i + 1}`), front: "diode_front" }],
-        [`capacitor_${i + 1}${f}_on`, { ...same(`capacitor_${i + 1}`), front: "diode_front_on" }],
-      ]).flat(),
+      ...flowing(`diode${f}`, f, "diode_side"),
+      ...GATE_MODES.flatMap((m) => flowing(`gate_${m}${f}`, f, `gate_${m}`, `gate_${m}_on`)),
+      ...Array.from({ length: 8 }, (_, i) =>
+        flowing(`delay_${i + 1}${f}`, f, `delay_${i + 1}`),
+      ).flat(),
+      ...flowing(`relay${f}`, f, "relay_side"),
+      ...Array.from({ length: 10 }, (_, i) =>
+        flowing(`capacitor_${i + 1}${f}`, f, `capacitor_${i + 1}`),
+      ).flat(),
       [`sticky_piston${f}`, piston("sticky_piston_front")],
       [`sticky_piston${f}_on`, piston("sticky_piston_front_on")],
       [`block_detector${f}`, diode("block_detector_eye")],

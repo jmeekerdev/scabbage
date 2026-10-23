@@ -277,3 +277,22 @@ func TestTransmittersPowerReceiversOnTheirChannel(t *testing.T) {
 	send(t, kid, useBlock(x, y, z))
 	waitForBlocks(t, admin, changed(x+3, y, z, world.Receiver+3), changed(x+4, y, z, world.SignalLamp+1))
 }
+
+func TestANotGateBuiltByHandSwitchesItsLamp(t *testing.T) {
+	ts := startServer(t)
+	admin := ts.joinAdmin(t)
+	x, y, z := ts.besideSpawn(t, 0, world.Air)
+	gateEast := world.Gate + 2
+	notEast := gateEast + 12*5
+
+	send(t, admin, editBlock(x+1, y, z, gateEast))
+	for range 5 {
+		send(t, admin, useBlock(x+1, y, z))
+	}
+	waitForBlock(t, admin, x+1, y, z, notEast+1)
+	send(t, admin, editBlock(x+2, y, z, world.SignalLamp))
+	waitForBlock(t, admin, x+2, y, z, world.SignalLamp+1)
+	send(t, admin, editBlock(x, y, z, world.Switch))
+	send(t, admin, useBlock(x, y, z))
+	waitForBlock(t, admin, x+2, y, z, world.SignalLamp)
+}

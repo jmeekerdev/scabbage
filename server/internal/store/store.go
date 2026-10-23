@@ -127,6 +127,15 @@ var migrations = []string{
 	ALTER TABLE players ADD COLUMN checkpoint_y INTEGER NOT NULL DEFAULT 0;
 	ALTER TABLE players ADD COLUMN checkpoint_z INTEGER NOT NULL DEFAULT 0;`,
 	`ALTER TABLE maps ADD COLUMN under BLOB;`,
+	`CREATE TABLE agent_tokens (
+		hash         BLOB PRIMARY KEY,
+		player_id    INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+		label        TEXT NOT NULL,
+		created_ms   INTEGER NOT NULL,
+		last_used_ms INTEGER NOT NULL DEFAULT 0,
+		UNIQUE (player_id, label)
+	);
+	ALTER TABLE players ADD COLUMN agent_allowed INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

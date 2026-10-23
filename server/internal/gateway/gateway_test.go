@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"scabbage/internal/access"
+	"scabbage/internal/agent"
 	"scabbage/internal/arenas"
 	"scabbage/internal/art"
 	"scabbage/internal/maps"
@@ -33,6 +34,7 @@ type testServer struct {
 	herd   *mobs.Herd
 	zones  *zones.Service
 	arenas *arenas.Service
+	agents *agent.Tokens
 	gw     *Gateway
 	url    string
 	backup func() error // what the gateway's Backup does; succeeds when nil
@@ -61,19 +63,20 @@ func startServer(t *testing.T) *testServer {
 		t.Fatal(err)
 	}
 	games := arenas.New(db)
+	agents := agent.NewTokens(db, nil)
 	ts := &testServer{}
 	gw, err = New(Config{Backup: func() error {
 		if ts.backup != nil {
 			return ts.backup()
 		}
 		return nil
-	}, Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, Maps: maps.New(db), ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
+	}, Hub: hub, Access: svc, Art: pieces, World: w, Mobs: herd, Zones: areas, Arenas: games, Maps: maps.New(db), Agents: agents, ScriptDB: db, ServerName: "test", HelloTimeout: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(gw)
 	t.Cleanup(srv.Close)
-	*ts = testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, arenas: games, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
+	*ts = testServer{hub: hub, svc: svc, world: w, herd: herd, zones: areas, arenas: games, agents: agents, gw: gw, url: "ws" + strings.TrimPrefix(srv.URL, "http")}
 	return ts
 }
 

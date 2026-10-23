@@ -3,6 +3,7 @@ import {
   aim,
   breakEdit,
   buildWorldFor,
+  cubeEdit,
   digMs,
   placeEdit,
   PressFilter,
@@ -25,6 +26,7 @@ function world(): BuildWorld {
     targetable,
     shape,
     usable: new Set(),
+    liquid: new Set([WATER]),
     sixWay: new Set([PISTON]),
     padWay: new Set([PAD]),
     item: [],
@@ -51,6 +53,12 @@ describe("buildWorldFor", () => {
     ];
     const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
     expect(w.mineMs[STONE]).toBe(1500);
+  });
+
+  it("knows water as a liquid", () => {
+    const blocks = [{ id: WATER, name: "water", solid: false, shape: 0, mineMs: 0 }];
+    const w = buildWorldFor({ radius: -1, height: 64, blocks }, () => AIR);
+    expect([...w.liquid]).toEqual([WATER]);
   });
 
   it("aims at flat blocks, presses usable ones and holds powered ones as off", () => {
@@ -83,8 +91,12 @@ describe("aim", () => {
     expect(aim([0.5, 11.62, 0.5], 0, down, world())).toMatchObject({ x: 0, y: 9, z: 0, ny: 1 });
   });
 
-  it("looks through water and ignores far or unloaded blocks", () => {
-    expect(aim([3.5, 11, 3.5], 0, down, world())).toMatchObject({ y: 9 });
+  it("targets water from above, but looks through it from underwater", () => {
+    expect(aim([3.5, 11, 3.5], 0, down, world())).toMatchObject({ x: 3, y: 10, z: 3 });
+    expect(aim([3.5, 10.5, 3.5], 0, down, world())).toMatchObject({ y: 9 });
+  });
+
+  it("ignores far or unloaded blocks", () => {
     expect(aim([0.5, 30, 0.5], 0, down, world())).toBeUndefined();
     expect(aim([20.5, 9.5, 0.5], -Math.PI / 2, 0, world())).toBeUndefined();
   });
@@ -103,6 +115,13 @@ describe("breakEdit", () => {
       cells: [{ x: 2, y: 9, z: 0 }],
     });
     expect(breakEdit({ ...hit, x: 9, y: 10 }, w)).toBeUndefined();
+  });
+
+  it("breaks the water it aims at, but leaves water in a brush aimed at other blocks", () => {
+    const water = { x: 3, y: 10, z: 3, nx: 0, ny: 1, nz: 0, distance: 1 };
+    expect(breakEdit(water, world())?.cells).toEqual([{ x: 3, y: 10, z: 3 }]);
+    const side = { x: 3, y: 9, z: 3, nx: 0, ny: 1, nz: 0, distance: 1 };
+    expect(breakEdit(side, world(), 3)?.cells).not.toContainEqual({ x: 3, y: 10, z: 3 });
   });
 
   it("breaks only the breakable blocks of a brush", () => {
@@ -248,5 +267,30 @@ describe("UseHold", () => {
     hold.used(0);
     expect([250, 500, 750].map((t) => hold.blocks(t))).toEqual([true, true, true]);
     expect(hold.blocks(1500)).toBe(false);
+  });
+});
+
+describe("cubeEdit", () => {
+  const body = newBody(0.5, 20, 0.5);
+
+  it("clears every breakable block of a cube, water too, but not bedrock", () => {
+    const edit = cubeEdit({ x: 2, y: 9, z: 2, size: 2 }, AIR, world(), body)!;
+    expect(edit).toMatchObject({ x: 2, y: 9, z: 2, size: 2, block: AIR });
+    expect(edit.cells).toHaveLength(5); // four stone below, the water at 3,10,3
+    expect(cubeEdit({ x: 9, y: 10, z: 0, size: 1 }, AIR, world(), body)).toBeUndefined();
+  });
+
+  it("fills only a cube's empty spots, clear of the body, with the block as given", () => {
+    const edit = cubeEdit({ x: 2, y: 9, z: 2, size: 2 }, STAIRS + 2, world(), body)!;
+    expect(edit.block).toBe(STAIRS + 2);
+    expect(edit.cells).toHaveLength(4); // the top layer, water included
+    expect(cubeEdit({ x: 0, y: 20, z: 0, size: 1 }, STONE, world(), body)).toBeUndefined();
+    expect(cubeEdit({ x: 0, y: 0, z: 0, size: 1 }, STONE, world(), body)).toBeUndefined();
+    expect(cubeEdit({ x: 0, y: 30, z: 0, size: 1 }, BEDROCK, world(), body)).toBeUndefined();
+  });
+
+  it("skips unloaded blocks", () => {
+    expect(cubeEdit({ x: 21, y: 9, z: 0, size: 1 }, AIR, world(), body)).toBeUndefined();
+    expect(cubeEdit({ x: 21, y: 20, z: 0, size: 1 }, STONE, world(), body)).toBeUndefined();
   });
 });

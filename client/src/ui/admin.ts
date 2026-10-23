@@ -198,7 +198,7 @@ export class InvitePanel {
 }
 
 // The Clipboard API needs HTTPS; over plain HTTP we select the text for a manual copy.
-async function copyText(input: HTMLInputElement, button: HTMLButtonElement): Promise<void> {
+export async function copyText(input: HTMLInputElement, button: HTMLButtonElement): Promise<void> {
   try {
     await navigator.clipboard.writeText(input.value);
     button.textContent = "Copied!";

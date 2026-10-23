@@ -6,6 +6,7 @@ import { el } from "./dom";
 const MAX_LINES = 50;
 const MAX_CHARS = 200; // matches the server's chat.MaxRunes
 const OPEN_KEYS = new Set(["Enter", "t", "T", "/"]);
+const MAX_HINTS = 12; // completions shown at once
 
 /** The chat log, whose lines fade after a while, and the box to type in (Enter, T or /). */
 export class ChatView {
@@ -25,7 +26,7 @@ export class ChatView {
   constructor(
     private readonly root: HTMLElement,
     private readonly send: (text: string) => void,
-    private readonly onClose: (sent: boolean) => void,
+    private readonly onClose: () => void,
     private readonly commands?: Commands,
   ) {
     root.append(this.log, this.form);
@@ -34,7 +35,7 @@ export class ChatView {
       this.submit();
     });
     this.input.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") this.close(false);
+      if (e.key === "Escape") this.close();
       if (e.key === "Tab") this.finishCommand(e);
       e.stopPropagation(); // typing never reaches the game controls
     });
@@ -86,14 +87,14 @@ export class ChatView {
     const text = this.input.value.trim();
     if (text) this.send(text);
     this.input.value = "";
-    this.close(text !== "");
+    this.close();
   }
 
-  private close(sent: boolean): void {
+  private close(): void {
     this.root.classList.remove("open");
     this.form.hidden = true;
     this.input.blur();
-    this.onClose(sent);
+    this.onClose();
   }
 
   private finishCommand(e: KeyboardEvent): void {
@@ -103,11 +104,12 @@ export class ChatView {
     this.showMatches();
   }
 
-  /** Lists the commands that fit while a command name is being typed. */
+  /** Lists the command names or arguments that fit what is typed. */
   private showMatches(): void {
-    const names = this.commands?.complete(this.input.value) ?? [];
-    this.hint.hidden = names.length === 0;
-    this.hint.textContent = names.map((n) => `/${n}`).join("  ");
+    const fits = this.commands?.complete(this.input.value) ?? [];
+    this.hint.hidden = fits.length === 0;
+    this.hint.textContent =
+      fits.slice(0, MAX_HINTS).join("  ") + (fits.length > MAX_HINTS ? "  …" : "");
   }
 
   private openKey(e: KeyboardEvent): void {

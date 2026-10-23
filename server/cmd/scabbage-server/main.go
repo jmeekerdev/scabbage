@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"scabbage/internal/access"
+	"scabbage/internal/agent"
 	"scabbage/internal/arenas"
 	"scabbage/internal/art"
 	"scabbage/internal/backup"
@@ -92,6 +93,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	agents := agent.NewTokens(db, nil)
 	gw, err = gateway.New(gateway.Config{
 		Hub:            hub,
 		Access:         svc,
@@ -101,6 +103,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Zones:          areas,
 		Arenas:         arenas.New(db),
 		Maps:           maps.New(db),
+		Agents:         agents,
 		Backup:         wipeBackup(db, cfg, logger),
 		ScriptDB:       db,
 		ServerName:     cfg.ServerName,
@@ -117,6 +120,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	mux := http.NewServeMux()
 	mux.Handle("/ws", gw)
+	agentAPI := agent.NewServer(agents, gw, agent.Options{Logger: logger})
+	mux.Handle("/mcp", agentAPI.MCP())
+	mux.Handle(agent.RESTPrefix, agentAPI.REST())
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok\n")) })
 	client := web.Client(cfg.WebDir)
 	if !web.HasClient(client) {

@@ -10,7 +10,7 @@ import (
 	pb "scabbage/internal/pb/scabbage/v1"
 )
 
-const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /tp X Z, /tp X Y Z, /tp NAME, /zone, /arena, /map, /world; anyone can /leave a game"
+const commandHelp = "Commands: /approve NAME, /deny NAME, /admin NAME, /unadmin NAME, /creative NAME, /survival NAME, /tp X Z, /tp X Y Z, /tp NAME, /zone, /arena, /map, /world, /agent; anyone can /leave a game"
 
 // sendChat runs a command or shares a line with everyone in the world.
 func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
@@ -53,8 +53,11 @@ func (s *session) sendEmote(m *pb.SendEmote) error {
 }
 
 func (s *session) command(ctx context.Context, c chat.Command) error {
-	if c.Name == "leave" {
+	switch c.Name {
+	case "leave":
 		return s.leaveRound(ctx)
+	case "agent":
+		return s.agentCommand(ctx, c.Arg)
 	}
 	if !s.player.Admin {
 		return s.notice(ctx, refusal(c.Name))

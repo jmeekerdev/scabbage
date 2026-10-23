@@ -1,5 +1,6 @@
 import { create, fromBinary, toBinary, type MessageInitShape } from "@bufbuild/protobuf";
 import {
+  type AgentJobState,
   type ArtKind,
   ClientMessageSchema,
   type Emote,
@@ -120,6 +121,19 @@ export function encodeHitMob(mob: number): Bytes {
 
 export function encodeHitPlayer(entity: number): Bytes {
   return encode({ case: "hitPlayer", value: { entity } });
+}
+
+export function encodeAgentReply(id: bigint, json: string): Bytes {
+  return encode({ case: "agentReply", value: { id, json } });
+}
+
+export function encodeAgentProgress(
+  id: bigint,
+  state: AgentJobState,
+  percent: number,
+  note: string,
+): Bytes {
+  return encode({ case: "agentProgress", value: { id, state, percent, note } });
 }
 
 export function encodeSendChat(text: string): Bytes {
