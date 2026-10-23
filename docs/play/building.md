@@ -98,3 +98,23 @@ rest goes away from you, with the door facing you. FACING (`north`, `east`, `sou
 template clears what's in its way, inside included, so you can build into a hill.
 
 An [agent](agents.md) uses the same autopilot and templates.
+
+### Plans
+
+A plan is a building saved on the server, usually designed by an [agent](agents.md#plans).
+`/build NAME` builds one just like a template, and BLOCK swaps the block it uses most. Plans
+can't be resized.
+
+| Command                | Does                                                    |
+| ---------------------- | ------------------------------------------------------- |
+| `/plans`               | lists your plans and the ones others share              |
+| `/plan save NAME`      | saves the plan an agent is showing you as a ghost       |
+| `/plan share NAME`     | lets everyone `/build` it                               |
+| `/plan unshare NAME`   | makes it yours alone again                              |
+| `/plan rename OLD NEW` | renames it                                              |
+| `/plan delete NAME`    | deletes it; admins can also delete anyone's shared plan |
+
+Names are 2 to 24 lowercase letters, digits, `_` or `-`, and can't be a template's name. A
+shared plan's name must differ from every other shared plan's, so rename yours first if it
+clashes. `/build NAME` looks for a template, then your own plans, then shared ones. Each player
+can keep 50 plans, each up to 32 blocks on a side.

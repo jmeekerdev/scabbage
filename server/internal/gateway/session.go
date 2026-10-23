@@ -185,6 +185,8 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 	case *pb.ClientMessage_AgentProgress:
 		s.agent.progressed(body.AgentProgress)
 		return nil
+	case *pb.ClientMessage_PlanRequest:
+		return s.requestPlan(ctx, body.PlanRequest)
 	case *pb.ClientMessage_SetAway:
 		s.setAway(body.SetAway)
 		return nil

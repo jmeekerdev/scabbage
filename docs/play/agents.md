@@ -64,6 +64,7 @@ claude --mcp-config scabbage-mcp.json
   `/no`. Jobs for players who aren't admins always wait like this. An admin can let their own
   agents build without asking with `/agent confirm off`. Flying with `goto` never asks.
 - **You stay in charge.** Moving or building yourself, or `/stop`, stops the agent's job.
+  `/no REASON` turns a job down and tells the agent why.
   `/undo` takes back the last job. Jobs an agent starts show 🤖 in chat, and so do its lines
   from `say`.
 - **Players who aren't admins** fly and build just like their own hands would: in creative
@@ -80,21 +81,27 @@ meter, the avatar is about 5 blocks tall, and y is up. `whereami` gives the avat
 
 ## Tools
 
-| Tool       | Arguments                                               | Returns                                                                                                                                                                                        |
-| ---------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `whereami` |                                                         | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone`                                                                                                                          |
-| `blocks`   |                                                         | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors) |
-| `look`     | `from`, `to`                                            | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null                                                                      |
-| `players`  |                                                         | `players`: who is online, where, their mode, and `away` when their game is paused                                                                                                              |
-| `status`   | `wait?`                                                 | the last job: `job`, `tool`, `state` (`awaiting_confirmation`, `running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end, or for the player to answer      |
-| `say`      | `text`                                                  | chats as you, marked 🤖                                                                                                                                                                        |
-| `goto`     | `x y z`                                                 | flies there; starts a job                                                                                                                                                                      |
-| `clear`    | `from`, `to`                                            | breaks every breakable block in the box, top layer first; starts a job                                                                                                                         |
-| `fill`     | `from`, `to`, `block`                                   | fills the box's empty cells (air, water, plants), bottom layer first; `"air"` clears the box instead, e.g. for a doorway; starts a job                                                         |
-| `place`    | `blocks: [{x, y, z, block}]`                            | sets each cell to its block (`"air"` breaks it), clearing what's in the way; starts a job                                                                                                      |
-| `build`    | `template`, `x y z`, `w? d? h?`, `material?`, `facing?` | builds a [template](building.md#templates) with its front's bottom middle at `x y z`, facing `north`, `east`, `south` or `west` (default `south`), the rest behind it; starts a job            |
-| `stop`     |                                                         | stops the job                                                                                                                                                                                  |
-| `undo`     |                                                         | puts back what the last job changed; starts a job                                                                                                                                              |
+| Tool        | Arguments                                               | Returns                                                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `whereami`  |                                                         | `x y z` (feet), `block` `[x,y,z]`, `facing`, `flying`, `mode`, `zone`                                                                                                                                                             |
+| `blocks`    |                                                         | `blocks`: each block `fill` and `place` take, with `solid`, `see_through` (glass), `glows` (lamps), `shape` when not a cube (`slab`, `stairs_east`, `torch`, …) and `usable` (switches, doors)                                    |
+| `look`      | `from`, `to`                                            | `counts` by block name; `heights` and `tops`: per column (rows z, columns x), the top non-air block's y and name, or null                                                                                                         |
+| `players`   |                                                         | `players`: who is online, where, their mode, and `away` when their game is paused                                                                                                                                                 |
+| `status`    | `wait?`                                                 | the last job: `job`, `tool`, `state` (`awaiting_confirmation`, `running`, `done`, `stopped`), `percent`, `note`; `wait: true` waits up to 20 s for it to end, or for the player to answer                                         |
+| `say`       | `text`, `private?`                                      | chats as you, marked 🤖; `private: true` says it only to you                                                                                                                                                                      |
+| `goto`      | `x y z`                                                 | flies there; starts a job                                                                                                                                                                                                         |
+| `clear`     | `from`, `to`                                            | breaks every breakable block in the box, top layer first; starts a job                                                                                                                                                            |
+| `fill`      | `from`, `to`, `block`                                   | fills the box's empty cells (air, water, plants), bottom layer first; `"air"` clears the box instead, e.g. for a doorway; starts a job                                                                                            |
+| `place`     | `blocks: [{x, y, z, block}]`                            | sets each cell to its block (`"air"` breaks it), clearing what's in the way; starts a job                                                                                                                                         |
+| `build`     | `template`, `x y z`, `w? d? h?`, `material?`, `facing?` | builds a [template](building.md#templates) or a saved plan with its front's bottom middle at `x y z`, facing `north`, `east`, `south` or `west` (default `south`), the rest behind it; starts a job                               |
+| `propose`   | `plan`, `x y z`, `material?`, `facing?`                 | shows a [plan](#plans) as a ghost and waits for the player's `/yes`, even with `/agent confirm off`; a new `propose` replaces the ghost; starts a job                                                                             |
+| `save_plan` | `name?`                                                 | saves the plan last proposed as one of the player's plans                                                                                                                                                                         |
+| `plans`     |                                                         | the player's plans, then the ones others share: `name`, `about`, `size`, `cells`, `owner`, `shared`                                                                                                                               |
+| `plan`      | `name`                                                  | one saved plan in full, with its `palette` and `layers`                                                                                                                                                                           |
+| `chat`      | `after?`, `wait?`                                       | chat lines after the id `after` (the last 20 when left out): `id`, `name`, `text`, `seconds_ago`, and `agent` for its own `say` lines; `last` is the newest id. `wait: true` first waits up to 20 s for a player to say something |
+| `listen`    | `seconds?`                                              | your `/ai` messages: `messages`, each with `text` and `seconds_ago`, handed over once; waits up to `seconds` (default 20, at most 120) for one                                                                                    |
+| `stop`      |                                                         | stops the job                                                                                                                                                                                                                     |
+| `undo`      |                                                         | puts back what the last job changed; starts a job                                                                                                                                                                                 |
 
 `from` and `to` are `{x, y, z}` corners, both included. A job tool answers at once with
 `{"job": id, "started": "…", "brushes": n, "seconds": s}`, plus `"awaiting": true` when it waits
@@ -119,6 +126,54 @@ planks_stairs, …".
 Errors come back as MCP tool errors (`isError`), or as `{"error": "…"}` from the JSON API. They
 say what to fix, for example "open Scabbage in a browser first", "There's no block named lava."
 or "slow down".
+
+## Talk to it in game
+
+Type `/ai MESSAGE` to ask your own agent for something without leaving the game, for example
+`/ai build me a treehouse in the middle of these trees`. Only your agent gets it, through
+`listen`; nobody else sees it. The agent answers with `say`, privately with `private: true`.
+
+MCP can't wake an agent, so it has to be listening: start it with something like "be my helper
+in Scabbage: listen for my /ai messages and do what they ask". It then loops on `listen`, which
+waits up to 2 minutes for each message. If no agent has listened in the last minute, `/ai` says
+so; the message waits for the next `listen`. Messages are kept until the server restarts. A
+reverse proxy in front of the server may cut long waits short; then use a smaller `seconds`.
+
+## Plans
+
+An agent can design a building, show it to you as a ghost, change it until you like it, and save
+it for anyone to build later with `/build NAME`.
+
+1. It sends the design to `propose`. You see the ghost, and chat asks you to say `/yes` or `/no`.
+2. `/no` can say why, for example `/no make the roof steeper`. The agent sees the reason in
+   `status`. You can also just answer in chat: an agent can't be told, so a good one keeps
+   calling `chat` with `wait: true` until you answer. Its next `propose` replaces the ghost.
+3. `/yes` builds it. Either way, `save_plan` (or your `/plan save NAME`) keeps the plan. It's
+   yours alone until you `/plan share` it. See [Plans](building.md#plans) for the commands.
+
+A plan is JSON:
+
+```json
+{
+  "name": "hut",
+  "about": "a tiny planks hut",
+  "palette": { "p": "planks", "g": "glass" },
+  "layers": [
+    ["ppp", "ppp", "ppp"],
+    ["p_p", "g_g", "ppp"],
+    ["ppp", "ppp", "ppp"]
+  ]
+}
+```
+
+- The `palette` maps one-character keys to block names. `.` leaves a cell as it is and `_`
+  makes it air.
+- `layers` go from the bottom up. Each is a list of rows from the front to the back, and each
+  row reads left to right as you look at the front.
+- Every layer has the same number of rows and every row the same length, up to 32 each way.
+- Placed at `x y z`, the front row's middle bottom cell lands there, and the front faces
+  `facing`. `material` swaps the block the plan uses most.
+- A bad plan is refused with up to five problems, such as "layer 2 row 3 is 8 long, not 9".
 
 ## Plain JSON
 

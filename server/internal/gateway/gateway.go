@@ -22,6 +22,7 @@ import (
 	"scabbage/internal/drops"
 	"scabbage/internal/maps"
 	"scabbage/internal/mobs"
+	"scabbage/internal/plan"
 	"scabbage/internal/rounds"
 	"scabbage/internal/scripts"
 	"scabbage/internal/sim"
@@ -42,8 +43,9 @@ type Config struct {
 	Arenas         *arenas.Service
 	Maps           *maps.Service
 	Agents         *agent.Tokens // linked agents; /agent is off when nil
-	ScriptDB       *sql.DB       // where script blocks keep their Lua and characters, and players their journals
-	Backup         func() error  // copies the database, e.g. before the world is wiped
+	Plans          *plan.Service
+	ScriptDB       *sql.DB      // where script blocks keep their Lua and characters, and players their journals
+	Backup         func() error // copies the database, e.g. before the world is wiped
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -74,6 +76,8 @@ type Gateway struct {
 	wipe        *wipeRequest                // an admin asking to start the world over; guarded by mu
 	agentIDs    atomic.Uint64               // last agent command id handed out
 	skyNow      atomic.Pointer[weather.Sky] // the time and weather admins set
+	chats       chatLog                     // recent chat, for agents
+	inboxes     map[int64]*aiInbox          // each player's /ai messages for their agent; guarded by mu
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.

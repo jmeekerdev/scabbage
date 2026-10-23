@@ -123,6 +123,11 @@ export function encodeHitPlayer(entity: number): Bytes {
   return encode({ case: "hitPlayer", value: { entity } });
 }
 
+/** Asks for a saved plan by name, for /build. */
+export function encodePlanRequest(name: string): Bytes {
+  return encode({ case: "planRequest", value: { name } });
+}
+
 export function encodeAgentReply(id: bigint, json: string): Bytes {
   return encode({ case: "agentReply", value: { id, json } });
 }

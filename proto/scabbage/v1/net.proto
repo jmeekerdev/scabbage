@@ -7,7 +7,7 @@ option go_package = "scabbage/internal/pb/scabbage/v1;scabbagev1";
 // Bump CURRENT on any incompatible protocol change.
 enum ProtocolVersion {
   PROTOCOL_VERSION_UNSPECIFIED = 0;
-  PROTOCOL_VERSION_CURRENT = 26;
+  PROTOCOL_VERSION_CURRENT = 27;
 }
 
 // Every WebSocket binary frame from a client is one ClientMessage.
@@ -40,6 +40,7 @@ message ClientMessage {
     AgentReply agent_reply = 25;
     AgentProgress agent_progress = 26;
     SetAway set_away = 27;
+    PlanRequest plan_request = 28;
   }
 }
 
@@ -82,6 +83,7 @@ message ServerMessage {
     AgentLinked agent_linked = 34;
     PlayerAway player_away = 35;
     Sky sky = 36; // an admin changed the time or weather
+    Plan plan = 37;
   }
 }
 
@@ -726,6 +728,18 @@ message AgentCommand {
   string tool = 2;
   string json = 3;
   bool confirm = 4; // a job it starts waits for the player's /yes
+}
+
+// Asks for a saved plan by name, for /build: the player's own, or else a shared one.
+message PlanRequest {
+  string name = 1;
+}
+
+// The answer to a PlanRequest: the plan as JSON (name, palette and layers), or why there's none.
+message Plan {
+  string name = 1;
+  string json = 2;
+  string error = 3;
 }
 
 // The tab's answer to an AgentCommand: a JSON object, with "error" set if it refused.

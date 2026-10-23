@@ -32,6 +32,7 @@ func (s *session) sendChat(ctx context.Context, m *pb.SendChat) error {
 		return s.command(ctx, cmd)
 	}
 	s.log.Info("chat", "name", s.player.Name, "text", text)
+	s.gw.chats.add(s.player.Name, text, false, time.Now())
 	s.gw.broadcast(&pb.ServerMessage{Body: &pb.ServerMessage_Chat{Chat: &pb.Chat{
 		Name: s.player.Name, Color: s.player.Color, Text: text,
 	}}})
@@ -58,6 +59,12 @@ func (s *session) command(ctx context.Context, c chat.Command) error {
 		return s.leaveRound(ctx)
 	case "agent":
 		return s.agentCommand(ctx, c.Arg)
+	case "plans":
+		return s.listPlansCommand(ctx)
+	case "plan":
+		return s.planCommand(ctx, c.Arg)
+	case "ai":
+		return s.aiCommand(ctx, c.Arg)
 	}
 	if !s.player.Admin {
 		return s.notice(ctx, refusal(c.Name))

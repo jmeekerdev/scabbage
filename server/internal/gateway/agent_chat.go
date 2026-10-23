@@ -11,7 +11,7 @@ import (
 )
 
 const agentHelp = "Agents: /agent link [label] connects one (Claude Code or any MCP client), /agent list, " +
-	"/agent revoke LABEL|all; admins: /agent allow NAME, /agent deny NAME, /agent confirm on|off"
+	"/agent revoke LABEL|all, /ai MESSAGE talks to yours; admins: /agent allow NAME, /agent deny NAME, /agent confirm on|off"
 
 // agentCommand runs /agent: linking, listing and revoking agents, and admins turning them on.
 func (s *session) agentCommand(ctx context.Context, arg string) error {

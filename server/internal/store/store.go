@@ -141,6 +141,21 @@ var migrations = []string{
 	ALTER TABLE worlds ADD COLUMN held_weather INTEGER NOT NULL DEFAULT -1;
 	ALTER TABLE worlds ADD COLUMN held_since_ms INTEGER NOT NULL DEFAULT 0;
 	ALTER TABLE worlds ADD COLUMN held_until_ms INTEGER NOT NULL DEFAULT 0;`,
+	`CREATE TABLE plans (
+		id         INTEGER PRIMARY KEY,
+		player_id  INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+		name       TEXT NOT NULL,
+		about      TEXT NOT NULL,
+		w          INTEGER NOT NULL,
+		d          INTEGER NOT NULL,
+		h          INTEGER NOT NULL,
+		cells      INTEGER NOT NULL,
+		body       TEXT NOT NULL,
+		shared     INTEGER NOT NULL DEFAULT 0,
+		created_ms INTEGER NOT NULL,
+		UNIQUE (player_id, name)
+	);
+	CREATE UNIQUE INDEX plans_shared_name ON plans (name) WHERE shared = 1;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.
