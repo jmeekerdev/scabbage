@@ -2,6 +2,12 @@ package world
 
 import "math"
 
+// pineTaper is how much wider, in blocks, a pine's tiers get per block down.
+const pineTaper = 0.24
+
+// oakCrown is the radius in blocks of an oak's leaves.
+func oakCrown(r uint64) float64 { return 6.5 + float64(r%3)*0.75 }
+
 // tree is a trunk standing on the ground with a crown of leaves.
 type tree struct {
 	kind        featureKind
@@ -16,9 +22,9 @@ func (f feature) tree() tree {
 	t := tree{kind: f.kind, x: f.x, z: f.z, ground: f.ground, r: f.r >> 8}
 	switch f.kind {
 	case oakTree:
-		t.width, t.top = Meter, f.ground+(4+int32(f.r%3))*Meter
+		t.width, t.top = Meter, f.ground+(6+int32(f.r%3))*Meter
 	case pineTree:
-		t.width, t.top = 2, f.ground+(7+int32(f.r%3))*Meter
+		t.width, t.top = 2, f.ground+(10+int32(f.r%3))*Meter
 	default:
 		t.width, t.top = 2, f.ground+(5+int32(f.r%3))*Meter
 	}
@@ -37,7 +43,7 @@ func (t tree) crown(cv canvas) {
 	leaf := func(b Block) func(x, y, z int32) { return func(x, y, z int32) { cv.put(x, y, z, b, true) } }
 	switch t.kind {
 	case oakTree:
-		r := 6.5 + float64(t.r%3)*0.75
+		r := oakCrown(t.r)
 		blob(cv, cx, top-2, cz, r, r*0.75, r, t.r, leaf(Leaves))
 	case pineTree:
 		t.cone(cv, cx, cz, leaf(PineLeaves))
@@ -52,7 +58,7 @@ func (t tree) crown(cv canvas) {
 func (t tree) cone(cv canvas, cx, cz float64, put func(x, y, z int32)) {
 	base, apex := cv.clamp(1, t.ground+2*Meter, t.top+3)
 	for y := base; y <= apex; y++ {
-		r := float64(t.top+3-y)*0.32 + 1.6 - float64((t.top+3-y)%5)*0.25
+		r := float64(t.top+3-y)*pineTaper + 1.9 - float64((t.top+3-y)%5)*0.25
 		reach := int32(math.Ceil(r))
 		x0, x1 := cv.clamp(0, int32(math.Floor(cx))-reach, int32(math.Ceil(cx))+reach)
 		z0, z1 := cv.clamp(2, int32(math.Floor(cz))-reach, int32(math.Ceil(cz))+reach)

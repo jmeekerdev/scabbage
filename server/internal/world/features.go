@@ -26,7 +26,7 @@ var featureOdds = [...]struct {
 }{{oakTree, 6}, {pineTree, 4}, {slimTree, 3}, {bush, 14}, {boulder, 3}, {rock, 25}}
 
 const (
-	featureReach = 3          // meters a feature spreads from its square
+	featureReach = 4          // meters a feature spreads from its square
 	featureRoom  = 14 * Meter // headroom a feature needs under the sky
 )
 

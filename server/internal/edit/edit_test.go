@@ -7,7 +7,7 @@ import (
 	"scabbage/internal/world"
 )
 
-// The player stands at 0.5,10,0.5, so their eye is at y=11.62.
+// The player stands at 0.5,10,0.5, so their eye is at y=10+motion.EyeHeight.
 var feet = motion.Vec{X: 0.5, Y: 10, Z: 0.5}
 
 func place(x, y, z int32, b world.Block) Request { return Request{X: x, Y: y, Z: z, Block: b} }

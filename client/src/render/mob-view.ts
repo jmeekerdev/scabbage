@@ -1,6 +1,6 @@
 import { BoxGeometry, Group, type Material, Mesh, type Scene } from "three";
 import { MobKind } from "../pb/scabbage/v1/net_pb";
-import type { MobState } from "../player/mobs";
+import { MOB_SIZE, type MobState } from "../player/mobs";
 import { litMesh } from "./entity-material";
 import { METER } from "../world/constants";
 
@@ -42,6 +42,13 @@ function part(shape: BoxGeometry, material: Material, x: number, y: number, z: n
   m.userData.paint = material;
   return m;
 }
+
+const SHEEP_MODELED = 1.3; // meters tall, as sheep() builds it
+
+/** Shrinks models built bigger than their mob's body. */
+const MODEL_SCALE: Partial<Record<MobKind, number>> = {
+  [MobKind.SHEEP]: MOB_SIZE[MobKind.SHEEP].height / METER / SHEEP_MODELED,
+};
 
 function sheep(): Group {
   const g = new Group();
@@ -130,7 +137,7 @@ export class MobView {
 
   private add(m: MobState): Figure {
     const body = (BUILDERS[m.kind] ?? sheep)();
-    body.scale.setScalar(METER);
+    body.scale.setScalar(METER * (MODEL_SCALE[m.kind] ?? 1));
     const f = { group: new Group().add(body), body, hopMs: 0 };
     f.group.name = `mob ${m.id}`;
     this.scene.add(f.group);
