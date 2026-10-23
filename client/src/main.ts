@@ -90,6 +90,7 @@ import { Avatars, skinPixels } from "./render/avatars";
 import { ArenaMarks } from "./render/arena-marks";
 import { Drops } from "./render/drops";
 import { Precipitation } from "./render/precipitation";
+import { setSkyClock, skyClock } from "./render/sky-clock";
 import { weatherAt } from "./render/weather";
 import { MobView } from "./render/mob-view";
 import { blockIconPainter } from "./render/icons";
@@ -149,6 +150,8 @@ const ADMIN_COMMANDS = [
   "tp",
   "map",
   "world",
+  "time",
+  "weather",
 ];
 const overlay = $("#overlay");
 const statusEl = $("#status");
@@ -299,7 +302,7 @@ gameScene.onFrame((timeMs) => {
   build(intent.build, intent.move.descend, [eye.x, eye.y, eye.z], dt, near);
   for (const edit of auto?.edits ?? []) sendEdit(edit);
   drops.update(timeMs);
-  const sky = weatherAt(Date.now());
+  const sky = weatherAt(Date.now(), skyClock.held);
   precipitation.update(Date.now(), eye, moves ? sky : { ...sky, wet: 0 }, world.roofs);
   crosshairEl.hidden = !(moves && (locked || touch || gamepad.active));
   if (gamepad.active) hintEl.hidden = true;
@@ -505,6 +508,7 @@ function enterGame(w: Welcome): void {
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   void reloadIfStale().catch(() => undefined); // a reconnect may find the server updated
   if (away) conn?.send(encodeSetAway(true)); // a reconnect while paused
+  setSkyClock(w.sky);
   if (w.world) enterWorld(w.world, w.tickRateHz);
   if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
@@ -897,6 +901,7 @@ function rosterChanged(msg: ServerMessage): boolean {
     for (const p of b.value.poses) others?.move(p.entity, poseOf(p), now);
   else if (b.case === "playerLeft") others?.leave(b.value.entity);
   else if (b.case === "playerAway") others?.setAway(b.value.entity, b.value.away);
+  else if (b.case === "sky") setSkyClock(b.value);
   else return false;
   return true;
 }

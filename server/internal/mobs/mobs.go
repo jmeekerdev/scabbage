@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"scabbage/internal/motion"
+	"scabbage/internal/weather"
 	"scabbage/internal/world"
 )
 
@@ -107,11 +108,11 @@ type Changes struct {
 	Bitten []Bite
 }
 
-// Step moves every mob on by the time since the last step, spawning and removing some.
-func (h *Herd) Step(now time.Time, players []Player, g Ground) Changes {
+// Step moves every mob on by the time since the last step, spawning and removing some;
+// night says whether it is night, which admins can change apart from the wall clock.
+func (h *Herd) Step(now time.Time, night bool, players []Player, g Ground) Changes {
 	dt := min(max(now.Sub(h.stepAt).Seconds(), 0), maxDelta)
 	h.stepAt = now
-	night := Night(now)
 	var c Changes
 	h.mobs = slices.DeleteFunc(h.mobs, func(m *Mob) bool {
 		leaves := h.leaves(m, players, night)
@@ -193,4 +194,5 @@ func Night(now time.Time) bool {
 	return math.Sin(angle) < -0.1
 }
 
-const DayLength = 20 * time.Minute
+// DayLength is one whole day and night.
+const DayLength = weather.DayLength

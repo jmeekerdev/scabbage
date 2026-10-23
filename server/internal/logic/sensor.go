@@ -17,7 +17,7 @@ type Spot struct{ X, Y, Z float64 }
 // Senses is what sensors can notice: who is where, the time of day and whether anything falls.
 type Senses struct {
 	Players, Creatures []Spot
-	Now                time.Time
+	Now                time.Time // the clock to read the time of day from
 	Wet                bool
 }
 

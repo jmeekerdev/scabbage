@@ -58,6 +58,7 @@ func (s *session) admit(ctx context.Context, hello *pb.Hello) error {
 		ServerName:      s.gw.cfg.ServerName,
 		TickRateHz:      uint32(s.gw.cfg.Hub.TickRate()),
 		You:             s.gw.playerInfo(s.player, s.skin),
+		Sky:             skyMessage(s.gw.sky()),
 	}
 	if !s.console {
 		welcome.World = s.gw.worldInfo()

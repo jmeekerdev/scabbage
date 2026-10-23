@@ -9,6 +9,7 @@ import { farDistance } from "./far-land";
 import { FrameState, type Change } from "./frame-state";
 import { Pacer } from "./pacer";
 import { skyAt } from "./sky";
+import { skyClock } from "./sky-clock";
 import { SkyView } from "./sky-view";
 import { flashAt, weatherAt, weatherSky } from "./weather";
 
@@ -89,7 +90,12 @@ export function startScene(canvas: HTMLCanvasElement, initial: Settings): GameSc
     for (const fn of frameHooks) fn(timeMs);
     const wallMs = Date.now();
     const stepped = Math.floor(wallMs / SKY_STEP_MS) * SKY_STEP_MS;
-    const now = weatherSky(skyAt(stepped, look.sky), weatherAt(stepped), flashAt(wallMs));
+    const { dayOffsetMs, held } = skyClock;
+    const now = weatherSky(
+      skyAt(stepped + dayOffsetMs, look.sky),
+      weatherAt(stepped, held),
+      flashAt(wallMs, held),
+    );
     if (now.daylight !== daylight.value) frame.invalidate();
     daylight.value = now.daylight;
     sky.update(now, camera, camera.far * 0.8);

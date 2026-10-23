@@ -93,3 +93,17 @@ See [Adventure](../play/adventure.md#adventure-maps).
 | `/world deny`         | cancel the request                 |
 
 See [Running a server](admin.md#starting-the-world-over).
+
+### `/time` and `/weather`
+
+Both change things for everyone, are saved, and are announced in chat.
+
+| Command                                 | Does                                                                                                                                         |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/time`                                 | says the time                                                                                                                                |
+| `/time dawn` … `/time 18:30`            | moves the clock to `dawn` (6:00), `day` (9:00), `noon`, `dusk` (18:00), `night` (21:00), `midnight` or a time; the day carries on from there |
+| `/weather`                              | says the weather                                                                                                                             |
+| `/weather clear\|rain\|storm [MINUTES]` | holds that weather, for that many minutes or until `/weather auto`; rain is snow high up                                                     |
+| `/weather auto`                         | lets the weather change by itself again                                                                                                      |
+
+Night brings out slimes, and clock and weather sensors follow both.

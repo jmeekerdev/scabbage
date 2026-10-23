@@ -137,6 +137,10 @@ var migrations = []string{
 	);
 	ALTER TABLE players ADD COLUMN agent_allowed INTEGER NOT NULL DEFAULT 0;`,
 	`ALTER TABLE players ADD COLUMN agent_skip_confirm INTEGER NOT NULL DEFAULT 0;`,
+	`ALTER TABLE worlds ADD COLUMN day_offset_ms INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE worlds ADD COLUMN held_weather INTEGER NOT NULL DEFAULT -1;
+	ALTER TABLE worlds ADD COLUMN held_since_ms INTEGER NOT NULL DEFAULT 0;
+	ALTER TABLE worlds ADD COLUMN held_until_ms INTEGER NOT NULL DEFAULT 0;`,
 }
 
 // Open opens (creating if needed) the database at path and migrates it to the latest schema.

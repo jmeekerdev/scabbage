@@ -48,7 +48,7 @@ func (g *Gateway) stepMobsLocked(now time.Time) {
 		sessions = append(sessions, s)
 		seen = append(seen, mobs.Player{Pos: a.pos, Prey: a.prey()})
 	}
-	c := g.cfg.Mobs.Step(now, seen, g.cfg.World)
+	c := g.cfg.Mobs.Step(now, mobs.Night(g.sky().Clock(now)), seen, g.cfg.World)
 	if msg := mobsChanged(c.Moved, c.Gone); msg != nil {
 		g.broadcastLocked(msg)
 	}

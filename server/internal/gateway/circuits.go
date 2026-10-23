@@ -10,7 +10,6 @@ import (
 	"scabbage/internal/logic"
 	"scabbage/internal/motion"
 	pb "scabbage/internal/pb/scabbage/v1"
-	"scabbage/internal/weather"
 	"scabbage/internal/world"
 )
 
@@ -216,7 +215,8 @@ func (g *Gateway) senseLocked(now time.Time, feet, creatures []motion.Vec) error
 	for _, p := range g.cfg.World.Ticking() {
 		at = append(at, logic.Pos(p))
 	}
-	senses := logic.Senses{Players: spots(feet), Creatures: spots(creatures), Now: now, Wet: weather.At(now).Wet()}
+	sky := g.sky()
+	senses := logic.Senses{Players: spots(feet), Creatures: spots(creatures), Now: sky.Clock(now), Wet: sky.Weather(now).Wet()}
 	changes, err := logic.Sense(circuitWorld{g}, at, senses)
 	g.broadcastChanges(changes)
 	return err

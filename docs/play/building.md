@@ -10,7 +10,8 @@
   [dungeons](adventure.md#dungeons).
 - **Spawn** is in the middle, at x 0, z 0. Around it is a zone only admins can build in.
 - **Time and weather** are the same for everyone. A day lasts 20 minutes. Every 4 minutes the
-  weather changes: usually clear, sometimes rain, now and then a storm. High up it snows.
+  weather changes: usually clear, sometimes rain, now and then a storm. High up it snows. Admins
+  can change both with [`/time` and `/weather`](../host/commands.md#time-and-weather).
 - **Coordinates.** The 📍 line on screen shows where your feet are (x, y, z) and which way you
   face. y is up, and north is −z.
 
