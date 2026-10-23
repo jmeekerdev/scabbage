@@ -43,6 +43,7 @@ type session struct {
 	saved    snapshot     // as loaded on admit; the avatar holds the live state
 	resumed  bool         // saved is where they left off, not the spawn
 	journal  *journal.Journal
+	agent    *agentLink // tool calls relayed to this tab
 
 	cancel   context.CancelFunc // ends the session, e.g. when it can't keep up
 	fainted  chan struct{}      // a mob knocked the player out; respawn on the run goroutine
@@ -65,7 +66,7 @@ func (e rejectError) Error() string { return e.reason }
 func reject(code pb.DisconnectCode, reason string) rejectError { return rejectError{code, reason} }
 
 func newSession(g *Gateway, c *websocket.Conn, ip string, log *slog.Logger, cancel context.CancelFunc) *session {
-	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), relocate: make(chan spot, 1), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
+	return &session{gw: g, conn: c, ip: ip, log: log, cancel: cancel, fainted: make(chan struct{}, 1), relocate: make(chan spot, 1), agent: newAgentLink(), in: make(chan inbound), out: make(chan *pb.ServerMessage, outQueueSize)}
 }
 
 func (s *session) run(ctx context.Context) error {
@@ -178,6 +179,12 @@ func (s *session) handle(ctx context.Context, msg *pb.ClientMessage) error {
 		return s.answer(body.Answer)
 	case *pb.ClientMessage_ImportMap:
 		return s.importMap(ctx, body.ImportMap)
+	case *pb.ClientMessage_AgentReply:
+		s.agent.replied(body.AgentReply)
+		return nil
+	case *pb.ClientMessage_AgentProgress:
+		s.agent.progressed(body.AgentProgress)
+		return nil
 	case *pb.ClientMessage_Hello:
 		return reject(pb.DisconnectCode_DISCONNECT_CODE_PROTOCOL, "duplicate hello")
 	default:
@@ -251,6 +258,7 @@ func (s *session) write(ctx context.Context, msg *pb.ServerMessage) error {
 }
 
 func (s *session) close(err error) {
+	s.agent.close()
 	var rej rejectError
 	if errors.As(err, &rej) {
 		s.log.Info("rejecting client", "code", rej.code, "reason", rej.reason)

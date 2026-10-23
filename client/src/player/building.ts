@@ -104,7 +104,8 @@ export function breakEdit(hit: RayHit, w: BuildWorld, size = 1): Edit | undefine
 }
 
 /** Breaks or fills a whole cube as it stands, without aiming: AIR clears it, water included. */
-export function cubeEdit(cube: Cube, block: number, w: BuildWorld, body: Body): Edit | undefined {
+/** A brush filling or clearing a whole cube; with `body`, solid blocks skip the cells it is in. */
+export function cubeEdit(cube: Cube, block: number, w: BuildWorld, body?: Body): Edit | undefined {
   if (block !== AIR && w.unbreakable.has(block)) return undefined;
   const cells = cubeCells(cube).filter((c) =>
     block === AIR ? breakable(w, c, true) : fillable(w, c, block, body),
@@ -118,10 +119,10 @@ function breakable(w: BuildWorld, { x, y, z }: Cell, drains: boolean): boolean {
 }
 
 /** Whether `block` may go into an empty, loaded spot, not inside the body if it is solid. */
-function fillable(w: BuildWorld, { x, y, z }: Cell, block: number, body: Body): boolean {
+function fillable(w: BuildWorld, { x, y, z }: Cell, block: number, body?: Body): boolean {
   const current = w.blockAt(x, y, z);
   if (!w.inside(x, y, z) || current === undefined || isTargetable(w, current)) return false;
-  return !(w.solid[block] && overlaps(body, x, y, z));
+  return !(body && w.solid[block] && overlaps(body, x, y, z));
 }
 
 /** How long survival players dig an edit: the slowest block's time for each block of its width. */

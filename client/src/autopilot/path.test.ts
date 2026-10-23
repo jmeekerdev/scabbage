@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flyPath } from "./path";
+import { flyPath, overPath, type Passable } from "./path";
 import type { Vec } from "./route";
 
 /** Open air above y=0, plus any walls given as cell tests. */
@@ -45,5 +45,39 @@ describe("flyPath", () => {
     expect(flyPath({ x: 1.5, y: 9, z: 1.5 }, goal, near(goal, 2), world(box))).toBeUndefined();
     const far = { x: 3000, y: 10, z: 0 };
     expect(flyPath({ x: 1.5, y: 9, z: 1.5 }, far, near(far, 2), world(), 500)).toBeUndefined();
+  });
+});
+
+describe("overPath", () => {
+  // A forest of 20-block-tall trees from x=10 to 90, with a leafy roof right over the start.
+  const tall = (x: number, y: number, z: number) =>
+    x >= 10 && x < 90 && y < 20 && (x + z) % 4 === 0;
+  const roof = (x: number, y: number, z: number) =>
+    y >= 8 && y < 10 && x >= -6 && x < 3 && z >= -6 && z < 6;
+  const topOf = (passable: Passable) => (x: number, z: number) => {
+    for (let y = 59; y >= 0; y--) if (!passable(Math.floor(x), y, Math.floor(z))) return y;
+    return -Infinity;
+  };
+  const passable = world(tall, roof);
+  const topAt = topOf(passable);
+
+  it("gets out from under cover, flies over everything on the way, then drops to the goal", () => {
+    const goal = { x: 100, y: 0, z: 0 };
+    const path = overPath({ x: 0, y: 0, z: 0 }, goal, passable, topAt)!;
+    const cruise = path.at(-2)!.y;
+    expect(cruise).toBeGreaterThan(20);
+    expect(path.at(-2)).toMatchObject({ x: 100, z: 0 });
+    expect(path.at(-1)).toEqual(goal);
+    const out = path.findIndex((p) => p.y >= cruise);
+    expect(out).toBeGreaterThan(0);
+    expect(topAt(path[out - 1]!.x, path[out - 1]!.z)).toBeLessThan(path[out - 1]!.y); // open sky
+  });
+
+  it("gives up when there's no open sky to reach", () => {
+    const lid = (_x: number, y: number) => y >= 8 && y < 10;
+    const covered = world(lid);
+    expect(
+      overPath({ x: 0, y: 0, z: 0 }, { x: 99, y: 0, z: 0 }, covered, topOf(covered)),
+    ).toBeUndefined();
   });
 });

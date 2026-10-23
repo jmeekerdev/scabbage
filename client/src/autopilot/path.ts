@@ -4,9 +4,14 @@ import type { Vec } from "./route";
 /** Whether the body may pass through the block at x,y,z. */
 export type Passable = (x: number, y: number, z: number) => boolean;
 
+/** The y of the highest solid block in a column, or -Infinity if none is known. */
+export type TopAt = (x: number, z: number) => number;
+
 const NODE = 3; // blocks a side: a meter, just wider than the body
 const TALL = 2; // nodes the body stands in, 6 blocks for its 5.4
 const MAX_NODES = 8000; // nodes searched before giving up, a few milliseconds' work
+const SKY_NODES = 3000; // nodes searched for open sky, which is usually close
+const CLEARANCE = 4; // blocks between the feet and the highest thing flown over
 const SIDES = [
   [1, 0, 0],
   [-1, 0, 0],
@@ -56,6 +61,43 @@ export function flyPath(
     }
   }
   return undefined;
+}
+
+/**
+ * Feet points for when there's no way through: out to open sky, up above everything on the
+ * straight line to `goal`, across, and down onto it. Undefined if there's no open sky nearby.
+ */
+export function overPath(
+  from: Vec,
+  goal: Vec,
+  passable: Passable,
+  topAt: TopAt,
+): Vec[] | undefined {
+  const open = flyPath(from, goal, (feet) => skyOver(feet, topAt), passable, SKY_NODES);
+  if (!open) return undefined;
+  const start = open.at(-1) ?? from;
+  const cruise = Math.max(start.y, goal.y, highestBetween(start, goal, topAt) + CLEARANCE);
+  return [...open, { ...start, y: cruise }, { x: goal.x, y: cruise, z: goal.z }, goal];
+}
+
+/** Whether nothing solid is above any corner of the body standing here. */
+function skyOver(feet: Vec, topAt: TopAt): boolean {
+  return CORNERS.every(
+    ([ox, oz]) => topAt(feet.x + ox * HALF_WIDTH, feet.z + oz * HALF_WIDTH) < feet.y,
+  );
+}
+
+/** The highest solid block under the body flying straight from a to b. */
+function highestBetween(a: Vec, b: Vec, topAt: TopAt): number {
+  const steps = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z));
+  let top = -Infinity;
+  for (let s = 0; s <= steps; s++) {
+    const t = steps ? s / steps : 0;
+    const [x, z] = [a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t];
+    for (const [ox, oz] of CORNERS)
+      top = Math.max(top, topAt(x + ox * HALF_WIDTH, z + oz * HALF_WIDTH));
+  }
+  return top;
 }
 
 const nodeOf = (p: Vec): Node => [

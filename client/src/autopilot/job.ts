@@ -1,7 +1,10 @@
 import { cubeCells, MAX_BRUSH, type Cell, type Cube } from "../player/brush";
+import type { Step } from "./autopilot";
 
 /** The most blocks one job may change: a 32-block cube. */
 export const MAX_JOB_BLOCKS = 32 ** 3;
+/** The most cells one place job may list. */
+export const MAX_PLACE = 4096;
 
 /** The blocks from `min` to `max`, both included. */
 export interface Box {
@@ -9,10 +12,19 @@ export interface Box {
   max: Cell;
 }
 
+/** A cell and the block it should hold; 0 is air. */
+export type Placed = Cell & { block: number };
+
+type BlockAt = (x: number, y: number, z: number) => number | undefined;
+
 export type Job =
   | { kind: "goto"; target: Cell }
   | { kind: "clear"; box: Box }
-  | { kind: "fill"; box: Box; block: number };
+  | { kind: "fill"; box: Box; block: number }
+  | { kind: "place"; cells: Placed[] };
+
+/** The jobs chat commands start; place comes only from agents. */
+export type CommandKind = Exclude<Job["kind"], "place">;
 
 const USAGE = {
   goto: "Use /goto x y z, where ~ means where you are, e.g. /goto ~ ~10 ~.",
@@ -22,7 +34,7 @@ const USAGE = {
 
 /** Reads a job command's arguments, or says what is wrong with them. */
 export function parseJob(
-  kind: Job["kind"],
+  kind: CommandKind,
   arg: string,
   at: Cell,
   blockNamed: (name: string) => number | undefined,
@@ -34,8 +46,8 @@ export function parseJob(
   const [x1, y1, z1, x2, y2, z2] = coords as number[];
   if (kind === "goto") return { kind, target: { x: x1, y: y1, z: z1 } };
   const box = boxBetween({ x: x1, y: y1, z: z1 }, { x: x2, y: y2, z: z2 });
-  if (volume(box) > MAX_JOB_BLOCKS)
-    return `That box has ${volume(box).toLocaleString("en-US")} blocks; one job can change at most ${MAX_JOB_BLOCKS.toLocaleString("en-US")}.`;
+  const big = tooBig(box);
+  if (big) return big;
   if (kind === "clear") return { kind, box };
   const name = words[6]!.toLowerCase();
   const block = blockNamed(name);
@@ -49,7 +61,13 @@ function coordinate(word: string, at: Cell, index: number): number | undefined {
   return /^-?\d+$/.test(rest) ? base + Number(rest) : undefined;
 }
 
-function boxBetween(a: Cell, b: Cell): Box {
+/** Why a box is too big for one job, or undefined if it fits. */
+export function tooBig(box: Box): string | undefined {
+  if (volume(box) <= MAX_JOB_BLOCKS) return undefined;
+  return `That box has ${volume(box).toLocaleString("en-US")} blocks; one job can change at most ${MAX_JOB_BLOCKS.toLocaleString("en-US")}.`;
+}
+
+export function boxBetween(a: Cell, b: Cell): Box {
   const min = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), z: Math.min(a.z, b.z) };
   return { min, max: { x: Math.max(a.x, b.x), y: Math.max(a.y, b.y), z: Math.max(a.z, b.z) } };
 }
@@ -84,6 +102,26 @@ export function tileCells(cells: readonly Cell[], topDown: boolean): Cube[] {
     cubes.push(cube);
   }
   return order(cubes, topDown);
+}
+
+/**
+ * Steps that make each cell hold its block: clear what's in the way top-down, then fill bottom-up,
+ * one block at a time. Cells already right are left alone.
+ */
+export function changeSteps(cells: readonly Placed[], blockAt: BlockAt): Step[] {
+  const changed = cells.filter((c) => blockAt(c.x, c.y, c.z) !== c.block);
+  const clears = tileCells(
+    changed.filter((c) => blockAt(c.x, c.y, c.z) !== 0),
+    true,
+  ).map((cube) => ({ cube, block: 0 }));
+  const blocks = new Set(changed.map((c) => c.block).filter((b) => b !== 0));
+  const fills = [...blocks].flatMap((block) =>
+    tileCells(
+      changed.filter((c) => c.block === block),
+      false,
+    ).map((cube) => ({ ...cube, block })),
+  );
+  return [...clears, ...order(fills, false).map(({ block, ...cube }) => ({ cube, block }))];
 }
 
 /** Layer by layer, snaking along rows so each cube is next to the last. */

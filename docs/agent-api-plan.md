@@ -86,6 +86,17 @@ There are no protocol changes. The commands run in the chat box:
 
 ## Phase 2: agent link (server relay, MCP and JSON, docs)
 
+Built; [agent-api.md](agent-api.md) is the user guide. Where it differs from this plan:
+- The token is shown in a dialog with Copy buttons (`ServerMessage.agent_linked`), not in chat,
+  since chat text can't be selected. The client builds the setup lines from its own address.
+- There's no ban in the game yet, so tokens are dropped by `/agent deny`, `/agent revoke` and
+  deleting the player.
+- `inventory` waits for survival (phase 4). `say` is answered by the server, which marks the
+  line with 🤖.
+- `agent_progress` carries `{ id, state, percent, note }`.
+- `place` clears what's in a listed cell before placing, so it can replace blocks, and `"air"`
+  breaks one.
+
 **Pairing.**
 - `/agent link [label]` creates a token, shows it once in chat to that player only, and shows
   the MCP URL with it. The server keeps only a hash, in a new `agent_tokens` table

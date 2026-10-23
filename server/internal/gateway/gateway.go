@@ -9,11 +9,13 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/coder/websocket"
 
 	"scabbage/internal/access"
+	"scabbage/internal/agent"
 	"scabbage/internal/arenas"
 	"scabbage/internal/art"
 	"scabbage/internal/crafting"
@@ -38,8 +40,9 @@ type Config struct {
 	Zones          *zones.Service
 	Arenas         *arenas.Service
 	Maps           *maps.Service
-	ScriptDB       *sql.DB      // where script blocks keep their Lua and characters, and players their journals
-	Backup         func() error // copies the database, e.g. before the world is wiped
+	Agents         *agent.Tokens // linked agents; /agent is off when nil
+	ScriptDB       *sql.DB       // where script blocks keep their Lua and characters, and players their journals
+	Backup         func() error  // copies the database, e.g. before the world is wiped
 	ServerName     string
 	Mode           access.Mode // for players without their own; creative when unset
 	HelloTimeout   time.Duration
@@ -68,6 +71,7 @@ type Gateway struct {
 	dialogue    uint32                   // last Dialogue id handed out; guarded by mu
 	rng         *rand.Rand               // rolls loot; guarded by mu
 	wipe        *wipeRequest             // an admin asking to start the world over; guarded by mu
+	agentIDs    atomic.Uint64            // last agent command id handed out
 }
 
 // New returns a Gateway with defaults applied, registering the custom blocks already approved.

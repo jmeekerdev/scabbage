@@ -144,4 +144,20 @@ describe("Autopilot", () => {
     expect(events).toEqual(["fill done 1"]);
     expect(w.blockAt(40, 10, 0)).toBe(PLANKS);
   });
+
+  it("moves out of the way of a cell its own body is in, instead of skipping the cell", () => {
+    const { pilot, events, w, put } = setup();
+    const body = { ...newBody(0.5, 10, 0.5), flying: true }; // standing in the cell to fill
+    const boxesAt = (x: number, y: number, z: number) =>
+      w.solid[w.blockAt(x, y, z) ?? STONE] ? FULL_BLOCK : [];
+    pilot.start({ kind: "fill", steps: [{ cube: { x: 0, y: 10, z: 0, size: 1 }, block: PLANKS }] });
+    for (let i = 0; i < 60 * 10 && pilot.busy; i++) {
+      const t = pilot.tick(1 / 60, body, eyeOf(body), w)!;
+      for (const e of t.edits) for (const c of e.cells) put(c.x, c.y, c.z, e.block);
+      body.flying = true;
+      stepBody(body, t.move, t.yaw ?? 0, 1 / 60, boxesAt);
+    }
+    expect(events).toEqual(["fill done 1"]);
+    expect(w.blockAt(0, 10, 0)).toBe(PLANKS);
+  });
 });

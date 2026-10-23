@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cubeCells } from "../player/brush";
-import { MAX_JOB_BLOCKS, parseJob, tile } from "./job";
+import { changeSteps, MAX_JOB_BLOCKS, parseJob, tile } from "./job";
 
 const at = { x: 10, y: 20, z: 30 };
 const blockNamed = (name: string) => ({ stone: 1, planks: 5 })[name];
@@ -77,6 +77,36 @@ describe("tile", () => {
       [2, 1],
       [1, 1],
       [0, 1],
+    ]);
+  });
+});
+
+describe("changeSteps", () => {
+  const [AIR, STONE, PLANKS] = [0, 1, 5];
+  const now = new Map([
+    ["0,9,0", STONE],
+    ["0,11,0", PLANKS],
+    ["5,5,5", PLANKS],
+  ]);
+  const blockAt = (x: number, y: number, z: number) => now.get(`${x},${y},${z}`) ?? AIR;
+
+  it("clears what's in the way top-down, then fills bottom-up, skipping cells already right", () => {
+    const steps = changeSteps(
+      [
+        { x: 0, y: 10, z: 0, block: PLANKS },
+        { x: 1, y: 10, z: 0, block: PLANKS },
+        { x: 0, y: 9, z: 0, block: AIR },
+        { x: 0, y: 11, z: 0, block: STONE },
+        { x: 5, y: 5, z: 5, block: PLANKS },
+      ],
+      blockAt,
+    );
+    expect(steps.map((s) => [s.cube.x, s.cube.y, s.block])).toEqual([
+      [0, 11, AIR],
+      [0, 9, AIR],
+      [0, 10, PLANKS],
+      [1, 10, PLANKS],
+      [0, 11, STONE],
     ]);
   });
 });

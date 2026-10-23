@@ -54,7 +54,7 @@ func (g *Gateway) palette() *pb.BlocksChanged {
 		out.Blocks = append(out.Blocks, &pb.BlockType{
 			Id: uint32(b.ID), Name: b.Name, Solid: b.Solid, Transparent: b.Transparent, Pixels: g.art.pixels[b.ID],
 			Shape: pb.Shape(b.Shape), Light: uint32(b.Light), MineMs: uint32(b.MineMs),
-			Usable: b.Usable, Item: heldAs(b.ID),
+			Usable: b.Usable, Item: heldAs(b.ID), Turned: b.Facing,
 		})
 	}
 	return out

@@ -37,6 +37,8 @@ message ClientMessage {
     Answer answer = 22;
     ImportMap import_map = 23;
     RequestFar request_far = 24;
+    AgentReply agent_reply = 25;
+    AgentProgress agent_progress = 26;
   }
 }
 
@@ -75,6 +77,8 @@ message ServerMessage {
     MapExported map_exported = 30;
     ChunksStale chunks_stale = 31;
     FarLand far_land = 32;
+    AgentCommand agent_command = 33;
+    AgentLinked agent_linked = 34;
   }
 }
 
@@ -130,6 +134,7 @@ message BlockType {
   uint32 mine_ms = 8; // how long survival players dig to break it; 0 is instant
   bool usable = 9; // players press it by hand, like a switch
   uint32 item = 10; // the block players hold for this one, when it differs
+  bool turned = 11; // its item turned another way, which may be placed as it is
 }
 
 // Block geometry; stairs' tall half faces the named direction (north is -z).
@@ -676,4 +681,38 @@ message FarTile {
   ColumnPos pos = 1;
   repeated uint32 tops = 2; // the y just above each sample's highest block
   repeated uint32 blocks = 3; // that block's ID
+}
+
+// A token just made by /agent link, shown once to the player who asked so they can copy it.
+message AgentLinked {
+  string label = 1;
+  string token = 2;
+}
+
+// An agent's tool call for the player's tab to run, such as "fill"; json holds its arguments.
+message AgentCommand {
+  uint64 id = 1;
+  string tool = 2;
+  string json = 3;
+}
+
+// The tab's answer to an AgentCommand: a JSON object, with "error" set if it refused.
+message AgentReply {
+  uint64 id = 1;
+  string json = 2;
+}
+
+// How the job an AgentCommand started is going.
+message AgentProgress {
+  uint64 id = 1;
+  AgentJobState state = 2;
+  uint32 percent = 3;
+  string note = 4; // what the player sees in chat, e.g. "Done: 27 blocks."
+}
+
+enum AgentJobState {
+  AGENT_JOB_STATE_UNSPECIFIED = 0;
+  AGENT_JOB_STATE_RUNNING = 1;
+  AGENT_JOB_STATE_DONE = 2;
+  AGENT_JOB_STATE_STOPPED = 3;
 }

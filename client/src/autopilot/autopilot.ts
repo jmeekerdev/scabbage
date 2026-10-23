@@ -2,16 +2,20 @@ import { cubeEdit, REACH, type BuildWorld, type Edit } from "../player/building"
 import type { Cube } from "../player/brush";
 import { NO_INPUT } from "../player/input";
 import { EYE_HEIGHT, HALF_WIDTH, HEIGHT, type Body, type MoveInput } from "../player/physics";
-import { flyPath, type Passable } from "./path";
+import { flyPath, overPath, type Passable, type TopAt } from "./path";
 import { Steering, type SteerStep, type Vec } from "./route";
 
-const EDIT_S = 1 / 8; // a watchable pace, well under the server's edit limit
+/** Brushes sent a second: a watchable pace, well under the server's edit limit. */
+export const BRUSHES_PER_S = 8;
+const EDIT_S = 1 / BRUSHES_PER_S;
 const NEAR = REACH - 4; // flying stops this close, so a little drift keeps the next cubes in reach
 const SKIPS_PER_TICK = 256; // empty cubes passed over in one frame
 const MAX_PITCH = Math.PI / 2 - 0.01;
 const MAX_STUCK = 8; // times stuck on one cube or goto before giving up on it
 const WAYPOINT_PASSED = 1.5; // blocks from a waypoint that count as through it
 const GOTO_NEAR = 3; // blocks from a goto target the route search aims for, before the last stretch
+const LOOK_UP = 48; // blocks above the trip's highest end searched for treetops to fly over
+const LOOK_DOWN = 8; // and below its lowest
 
 /** One brush to send: AIR clears the cube, any other block fills its empty spots. */
 export interface Step {
@@ -85,7 +89,7 @@ export class Autopilot {
     const plan = this.plan;
     if (!plan) return undefined;
     this.sinceEditS += dt;
-    this.skipEmpty(plan, body, w);
+    this.skipEmpty(plan, w);
     const step = plan.steps[this.next];
     if (step) {
       const tick = this.work(step, dt, body, eye, w);
@@ -106,12 +110,13 @@ export class Autopilot {
   private work(step: Step, dt: number, body: Body, eye: Vec, w: BuildWorld): Tick {
     const center = cubeCenter(step.cube);
     const far = distance(eye, center);
-    this.editing = far <= (this.editing ? REACH : NEAR);
+    const inTheWay = bodyInTheWay(step, w, body);
+    this.editing = far <= (this.editing ? REACH : NEAR) && !inTheWay;
     if (!this.editing) {
       const near = (feet: Vec) => canWorkFrom(feet, step.cube);
       const steer = this.fly(dt, body, standPoint(step.cube), near, w);
       // Blocked short of the stand point, e.g. by trees: work from here if the cube is in reach.
-      this.editing = steer.stuck && far <= REACH;
+      this.editing = steer.stuck && far <= REACH && !inTheWay;
       if (!this.editing) {
         if (steer.stuck && this.givesUp()) this.advance();
         return { ...steer, fly: true, edits: [] };
@@ -129,7 +134,7 @@ export class Autopilot {
     return { move: NO_INPUT, ...facing(eye, center), fly: true, edits };
   }
 
-  /** Steers along a route found through open air, or straight at `goal` if there's none. */
+  /** Steers along a route through open air, else over the top, else straight at `goal`. */
   private fly(
     dt: number,
     body: Body,
@@ -139,7 +144,9 @@ export class Autopilot {
     last?: Vec,
   ): SteerStep {
     if (!this.route) {
-      const found = flyPath(body, goal, near, passable(w));
+      const found =
+        flyPath(body, goal, near, passable(w)) ??
+        overPath(body, goal, passable(w), topAt(w, body, goal));
       this.routed = found !== undefined;
       this.route = [...(found ?? (last ? [] : [goal])), ...(last ? [last] : [])];
     }
@@ -151,10 +158,10 @@ export class Autopilot {
   }
 
   /** Passes over loaded cubes that are already as the plan wants them. */
-  private skipEmpty(plan: Plan, body: Body, w: BuildWorld): void {
+  private skipEmpty(plan: Plan, w: BuildWorld): void {
     for (let n = 0; n < SKIPS_PER_TICK; n++) {
       const step = plan.steps[this.next];
-      if (!step || !loaded(step.cube, w) || cubeEdit(step.cube, step.block, w, body)) return;
+      if (!step || !loaded(step.cube, w) || cubeEdit(step.cube, step.block, w)) return;
       this.advance();
     }
   }
@@ -200,6 +207,12 @@ const standPoint = (c: Cube): Vec => ({
 });
 
 /** Whether feet here put the eye close enough to work a cube, with the body clear of it. */
+/** Whether the avatar stands in cells the step would fill, so it must move before editing. */
+function bodyInTheWay(step: Step, w: BuildWorld, body: Body): boolean {
+  const all = cubeEdit(step.cube, step.block, w)?.cells.length ?? 0;
+  return all > (cubeEdit(step.cube, step.block, w, body)?.cells.length ?? 0);
+}
+
 function canWorkFrom(feet: Vec, c: Cube): boolean {
   const eye = { ...feet, y: feet.y + EYE_HEIGHT };
   const clear =
@@ -218,6 +231,19 @@ const passable =
     const b = w.blockAt(x, y, z);
     return b !== undefined && !w.solid[b];
   };
+
+/** Finds the highest solid block in a column between a trip's ends, give or take. */
+function topAt(w: BuildWorld, a: Vec, b: Vec): TopAt {
+  const [high, low] = [Math.max(a.y, b.y) + LOOK_UP, Math.min(a.y, b.y) - LOOK_DOWN];
+  return (x, z) => {
+    const [cx, cz] = [Math.floor(x), Math.floor(z)];
+    for (let y = Math.floor(high); y >= low; y--) {
+      const block = w.blockAt(cx, y, cz); // undefined where not loaded: skipped as unknown
+      if (block !== undefined && w.solid[block]) return y;
+    }
+    return -Infinity;
+  };
+}
 
 const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 

@@ -92,6 +92,10 @@ Type `/help` in game for the full list. Some useful commands:
 - `/settings` and `/blocks`: menus.
 - `/create`: paint a block or make a look.
 - `/buttons`: show the on-screen menu buttons.
+- `/goto`, `/clear x1 y1 z1 x2 y2 z2`, `/fill … block`, `/stop`, `/undo`: the autopilot flies and
+  builds for you.
+- `/agent link`: let an AI agent such as Claude Code fly and build as you, over MCP or JSON. See
+  [docs/agent-api.md](docs/agent-api.md).
 
 Admins also get:
 

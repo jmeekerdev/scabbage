@@ -16,7 +16,12 @@ function setup() {
   ];
   const w = buildWorldFor({ radius: -1, height: 64, blocks }, blockAt);
   const notes: string[] = [];
-  const jobs = new Jobs({ note: (t) => notes.push(t), blockAt });
+  const reports: string[] = [];
+  const jobs = new Jobs({
+    note: (t) => notes.push(t),
+    blockAt,
+    agentJob: (id, state, percent, note) => reports.push(`${id} ${state} ${percent} ${note}`),
+  });
   const body = newBody(1.5, 12, 1.5);
   const eye = { x: body.x, y: body.y + EYE_HEIGHT, z: body.z };
   /** Runs the autopilot until it is done, applying its edits to the world. */
@@ -27,7 +32,7 @@ function setup() {
   };
   const at = { x: 1, y: 12, z: 1 };
   const named = (n: string) => ({ planks: PLANKS })[n];
-  return { jobs, notes, blockAt, finish, at, named };
+  return { jobs, notes, reports, blockAt, finish, at, named };
 }
 
 describe("Jobs", () => {
@@ -74,5 +79,74 @@ describe("Jobs", () => {
     jobs.interrupt();
     expect(jobs.busy).toBe(false);
     expect(notes).toEqual(["Nothing to stop.", "Flying to 1 22 1.", "Stopped: you took over."]);
+  });
+
+  it("runs an agent's job, marked so the player knows, and reports how it went", () => {
+    const { jobs, notes, reports, blockAt, finish } = setup();
+    const box = { min: { x: 0, y: 10, z: 0 }, max: { x: 3, y: 10, z: 0 } };
+    const r = jobs.start({ kind: "fill", box, block: PLANKS }, false, 7);
+    expect(r).toEqual({
+      started: "Filling 4 blocks. /stop stops, /undo takes it back.",
+      brushes: 4,
+      seconds: 1,
+    });
+    finish();
+    expect(blockAt(3, 10, 0)).toBe(PLANKS);
+    expect(notes[0]).toBe("🤖 Filling 4 blocks. /stop stops, /undo takes it back.");
+    expect(reports[0]).toBe("7 running 0 ");
+    expect(reports.at(-1)).toBe("7 done 100 Done: 4 blocks.");
+  });
+
+  it("tells the agent when its job is stopped or replaced", () => {
+    const { jobs, reports, at, named } = setup();
+    jobs.start({ kind: "goto", target: { x: 50, y: 20, z: 0 } }, false, 1);
+    jobs.interrupt();
+    jobs.start({ kind: "goto", target: { x: 50, y: 20, z: 0 } }, false, 2);
+    jobs.run("goto", "~ ~10 ~", at, named, false);
+    expect(reports.filter((r) => r.includes("stopped"))).toEqual([
+      "1 stopped 0 Stopped: you took over.",
+      "2 stopped 0 Stopped: another job started.",
+    ]);
+  });
+
+  it("places listed cells, clearing what's in their way, and refuses in survival", () => {
+    const { jobs, blockAt, finish } = setup();
+    const cells = [
+      { x: 0, y: 9, z: 0, block: PLANKS },
+      { x: 0, y: 11, z: 0, block: STONE },
+      { x: 1, y: 9, z: 0, block: AIR },
+    ];
+    expect(jobs.start({ kind: "place", cells }, true, 3)).toEqual({
+      error: "Agents work in creative for now; survival is coming later.",
+    });
+    expect(jobs.start({ kind: "place", cells }, false, 3)).toMatchObject({
+      started: "Placing 3 blocks. /stop stops, /undo takes it back.",
+    });
+    finish();
+    expect([blockAt(0, 9, 0), blockAt(0, 11, 0), blockAt(1, 9, 0)]).toEqual([PLANKS, STONE, AIR]);
+  });
+
+  it("refuses jobs that reach into a zone the player can't build in", () => {
+    const notes: string[] = [];
+    const jobs = new Jobs({
+      note: (t) => notes.push(t),
+      blockAt: () => AIR,
+      refusedAt: (x) => (x >= 100 ? "Castle" : undefined),
+    });
+    const box = { min: { x: 90, y: 10, z: 0 }, max: { x: 101, y: 10, z: 0 } };
+    const cells = [{ x: 105, y: 10, z: 3, block: PLANKS }];
+    const refusal = {
+      error:
+        "Only builders of Castle can change blocks there (at 100, 0). Ask an admin to add you.",
+    };
+    expect(jobs.start({ kind: "fill", box, block: PLANKS }, false, 1)).toEqual(refusal);
+    expect(jobs.start({ kind: "place", cells }, false, 1)).toEqual({
+      error:
+        "Only builders of Castle can change blocks there (at 105, 3). Ask an admin to add you.",
+    });
+    expect(jobs.start({ kind: "goto", target: { x: 105, y: 10, z: 0 } }, false, 1)).toHaveProperty(
+      "started",
+    );
+    expect(notes[0]).toBe(refusal.error);
   });
 });

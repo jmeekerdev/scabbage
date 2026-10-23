@@ -25,15 +25,21 @@ import {
   encodeImportMap,
   encodeSendChat,
   encodeSubmitArt,
+  encodeAgentProgress,
+  encodeAgentReply,
   type Bytes,
   type JoinInit,
 } from "./net/codec";
 import { Connection, type ConnectionEvents } from "./net/connection";
+import { reloadIfStale } from "./net/stale";
 import { socketUrl } from "./net/url";
 import {
+  AgentJobState,
   ArtKind,
   GameMode,
   Harm,
+  type AgentCommand,
+  type AgentLinked,
   type BlockChanged,
   type BlockType,
   type Emote,
@@ -67,7 +73,9 @@ import { Miner } from "./player/mining";
 import { MOB_REACH, MOB_STEP_MS, type MobState, Mobs, pickMob } from "./player/mobs";
 import { GamepadControls } from "./player/gamepad";
 import { combineIntents, isActive, type BuildActions } from "./player/input";
-import { Jobs } from "./autopilot/jobs";
+import { runAgentCommand } from "./autopilot/agent";
+import { Jobs, type JobState } from "./autopilot/jobs";
+import { agentLinkedView } from "./ui/agent-linked";
 import type { Tick } from "./autopilot/autopilot";
 import { KeyboardMouse } from "./player/keyboard-mouse";
 import { MoveSync, type Pose } from "./player/move-sync";
@@ -95,7 +103,7 @@ import { ScoreboardView } from "./ui/scoreboard-view";
 import { ScriptEditor } from "./ui/script-editor";
 import { scriptBlockNames } from "./ui/script-names";
 import { adminRouter, ArtList, InvitePanel, PendingList } from "./ui/admin";
-import { BlockPicker, placeable } from "./ui/block-picker";
+import { BlockPicker, buildable } from "./ui/block-picker";
 import { ChatView } from "./ui/chat-view";
 import { Commands } from "./ui/commands";
 import { $, el } from "./ui/dom";
@@ -196,7 +204,7 @@ inventory.onChange = () => {
 };
 let locked = false;
 const commands = new Commands();
-commands.also(["leave"]);
+commands.also(["leave", "agent"]);
 const chat = new ChatView(
   $("#chat"),
   (text) => {
@@ -253,6 +261,9 @@ let blockNames = new Map<string, number>(); // blocks players may place, for /fi
 const jobs = new Jobs({
   note: (text) => chat.note(text),
   blockAt: (x, y, z) => world.blockAt(x, y, z),
+  refusedAt: (x, z) => (zones.canBuild(x, z) ? undefined : (zones.at(x, z)?.name ?? "this zone")),
+  agentJob: (id, state, percent, note) =>
+    conn?.send(encodeAgentProgress(BigInt(id), AGENT_STATES[state], percent, note)),
 });
 let notes = noteTable([]);
 let bounds: WorldBounds | undefined; // set while in the world
@@ -408,6 +419,8 @@ function connect(join?: JoinInit): void {
           applyBlocks(msg.body.value.blocks, msg.body.value.textures);
         else if (msg.body.case === "skinChanged")
           others?.setSkin(msg.body.value.entity, msg.body.value.skin);
+        else if (msg.body.case === "agentCommand") agentCommand(msg.body.value);
+        else if (msg.body.case === "agentLinked") showAgentLinked(msg.body.value);
         else if (!rosterChanged(msg)) onAdminMessage?.(msg);
       },
     },
@@ -462,6 +475,7 @@ function enterGame(w: Welcome): void {
   me = w.you;
   if (!w.you?.admin && onAdminMessage) return location.reload(); // admin rights were removed
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
+  void reloadIfStale().catch(() => undefined); // a reconnect may find the server updated
   if (w.world) enterWorld(w.world, w.tickRateHz);
   if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
@@ -535,7 +549,7 @@ function applyBlocks(blocks: BlockType[], textures: Texture[]): void {
   const icon = blockIconPainter(atlas, table);
   mountHotbar($("#hotbar"), hotbar, name, icon);
   picker.set(blocks, icon);
-  blockNames = new Map(placeable(blocks).map((b) => [b.name, b.id]));
+  blockNames = new Map(buildable(blocks).map((b) => [b.name, b.id]));
   backpack.setBlocks(icon, name);
   drops.setIcons(icon);
 }
@@ -574,6 +588,34 @@ function autopilot(dt: number): Tick | undefined {
   if (auto.yaw !== undefined) player.look.yaw = auto.yaw;
   if (auto.pitch !== undefined) player.look.pitch = auto.pitch;
   return auto;
+}
+
+const AGENT_STATES: Record<JobState, AgentJobState> = {
+  running: AgentJobState.RUNNING,
+  done: AgentJobState.DONE,
+  stopped: AgentJobState.STOPPED,
+};
+
+/** Runs a tool an agent called for us, answering the server with how it went. */
+function agentCommand(c: AgentCommand): void {
+  const host = { jobs, blocks: () => blockNames, survival: () => survival };
+  const reply = runAgentCommand(Number(c.id), c.tool, c.json, host);
+  conn?.send(encodeAgentReply(c.id, JSON.stringify(reply)));
+}
+
+/** Shows a token /agent link just made, once, so the player can copy it into their agent. */
+function showAgentLinked(linked: AgentLinked): void {
+  const dialog = el(
+    "dialog",
+    { class: "card" },
+    agentLinkedView(linked, location.origin),
+    el("button", { onclick: () => dialog.close() }, "Close"),
+  );
+  document.body.append(dialog);
+  relockOnClose(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  if (document.pointerLockElement) document.exitPointerLock();
+  dialog.showModal();
 }
 
 /** Commands that send the autopilot to fly, clear or fill for us. */
