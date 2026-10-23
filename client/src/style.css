@@ -206,6 +206,20 @@ button.primary {
   pointer-events: none;
 }
 
+/* Says the game stopped while another window has focus; it comes back on focus. */
+body.paused::after {
+  content: "⏸ Paused";
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  pointer-events: none;
+}
+
 /* Asks phone players to turn sideways; it never blocks a tap. */
 #rotate {
   display: none;

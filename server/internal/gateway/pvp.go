@@ -37,6 +37,9 @@ func (s *session) hitPlayer(m *pb.HitPlayer) error {
 		g.fallLocked(b) // one tag and you're out
 		return nil
 	}
+	if b.away {
+		return nil // they can't fight back
+	}
 	fainted := b.vitals.Hurt(playerDamage, now)
 	target.push(vitalsMessage(b, pb.Harm_HARM_PLAYER))
 	if fainted {

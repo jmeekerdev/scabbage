@@ -38,7 +38,7 @@ func mobsChanged(moved []mobs.Mob, gone []uint32) *pb.ServerMessage {
 
 // stepMobsLocked moves the herd every mobs.Every, tells everyone and lets monsters bite.
 func (g *Gateway) stepMobsLocked(now time.Time) {
-	if now.Sub(g.mobsAt) < mobs.Every {
+	if now.Sub(g.mobsAt) < mobs.Every || g.everyoneAwayLocked() {
 		return
 	}
 	g.mobsAt = now
@@ -46,7 +46,7 @@ func (g *Gateway) stepMobsLocked(now time.Time) {
 	seen := make([]mobs.Player, 0, len(g.players))
 	for s, a := range g.players {
 		sessions = append(sessions, s)
-		seen = append(seen, mobs.Player{Pos: a.pos, Prey: a.mode == survival})
+		seen = append(seen, mobs.Player{Pos: a.pos, Prey: a.prey()})
 	}
 	c := g.cfg.Mobs.Step(now, seen, g.cfg.World)
 	if msg := mobsChanged(c.Moved, c.Gone); msg != nil {

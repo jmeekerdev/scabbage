@@ -26,6 +26,7 @@ import {
   encodeSendChat,
   encodeSubmitArt,
   encodeAgentProgress,
+  encodeSetAway,
   encodeAgentReply,
   type Bytes,
   type JoinInit,
@@ -301,6 +302,27 @@ gameScene.onFrame((timeMs) => {
   const pose = moves?.due(timeMs, player.pose());
   if (pose && moves) conn?.send(encodeMove(pose, moves.teleport));
 });
+// Another window has focus: pause the game, unless an autopilot job is using this tab.
+let away = false;
+const setAway = (on: boolean) => {
+  if (on === away) return;
+  away = on;
+  document.body.classList.toggle("paused", on);
+  conn?.send(encodeSetAway(on));
+};
+const pauseIfAway = () => {
+  if (away || document.hasFocus() || jobs.busy) return;
+  gameScene.pause();
+  lastFrameMs = undefined;
+  setAway(true);
+};
+const resumeGame = () => {
+  setAway(false);
+  gameScene.resume();
+};
+addEventListener("blur", pauseIfAway);
+addEventListener("focus", resumeGame);
+gameScene.onFrame(pauseIfAway); // a job ended while away
 const drawn = { view: 0, objects: 0 };
 if (DEBUG_FRAMES)
   window.setInterval(() => {
@@ -476,6 +498,7 @@ function enterGame(w: Welcome): void {
   if (!w.you?.admin && onAdminMessage) return location.reload(); // admin rights were removed
   if (w.you?.admin && !onAdminMessage) mountAdminTools();
   void reloadIfStale().catch(() => undefined); // a reconnect may find the server updated
+  if (away) conn?.send(encodeSetAway(true)); // a reconnect while paused
   if (w.world) enterWorld(w.world, w.tickRateHz);
   if (w.inventory) inventory.set(w.inventory.slots);
   if (w.vitals) applyVitals(w.vitals);
@@ -598,6 +621,7 @@ const AGENT_STATES: Record<JobState, AgentJobState> = {
 
 /** Runs a tool an agent called for us, answering the server with how it went. */
 function agentCommand(c: AgentCommand): void {
+  resumeGame(); // its job needs frames, even with the agent's window in front
   const host = { jobs, blocks: () => blockNames, survival: () => survival };
   const reply = runAgentCommand(Number(c.id), c.tool, c.json, host);
   conn?.send(encodeAgentReply(c.id, JSON.stringify(reply)));
@@ -853,6 +877,7 @@ function rosterChanged(msg: ServerMessage): boolean {
   else if (b.case === "playersMoved")
     for (const p of b.value.poses) others?.move(p.entity, poseOf(p), now);
   else if (b.case === "playerLeft") others?.leave(b.value.entity);
+  else if (b.case === "playerAway") others?.setAway(b.value.entity, b.value.away);
   else return false;
   return true;
 }

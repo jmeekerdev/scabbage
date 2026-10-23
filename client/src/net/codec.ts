@@ -136,6 +136,11 @@ export function encodeAgentProgress(
   return encode({ case: "agentProgress", value: { id, state, percent, note } });
 }
 
+/** Tells the server our game paused or came back, so mobs leave us be and others see it. */
+export function encodeSetAway(away: boolean): Bytes {
+  return encode({ case: "setAway", value: { away } });
+}
+
 export function encodeSendChat(text: string): Bytes {
   return encode({ case: "sendChat", value: { text } });
 }
