@@ -112,7 +112,8 @@ export class Avatar {
   }
 
   private disposeTag(): void {
-    this.disposeTag();
+    this.tag?.material.map?.dispose();
+    this.tag?.material.dispose();
   }
 
   /** Re-uploads the skin after its pixels were changed in place, e.g. by the editor. */
@@ -169,8 +170,7 @@ export class Avatar {
   dispose(): void {
     this.material.map?.dispose();
     this.material.dispose();
-    this.tag?.material.map?.dispose();
-    this.tag?.material.dispose();
+    this.disposeTag();
   }
 }
 
